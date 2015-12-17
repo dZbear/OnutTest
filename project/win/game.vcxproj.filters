@@ -2,5 +2,51 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\seed\SeedApp.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\seed\SeedView.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\ONutTestApp.cpp">
+      <Filter>app</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\StartView.cpp">
+      <Filter>app\Views</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\seed\SeedSprite.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="seed">
+      <UniqueIdentifier>{8ccc1d83-baa6-45d8-9ff3-79c04bb34ea3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="app">
+      <UniqueIdentifier>{945cdf4d-19ee-4b16-ab52-f3088995b381}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="app\Views">
+      <UniqueIdentifier>{a3a3f0f2-bc26-4cc6-987c-583dd0cc19b6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\seed\SeedApp.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\SeedView.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\ONutTestApp.h">
+      <Filter>app</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\StartView.h">
+      <Filter>app\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\SeedSprite.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\SeedGlobals.h">
+      <Filter>seed</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

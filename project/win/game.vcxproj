@@ -52,7 +52,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../src;../../onut/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../src;../../src/seed;../../onut/include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -83,12 +83,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\app\ONutTestApp.cpp" />
+    <ClCompile Include="..\..\src\app\StartView.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
+    <ClCompile Include="..\..\src\seed\SeedApp.cpp" />
+    <ClCompile Include="..\..\src\seed\SeedSprite.cpp" />
+    <ClCompile Include="..\..\src\seed\SeedView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\onut\project\win\onut.vcxproj">
       <Project>{5a0e49d2-55f1-4ab5-94f6-d19f308ecc46}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\app\ONutTestApp.h" />
+    <ClInclude Include="..\..\src\app\StartView.h" />
+    <ClInclude Include="..\..\src\seed\SeedApp.h" />
+    <ClInclude Include="..\..\src\seed\SeedGlobals.h" />
+    <ClInclude Include="..\..\src\seed\SeedSprite.h" />
+    <ClInclude Include="..\..\src\seed\SeedView.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
