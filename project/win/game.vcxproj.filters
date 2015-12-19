@@ -2,19 +2,19 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\..\src\main.cpp" />
-    <ClCompile Include="..\..\src\seed\SeedApp.cpp">
-      <Filter>seed</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\seed\SeedView.cpp">
-      <Filter>seed</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\app\ONutTestApp.cpp">
       <Filter>app</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\app\StartView.cpp">
       <Filter>app\Views</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\seed\SeedSprite.cpp">
+    <ClCompile Include="..\..\src\seed\App.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\seed\Sprite.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\seed\View.cpp">
       <Filter>seed</Filter>
     </ClCompile>
   </ItemGroup>
@@ -30,19 +30,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\seed\SeedApp.h">
-      <Filter>seed</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\seed\SeedView.h">
-      <Filter>seed</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\app\ONutTestApp.h">
       <Filter>app</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\StartView.h">
       <Filter>app\Views</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\seed\SeedSprite.h">
+    <ClInclude Include="..\..\src\seed\App.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\Sprite.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\View.h">
       <Filter>seed</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\seed\SeedGlobals.h">

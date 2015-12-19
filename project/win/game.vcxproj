@@ -86,9 +86,9 @@
     <ClCompile Include="..\..\src\app\ONutTestApp.cpp" />
     <ClCompile Include="..\..\src\app\StartView.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
-    <ClCompile Include="..\..\src\seed\SeedApp.cpp" />
-    <ClCompile Include="..\..\src\seed\SeedSprite.cpp" />
-    <ClCompile Include="..\..\src\seed\SeedView.cpp" />
+    <ClCompile Include="..\..\src\seed\App.cpp" />
+    <ClCompile Include="..\..\src\seed\Sprite.cpp" />
+    <ClCompile Include="..\..\src\seed\View.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\onut\project\win\onut.vcxproj">
@@ -98,10 +98,10 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\app\ONutTestApp.h" />
     <ClInclude Include="..\..\src\app\StartView.h" />
-    <ClInclude Include="..\..\src\seed\SeedApp.h" />
+    <ClInclude Include="..\..\src\seed\App.h" />
     <ClInclude Include="..\..\src\seed\SeedGlobals.h" />
-    <ClInclude Include="..\..\src\seed\SeedSprite.h" />
-    <ClInclude Include="..\..\src\seed\SeedView.h" />
+    <ClInclude Include="..\..\src\seed\Sprite.h" />
+    <ClInclude Include="..\..\src\seed\View.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

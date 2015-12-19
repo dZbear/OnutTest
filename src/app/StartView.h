@@ -1,8 +1,7 @@
 #pragma once
+#include "View.h"
 
-#include "SeedView.h"
-
-class StartView : public SeedView
+class StartView : public seed::View
 {
 public:
 

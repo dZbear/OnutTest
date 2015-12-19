@@ -15,7 +15,10 @@ ONutTestApp::~ONutTestApp()
 void ONutTestApp::OnStart()
 {
 	// create game specific views
-	CreateView(new StartView());
+	AddView("StartView", new StartView());
+
+	// show the default view
+	PushView("StartView");
 }
 
 void ONutTestApp::OnUpdate()

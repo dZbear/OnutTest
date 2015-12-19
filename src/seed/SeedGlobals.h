@@ -6,7 +6,13 @@
 using namespace DirectX::SimpleMath;
 using namespace std;
 
-class SeedSprite;
+namespace seed
+{
+	class Sprite;
+	class View;
 
-typedef unordered_map<string, SeedSprite*>	SpriteMap;
-typedef vector<SeedSprite*>					SpriteVect;
+	typedef unordered_map<string, Sprite*>	SpriteMap;
+	typedef vector<Sprite*>					SpriteVect;
+	typedef unordered_map<string, View*>	ViewMap;
+	typedef vector<View*>					ViewStack;
+}

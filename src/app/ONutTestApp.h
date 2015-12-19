@@ -1,8 +1,7 @@
 #pragma once
+#include "App.h"
 
-#include "SeedApp.h"
-
-class ONutTestApp : public SeedApp
+class ONutTestApp : public seed::App
 {
 public:
 
