@@ -1,5 +1,6 @@
 #pragma once
 #include "SeedGlobals.h"
+#include "onut.h"
 
 namespace seed
 {
@@ -10,6 +11,9 @@ namespace seed
 
 		View();
 		virtual ~View();
+
+		Sprite*	AddSprite(const string& in_textureName, int in_zIndex=INT_MAX);
+		void	DeleteSprite(Sprite* in_sprite);
 
 		// to be overriden by your "Game Specific" View
 		virtual void OnUpdate() {};
@@ -31,10 +35,13 @@ namespace seed
 
 	private:
 
-		// for quick reference by name
-		SpriteMap		m_namedSprites;
-
 		// actual sprites rendered by this view
 		SpriteVect		m_sprites;
+		void			InsertSprite(Sprite* in_sprite, int in_zIndex);
+
+		// sprite pool
+		onut::Pool<true>			m_spritePool;
+
+
 	};
 }

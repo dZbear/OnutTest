@@ -1,5 +1,6 @@
 #pragma once
 #include "View.h"
+#include "Sprite.h"
 
 class StartView : public seed::View
 {
@@ -13,6 +14,8 @@ public:
 	virtual void OnHide();
 	
 private:
+
+	seed::Sprite*		m_testSprite;
 	
 
 };

@@ -3,6 +3,7 @@
 #include "SeedGlobals.h"
 #include "onut.h"
 
+
 namespace seed
 {
 	class Sprite
@@ -12,9 +13,34 @@ namespace seed
 		Sprite();
 		virtual ~Sprite();
 
+		void			SetTexture(OTexture* in_texture);
+		OTexture*		GetTexture();
+		void			SetPosition(const Vector2& in_position);
+		void			SetPosition(float in_x, float in_y);
+		Vector2			GetPosition();
+		OAnim<Vector2>&	GetPositionAnim();
+		void			SetScale(const Vector2& in_scale);
+		Vector2			GetScale();
+		OAnim<Vector2>&	GetScaleAnim();
+		void			SetAngle(float in_angle);
+		float			GetAngle();
+		OAnim<float>&	GetAngleAnim();
+
+		void			SetZindex(int in_zIndex);
+		int				GetZindex();
+
+		float		GetWidth();
+		float		GetHeight();
+
+		void		Attach(Sprite* in_newChild, int in_zIndex = INT_MAX);
+		void		Detach(Sprite* in_child);
+		Sprite*		GetParent();
+
 		// only to be used by the seed sdk
 		void Update();
-		void Render();
+		void Render(Matrix* in_parentMatrix=nullptr);
+		void RenderChildren(SpriteVect& in_children, Matrix* in_parentMatrix=nullptr);
+		void SetParent(Sprite* in_parent);
 
 	private:
 
@@ -22,11 +48,16 @@ namespace seed
 		OAnim<Vector2>			m_scale;
 		OAnim<float>			m_angle;
 		Vector2					m_align;
+
+		OTexture*				m_texture;
 		
-		SpriteVect		m_bgChildren;
-		SpriteVect		m_fgChildren;
-		Sprite*			m_parent;
+		SpriteVect				m_bgChildren;
+		SpriteVect				m_fgChildren;
+		Sprite*					m_parent;
 
+		int						m_zIndex;
 
+		void					InsertSprite(SpriteVect& in_vect, Sprite* in_sprite, int in_zIndex);
+		void					DetachChild(SpriteVect& in_vect, Sprite* in_sprite);
 	};
 }

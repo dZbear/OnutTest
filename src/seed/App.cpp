@@ -30,11 +30,17 @@ namespace seed
 
 	void App::Render()
 	{
+		ORenderer->clear(Color::Black);
+
+		OSpriteBatch->begin();
+
 		for (View* v : m_viewStack)
 		{
 			v->Render();
 		}
 		OnRender();
+
+		OSpriteBatch->end();
 	}
 
 	void App::AddView(const string& in_viewName, View* in_newView)

@@ -1,5 +1,6 @@
 #pragma once
 #include "SeedGlobals.h"
+#include "onut.h"
 
 namespace seed
 {
@@ -39,6 +40,8 @@ namespace seed
 
 		// all the views currently shown, rendered first to last
 		ViewStack	m_viewStack;
+
+		onut::Synchronous<> m_viewCommandsSync;
 
 
 	};
