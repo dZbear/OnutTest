@@ -24,17 +24,9 @@ namespace seed
 
 	void View::Hide()
 	{
+        // free all sprites
+        DeleteSprites();
 		OnHide();
-	}
-
-	void View::Pause()
-	{
-		OnPause();
-	}
-
-	void View::Resume()
-	{
-		OnResume();
 	}
 
 	void View::Update()
@@ -81,7 +73,6 @@ namespace seed
 
 	void View::DeleteSprite(Sprite* in_sprite)
 	{
-		// todo : Sync() me
 		for (size_t i = 0, size = m_sprites.size(); i < size; ++i)
 		{
 			if (m_sprites[i] == in_sprite)
@@ -112,6 +103,15 @@ namespace seed
 		// if we're here it means we didnt find any suitable place for it, just insert at the end
 		m_sprites.push_back(in_sprite);
 	}
+
+    void View::DeleteSprites()
+    {
+        for (size_t i = 0, size = m_sprites.size(); i < size; ++i)
+        {
+            m_spritePool.dealloc(m_sprites[i]);
+        }
+        m_sprites.clear();
+    }
 }
 
 

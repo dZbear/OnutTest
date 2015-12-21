@@ -15,4 +15,19 @@ namespace seed
 	typedef vector<Sprite*>					SpriteVect;
 	typedef unordered_map<string, View*>	ViewMap;
 	typedef vector<View*>					ViewStack;
+
+
+    enum class eAppCommand
+    {
+        PUSH_VIEW,
+        POP_VIEW,
+        SWITCH_VIEW,
+        REMOVE_VIEW
+    };
+
+    struct SCommand
+    {
+        eAppCommand     m_command;
+        vector<string>  m_params;
+    };
 }

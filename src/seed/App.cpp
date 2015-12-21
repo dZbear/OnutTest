@@ -4,6 +4,8 @@
 
 namespace seed
 {
+    vector<seed::SCommand> App::s_commands;
+
 	App::App()
 	{
 
@@ -26,6 +28,7 @@ namespace seed
 			v->Update();
 		}
 		OnUpdate();
+        ProcessCommands();
 	}
 
 	void App::Render()
@@ -45,7 +48,6 @@ namespace seed
 
 	void App::AddView(const string& in_viewName, View* in_newView)
 	{
-		in_newView->OnCreate();
 		m_views[in_viewName] = in_newView;
 	}
 
@@ -129,6 +131,46 @@ namespace seed
 		}
 		return isOnStack;
 	}
+
+    void App::SendCommand(eAppCommand in_command, const string& in_params)
+    {
+        s_commands.push_back(SCommand());
+        SCommand& cmd = s_commands.back();
+
+        cmd.m_command = in_command;
+        cmd.m_params = onut::splitString(in_params, ',');
+    }
+
+    void App::ProcessCommands()
+    {
+        for (SCommand& cmd : s_commands)
+        {
+            switch (cmd.m_command)
+            {
+                case eAppCommand::POP_VIEW:
+                {
+                    PopView();
+                    break;
+                }
+                case eAppCommand::PUSH_VIEW:
+                {
+                    PushView(cmd.m_params[0]);
+                    break;
+                }
+                case eAppCommand::REMOVE_VIEW:
+                {
+                    RemoveView(cmd.m_params[0]);
+                    break;
+                }
+                case eAppCommand::SWITCH_VIEW:
+                {
+                    SwitchView(cmd.m_params[0]);
+                    break;
+                }
+            }
+        }
+        s_commands.clear();
+    }
 }
 
 

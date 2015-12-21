@@ -12,6 +12,11 @@ namespace seed
 		App();
 		virtual ~App();
 
+
+
+        static void SendCommand(eAppCommand in_command, const string& in_params="");
+        static vector<SCommand> s_commands;
+
 		// to be overriden by your "Game Specific" App
 		virtual void OnStart() {};
 		virtual void OnUpdate() {};
@@ -41,8 +46,7 @@ namespace seed
 		// all the views currently shown, rendered first to last
 		ViewStack	m_viewStack;
 
-		onut::Synchronous<> m_viewCommandsSync;
-
+        void        ProcessCommands();
 
 	};
 }

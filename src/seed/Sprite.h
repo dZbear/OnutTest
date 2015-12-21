@@ -25,10 +25,13 @@ namespace seed
 		void			SetAngle(float in_angle);
 		float			GetAngle();
 		OAnim<float>&	GetAngleAnim();
+        void			SetColor(const Color& in_color);
+        Color			GetColor();
+        OAnim<Color>&	GetColorAnim();
+        void            SetAlign(const Vector2& in_align);
+        Vector2&        GetAlign();
 
-		void			SetZindex(int in_zIndex);
-		int				GetZindex();
-
+		
 		float		GetWidth();
 		float		GetHeight();
 
@@ -37,16 +40,21 @@ namespace seed
 		Sprite*		GetParent();
 
 		// only to be used by the seed sdk
-		void Update();
-		void Render(Matrix* in_parentMatrix=nullptr);
-		void RenderChildren(SpriteVect& in_children, Matrix* in_parentMatrix=nullptr);
-		void SetParent(Sprite* in_parent);
+		void    Update();
+		void    Render(Matrix* in_parentMatrix=nullptr);
+		void    RenderChildren(SpriteVect& in_children, Matrix* in_parentMatrix=nullptr);
+		void    SetParent(Sprite* in_parent);
+
+        void    SetZindex(int in_zIndex);
+        int     GetZindex();
+
 
 	private:
 
 		OAnim<Vector2>			m_position;
 		OAnim<Vector2>			m_scale;
 		OAnim<float>			m_angle;
+        OAnim<Color>            m_color;
 		Vector2					m_align;
 
 		OTexture*				m_texture;

@@ -20,9 +20,6 @@ namespace seed
 		virtual void OnRender() {};
 		virtual void OnShow() {};
 		virtual void OnHide() {};
-		virtual void OnPause() {};
-		virtual void OnResume() {};
-		virtual void OnCreate() {};
 		/////
 
 		// used exclusively by the SeedApp
@@ -30,14 +27,13 @@ namespace seed
 		void Render();
 		void Show();
 		void Hide();
-		void Pause();
-		void Resume();
-
+        
 	private:
 
 		// actual sprites rendered by this view
 		SpriteVect		m_sprites;
 		void			InsertSprite(Sprite* in_sprite, int in_zIndex);
+        void            DeleteSprites();
 
 		// sprite pool
 		onut::Pool<true>			m_spritePool;

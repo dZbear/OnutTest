@@ -8,6 +8,8 @@ namespace seed
 	{
 		m_scale = Vector2(1.f, 1.f);
 		m_angle = 0;
+        m_color = Color(1.f, 1.f, 1.f, 1.f);
+        m_align = Vector2(.5f, .5f);
 	}
 
 	Sprite::~Sprite()
@@ -37,7 +39,7 @@ namespace seed
 		RenderChildren(m_bgChildren, &transform);
 
 		// render ourself
-		OSpriteBatch->drawSprite(m_texture, transform);
+		OSpriteBatch->drawSprite(m_texture, transform, m_color, m_align);
 
 		// render fg children
 		RenderChildren(m_fgChildren, &transform);
@@ -110,6 +112,32 @@ namespace seed
 	{
 		return m_angle;
 	}
+
+    void Sprite::SetColor(const Color& in_color)
+    {
+        m_color = in_color;
+    }
+
+    Color Sprite::GetColor()
+    {
+        return m_color.get();
+    }
+
+    OAnim<Color>& Sprite::GetColorAnim()
+    {
+        return m_color;
+    }
+
+    void Sprite::SetAlign(const Vector2& in_align)
+    {
+        m_align = in_align;
+    }
+
+    Vector2& Sprite::GetAlign()
+    {
+        return m_align;
+    }
+
 
 	void Sprite::SetZindex(int in_zIndex)
 	{
