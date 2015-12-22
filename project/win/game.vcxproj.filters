@@ -17,6 +17,9 @@
     <ClCompile Include="..\..\src\seed\View.cpp">
       <Filter>seed</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\seed\Node.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -46,6 +49,9 @@
       <Filter>seed</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\seed\SeedGlobals.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\Node.h">
       <Filter>seed</Filter>
     </ClInclude>
   </ItemGroup>

@@ -10,9 +10,11 @@ namespace seed
 {
 	class Sprite;
 	class View;
+    class Node;
 
 	typedef unordered_map<string, Sprite*>	SpriteMap;
 	typedef vector<Sprite*>					SpriteVect;
+    typedef vector<Node*>					NodeVect;
 	typedef unordered_map<string, View*>	ViewMap;
 	typedef vector<View*>					ViewStack;
 

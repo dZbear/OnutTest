@@ -12,8 +12,9 @@ namespace seed
 		View();
 		virtual ~View();
 
-		Sprite*	AddSprite(const string& in_textureName, int in_zIndex=INT_MAX);
-		void	DeleteSprite(Sprite* in_sprite);
+		Sprite*	    AddSprite(const string& in_textureName, int in_zIndex=INT_MAX);
+        void	    AddNode(Node* in_node, int in_zIndex = INT_MAX);
+		void	    DeleteNode(Node* in_node);
 
 		// to be overriden by your "Game Specific" View
 		virtual void OnUpdate() {};
@@ -30,13 +31,18 @@ namespace seed
         
 	private:
 
-		// actual sprites rendered by this view
-		SpriteVect		m_sprites;
-		void			InsertSprite(Sprite* in_sprite, int in_zIndex);
-        void            DeleteSprites();
+		// actual sprites/nodes updated/rendered by this view
+		NodeVect		m_nodes;
+
+        // keep track of stuff in the pool
+        NodeVect        m_pooledNodes;
+
+		void			InsertNode(Node* in_node, int in_zIndex);
+        void            DeleteNodes();
+        bool            IsPooled(Node* in_node);
 
 		// sprite pool
-		onut::Pool<true>			m_spritePool;
+		onut::Pool<true>			m_nodePool;
 
 
 	};

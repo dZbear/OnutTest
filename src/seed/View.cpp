@@ -8,7 +8,7 @@
 namespace seed
 {
 	View::View()
-		: m_spritePool(sizeof(Sprite), VIEW_DEFAULT_SPRITE_COUNT)
+		: m_nodePool(sizeof(Sprite), VIEW_DEFAULT_SPRITE_COUNT)
 	{
 	}
 
@@ -24,20 +24,25 @@ namespace seed
 
 	void View::Hide()
 	{
-        // free all sprites
-        DeleteSprites();
+        // free all Nodes
+        DeleteNodes();
 		OnHide();
 	}
 
 	void View::Update()
 	{
+        // update nodes
+        for (Node* s : m_nodes)
+        {
+            s->Update();
+        }
 		OnUpdate();
 	}
 
 	void View::Render()
 	{
-		// render sprites
-		for (Sprite* s : m_sprites)
+		// render nodes
+		for (Node* s : m_nodes)
 		{
 			if (!s->GetParent())
 			{
@@ -57,60 +62,86 @@ namespace seed
 			return nullptr;
 		}
 
-		Sprite* newSprite = m_spritePool.alloc<Sprite>();
+		Sprite* newSprite = m_nodePool.alloc<Sprite>();
 		newSprite->SetZindex(in_zIndex);
 		newSprite->SetTexture(texture);
 		if (in_zIndex == INT_MAX)
 		{
-			m_sprites.push_back(newSprite);
+			m_nodes.push_back(newSprite);
 		}
 		else
 		{
-			InsertSprite(newSprite, in_zIndex);
+			InsertNode(newSprite, in_zIndex);
 		}
+        m_pooledNodes.push_back(newSprite);
 		return newSprite;
 	}
 
-	void View::DeleteSprite(Sprite* in_sprite)
+	void View::DeleteNode(Node* in_node)
 	{
-		for (size_t i = 0, size = m_sprites.size(); i < size; ++i)
+		for (size_t i = 0, size = m_nodes.size(); i < size; ++i)
 		{
-			if (m_sprites[i] == in_sprite)
+            if (m_nodes[i] == in_node)
 			{
-				if (in_sprite->GetParent())
+                Node* parent = in_node->GetParent();
+                if (parent)
 				{
-					in_sprite->GetParent()->Detach(in_sprite);
+                    parent->Detach(in_node);
 				}
-				m_sprites.erase(m_sprites.begin() + i);
-				m_spritePool.dealloc(in_sprite);
+                m_nodes.erase(m_nodes.begin() + i);
+                if (IsPooled(in_node))
+                {
+                    m_nodePool.dealloc(in_node);
+                }
 				return;
 			}
 		}
 	}
 
-	void View::InsertSprite(Sprite* in_sprite, int in_zIndex)
+	void View::InsertNode(Node* in_node, int in_zIndex)
 	{
-		for (size_t i = 0, size = m_sprites.size(); i < size; ++i )
+        for (size_t i = 0, size = m_nodes.size(); i < size; ++i)
 		{
-			if (m_sprites[i]->GetZindex() > in_zIndex)
+            if (m_nodes[i]->GetZindex() > in_zIndex)
 			{
 				// let's insert before this one
-				m_sprites.insert(m_sprites.begin() + i, in_sprite);
+                m_nodes.insert(m_nodes.begin() + i, in_node);
 				return;
 			}
 		}
 
 		// if we're here it means we didnt find any suitable place for it, just insert at the end
-		m_sprites.push_back(in_sprite);
+        m_nodes.push_back(in_node);
 	}
 
-    void View::DeleteSprites()
+    void View::DeleteNodes()
     {
-        for (size_t i = 0, size = m_sprites.size(); i < size; ++i)
+        for (size_t i = 0, size = m_nodes.size(); i < size; ++i)
         {
-            m_spritePool.dealloc(m_sprites[i]);
+            if (IsPooled(m_nodes[i]))
+            {
+                m_nodePool.dealloc(m_nodes[i]);
+            }
+            else
+            {
+                delete m_nodes[i];
+            }
         }
-        m_sprites.clear();
+        m_nodes.clear();
+        m_pooledNodes.clear();
+        m_nodePool.clear();
+    }
+
+    bool View::IsPooled(Node* in_node)
+    {
+        for (Node* node : m_pooledNodes)
+        {
+            if (node == in_node)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

@@ -1,12 +1,10 @@
 #pragma once
 
-#include "SeedGlobals.h"
-#include "onut.h"
-
+#include "Node.h"
 
 namespace seed
 {
-	class Sprite
+	class Sprite : public Node
 	{
 	public:
 
@@ -35,37 +33,18 @@ namespace seed
 		float		GetWidth();
 		float		GetHeight();
 
-		void		Attach(Sprite* in_newChild, int in_zIndex = INT_MAX);
-		void		Detach(Sprite* in_child);
-		Sprite*		GetParent();
-
 		// only to be used by the seed sdk
 		void    Update();
 		void    Render(Matrix* in_parentMatrix=nullptr);
-		void    RenderChildren(SpriteVect& in_children, Matrix* in_parentMatrix=nullptr);
-		void    SetParent(Sprite* in_parent);
+		void    RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix=nullptr);
 
-        void    SetZindex(int in_zIndex);
-        int     GetZindex();
-
-
-	private:
+    private:
 
 		OAnim<Vector2>			m_position;
 		OAnim<Vector2>			m_scale;
 		OAnim<float>			m_angle;
         OAnim<Color>            m_color;
 		Vector2					m_align;
-
 		OTexture*				m_texture;
-		
-		SpriteVect				m_bgChildren;
-		SpriteVect				m_fgChildren;
-		Sprite*					m_parent;
-
-		int						m_zIndex;
-
-		void					InsertSprite(SpriteVect& in_vect, Sprite* in_sprite, int in_zIndex);
-		void					DetachChild(SpriteVect& in_vect, Sprite* in_sprite);
 	};
 }
