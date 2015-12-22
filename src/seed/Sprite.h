@@ -36,7 +36,6 @@ namespace seed
 		// only to be used by the seed sdk
 		void    Update();
 		void    Render(Matrix* in_parentMatrix=nullptr);
-		void    RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix=nullptr);
 
     private:
 

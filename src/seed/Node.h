@@ -29,6 +29,8 @@ namespace seed
         NodeVect		m_bgChildren;
         NodeVect		m_fgChildren;
 
+        void        RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix = nullptr);
+
     private:
 
         void		InsertNode(NodeVect& in_vect, Node* in_node, int in_zIndex);

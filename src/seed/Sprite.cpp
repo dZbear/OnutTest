@@ -44,13 +44,7 @@ namespace seed
         RenderChildren(m_fgChildren, &transform);
 	}
 
-	void Sprite::RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix)
-	{
-		for (Node* node : in_children)
-		{
-            node->Render(in_parentMatrix);
-		}
-	}
+
 
 	void Sprite::SetTexture(OTexture* in_texture)
 	{

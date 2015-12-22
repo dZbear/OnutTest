@@ -104,6 +104,14 @@ namespace seed
 	{
 		return m_parent;
 	}
+
+    void Node::RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix)
+    {
+        for (Node* node : in_children)
+        {
+            node->Render(in_parentMatrix);
+        }
+    }
 }
 
 
