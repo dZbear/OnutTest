@@ -5,12 +5,21 @@ namespace seed
     Node::Node()
 		: m_parent(nullptr)
 	{
+        m_scale = Vector2(1.f, 1.f);
+        m_angle = 0;
+        m_color = Color(1.f, 1.f, 1.f, 1.f);
 	}
 
     Node::~Node()
 	{
 
 	}
+
+    void Node::Update()
+    {
+        UpdateChildren(m_bgChildren);
+        UpdateChildren(m_fgChildren);
+    }
 
     void Node::SetZindex(int in_zIndex)
 	{
@@ -111,6 +120,79 @@ namespace seed
         {
             node->Render(in_parentMatrix);
         }
+    }
+
+    void Node::UpdateChildren(NodeVect& in_children)
+    {
+        for (Node* node : in_children)
+        {
+            node->Update();
+        }
+    }
+
+    void Node::SetPosition(const Vector2& in_position)
+    {
+        m_position = in_position;
+    }
+
+    void Node::SetPosition(float in_x, float in_y)
+    {
+        SetPosition(Vector2(in_x, in_y));
+    }
+
+    Vector2 Node::GetPosition()
+    {
+        return m_position.get();
+    }
+
+    OAnim<Vector2>& Node::GetPositionAnim()
+    {
+        return m_position;
+    }
+
+    void Node::SetScale(const Vector2& in_scale)
+    {
+        m_scale = in_scale;
+    }
+
+    Vector2 Node::GetScale()
+    {
+        return m_scale.get();
+    }
+
+    OAnim<Vector2>& Node::GetScaleAnim()
+    {
+        return m_scale;
+    }
+
+    void Node::SetAngle(float in_angle)
+    {
+        m_angle = in_angle;
+    }
+
+    float Node::GetAngle()
+    {
+        return m_angle.get();
+    }
+
+    OAnim<float>& Node::GetAngleAnim()
+    {
+        return m_angle;
+    }
+
+    void Node::SetColor(const Color& in_color)
+    {
+        m_color = in_color;
+    }
+
+    Color Node::GetColor()
+    {
+        return m_color.get();
+    }
+
+    OAnim<Color>& Node::GetColorAnim()
+    {
+        return m_color;
     }
 }
 

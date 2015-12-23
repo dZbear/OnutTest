@@ -87,8 +87,10 @@
     <ClCompile Include="..\..\src\app\StartView.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\seed\App.cpp" />
+    <ClCompile Include="..\..\src\seed\Button.cpp" />
     <ClCompile Include="..\..\src\seed\Node.cpp" />
     <ClCompile Include="..\..\src\seed\Sprite.cpp" />
+    <ClCompile Include="..\..\src\seed\SpriteString.cpp" />
     <ClCompile Include="..\..\src\seed\View.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -100,9 +102,11 @@
     <ClInclude Include="..\..\src\app\ONutTestApp.h" />
     <ClInclude Include="..\..\src\app\StartView.h" />
     <ClInclude Include="..\..\src\seed\App.h" />
+    <ClInclude Include="..\..\src\seed\Button.h" />
     <ClInclude Include="..\..\src\seed\Node.h" />
     <ClInclude Include="..\..\src\seed\SeedGlobals.h" />
     <ClInclude Include="..\..\src\seed\Sprite.h" />
+    <ClInclude Include="..\..\src\seed\SpriteString.h" />
     <ClInclude Include="..\..\src\seed\View.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

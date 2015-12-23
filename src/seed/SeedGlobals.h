@@ -9,6 +9,7 @@ using namespace std;
 namespace seed
 {
 	class Sprite;
+    class Button;
 	class View;
     class Node;
 
@@ -17,6 +18,7 @@ namespace seed
     typedef vector<Node*>					NodeVect;
 	typedef unordered_map<string, View*>	ViewMap;
 	typedef vector<View*>					ViewStack;
+    typedef vector<Button*>					ButtonVect;
 
 
     enum class eAppCommand

@@ -1,81 +1,123 @@
 #include "View.h"
 #include "Sprite.h"
+#include "SpriteString.h"
+#include "Button.h"
 #include "onut.h"
 
-#define VIEW_DEFAULT_SPRITE_COUNT 64
-
+#define VIEW_DEFAULT_NODE_COUNT 64
+#define VIEW_DEFAULT_NODE_MAX_SIZE 512
 
 namespace seed
 {
-	View::View()
-		: m_nodePool(sizeof(Sprite), VIEW_DEFAULT_SPRITE_COUNT)
-	{
-	}
+    View::View()
+        : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)
+    {
+    }
 
-	View::~View()
-	{
+    View::~View()
+    {
 
-	}
+    }
 
-	void View::Show()
-	{
-		OnShow();
-	}
+    void View::Show()
+    {
+        OnShow();
+    }
 
-	void View::Hide()
-	{
+    void View::Hide()
+    {
         // free all Nodes
         DeleteNodes();
-		OnHide();
-	}
+        OnHide();
+    }
 
-	void View::Update()
-	{
+    void View::Update()
+    {
         // update nodes
         for (Node* s : m_nodes)
         {
             s->Update();
         }
-		OnUpdate();
-	}
+        OnUpdate();
+    }
 
-	void View::Render()
-	{
-		// render nodes
-		for (Node* s : m_nodes)
-		{
-			if (!s->GetParent())
-			{
-				// render this sprite if it doesn't have a parent
-				s->Render();
-			}
-		}
-		OnRender();
-	}
+    void View::Render()
+    {
+        // render nodes
+        for (Node* s : m_nodes)
+        {
+            if (!s->GetParent())
+            {
+                // render this sprite if it doesn't have a parent
+                s->Render();
+            }
+        }
+        OnRender();
+    }
 
-	Sprite* View::AddSprite(const string& in_textureName, int in_zIndex)
-	{
-		OTexture* texture = OGetTexture(in_textureName.c_str());
-		if (!texture)
-		{
-			OLogE("Invalid texture name specified to View::AddSprite : " + in_textureName);
-			return nullptr;
-		}
+    Sprite* View::AddSprite(const string& in_textureName, int in_zIndex)
+    {
+        OTexture* texture = OGetTexture(in_textureName.c_str());
+        if (!texture)
+        {
+            OLogE("Invalid texture name specified to View::AddSprite : " + in_textureName);
+            return nullptr;
+        }
 
-		Sprite* newSprite = m_nodePool.alloc<Sprite>();
-		newSprite->SetZindex(in_zIndex);
-		newSprite->SetTexture(texture);
-		if (in_zIndex == INT_MAX)
-		{
-			m_nodes.push_back(newSprite);
-		}
-		else
-		{
-			InsertNode(newSprite, in_zIndex);
-		}
+        Sprite* newSprite = m_nodePool.alloc<Sprite>();
+        newSprite->SetZindex(in_zIndex);
+        newSprite->SetTexture(texture);
+        if (in_zIndex == INT_MAX)
+        {
+            m_nodes.push_back(newSprite);
+        }
+        else
+        {
+            InsertNode(newSprite, in_zIndex);
+        }
         m_pooledNodes.push_back(newSprite);
-		return newSprite;
-	}
+        return newSprite;
+    }
+
+    SpriteString* View::AddSpriteString(const string& in_fontName, Node* in_parent, int in_zIndex)
+    {
+        OFont* font = OGetBMFont(in_fontName.c_str());
+        if (!font)
+        {
+            OLogE("Invalid font name specified to View::AddSpriteString : " + in_fontName);
+            return nullptr;
+        }
+
+        SpriteString* newSpriteString = m_nodePool.alloc<SpriteString>();
+        newSpriteString->SetZindex(in_zIndex);
+        newSpriteString->SetFont(font);
+        m_pooledNodes.push_back(newSpriteString);
+
+        if (in_parent)
+        {
+            in_parent->Attach(newSpriteString, in_zIndex);
+        }
+        else
+        {
+            if (in_zIndex == INT_MAX)
+            {
+                m_nodes.push_back(newSpriteString);
+            }
+            else
+            {
+                InsertNode(newSpriteString, in_zIndex);
+            }
+        }
+        return newSpriteString;
+    }
+
+    void View::AddButton(Sprite* in_sprite, const string& in_cmd)
+    {
+        Button* newButton = new Button();
+        newButton->SetSprite(in_sprite);
+        newButton->SetCmd(in_cmd);
+        m_buttons.push_back(newButton);
+    }
 
 	void View::DeleteNode(Node* in_node)
 	{
