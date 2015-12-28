@@ -119,42 +119,42 @@ namespace seed
         m_buttons.push_back(newButton);
     }
 
-	void View::DeleteNode(Node* in_node)
-	{
-		for (size_t i = 0, size = m_nodes.size(); i < size; ++i)
-		{
+    void View::DeleteNode(Node* in_node)
+    {
+        for (size_t i = 0, size = m_nodes.size(); i < size; ++i)
+        {
             if (m_nodes[i] == in_node)
-			{
+            {
                 Node* parent = in_node->GetParent();
                 if (parent)
-				{
+                {
                     parent->Detach(in_node);
-				}
+                }
                 m_nodes.erase(m_nodes.begin() + i);
                 if (IsPooled(in_node))
                 {
                     m_nodePool.dealloc(in_node);
                 }
-				return;
-			}
-		}
-	}
+                return;
+            }
+        }
+    }
 
-	void View::InsertNode(Node* in_node, int in_zIndex)
-	{
+    void View::InsertNode(Node* in_node, int in_zIndex)
+    {
         for (size_t i = 0, size = m_nodes.size(); i < size; ++i)
-		{
+        {
             if (m_nodes[i]->GetZindex() > in_zIndex)
-			{
-				// let's insert before this one
+            {
+                // let's insert before this one
                 m_nodes.insert(m_nodes.begin() + i, in_node);
-				return;
-			}
-		}
+                return;
+            }
+        }
 
-		// if we're here it means we didnt find any suitable place for it, just insert at the end
+        // if we're here it means we didnt find any suitable place for it, just insert at the end
         m_nodes.push_back(in_node);
-	}
+    }
 
     void View::DeleteNodes()
     {

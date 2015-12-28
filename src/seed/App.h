@@ -4,49 +4,49 @@
 
 namespace seed
 {
-	class View;
-	class App
-	{
-	public:
+    class View;
+    class App
+    {
+    public:
 
-		App();
-		virtual ~App();
+        App();
+        virtual ~App();
 
 
 
         static void SendCommand(eAppCommand in_command, const string& in_params="");
         static vector<SCommand> s_commands;
 
-		// to be overriden by your "Game Specific" App
-		virtual void OnStart() {};
-		virtual void OnUpdate() {};
-		virtual void OnRender() {};
+        // to be overriden by your "Game Specific" App
+        virtual void OnStart() {};
+        virtual void OnUpdate() {};
+        virtual void OnRender() {};
 
-		// only called by seed sdk
-		void	Start();
-		void	Update();
-		void	Render();
+        // only called by seed sdk
+        void    Start();
+        void    Update();
+        void    Render();
 
-	protected:
+    protected:
 
-		void	AddView(const string& in_viewName, View* in_newView);
-		void	PushView(const string& in_viewName);
-		void	PopView();
-		void	RemoveView(const string& in_viewName);
-		void	SwitchView(const string& in_viewName);
+        void    AddView(const string& in_viewName, View* in_newView);
+        void    PushView(const string& in_viewName);
+        void    PopView();
+        void    RemoveView(const string& in_viewName);
+        void    SwitchView(const string& in_viewName);
 
-		View*	GetViewByName(const string& in_viewName);
-		bool	IsViewOnStack(const string& in_viewName);
+        View*   GetViewByName(const string& in_viewName);
+        bool    IsViewOnStack(const string& in_viewName);
 
-	private:
+    private:
 
-		// all views that can be shown
-		ViewMap		m_views;
+        // all views that can be shown
+        ViewMap     m_views;
 
-		// all the views currently shown, rendered first to last
-		ViewStack	m_viewStack;
+        // all the views currently shown, rendered first to last
+        ViewStack   m_viewStack;
 
         void        ProcessCommands();
 
-	};
+    };
 }
