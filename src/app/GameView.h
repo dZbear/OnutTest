@@ -11,11 +11,13 @@ public:
 
 	virtual void OnShow();
 	virtual void OnHide();
+    virtual void OnUpdate();
 	
 private:
 
     seed::Sprite*       m_dude;
     seed::Emitter*      m_fireFX;
+    string              m_idleAnim;
 
 
 };

@@ -5,7 +5,7 @@ namespace seed
 {
     Emitter::Emitter()
     {
-        m_blend = onut::SpriteBatch::eBlendMode::PreMultiplied;
+        m_blend = onut::SpriteBatch::eBlendMode::Add;
         m_filter = onut::SpriteBatch::eFiltering::Linear;
     }
 

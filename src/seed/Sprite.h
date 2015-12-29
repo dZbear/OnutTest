@@ -21,6 +21,7 @@ namespace seed
         const Vector2&  GetAlign();
         void            SetFilter(onut::SpriteBatch::eFiltering in_filter);
         void            SetBlend(onut::SpriteBatch::eBlendMode in_blend);
+        void            SetFlipped(bool in_flipH, bool in_flipV);
         
         virtual float   GetWidth();
         virtual float   GetHeight();
@@ -35,5 +36,8 @@ namespace seed
         OSpriteAnim                     m_anim;
         onut::SpriteBatch::eFiltering   m_filter;
         onut::SpriteBatch::eBlendMode   m_blend;
+        bool                            m_flippedH;
+        bool                            m_flippedV;
+        string                          m_lastAnim;
     };
 }

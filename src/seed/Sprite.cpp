@@ -8,6 +8,8 @@ namespace seed
         m_align = Vector2(.5f, .5f);
         m_blend = onut::SpriteBatch::eBlendMode::PreMultiplied;
         m_filter = onut::SpriteBatch::eFiltering::Linear;
+        m_flippedH = false;
+        m_flippedV = false;
     }
 
     Sprite::~Sprite()
@@ -24,7 +26,7 @@ namespace seed
 
         // generate our matrix
         Matrix transform = Matrix::Identity;
-        transform *= Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
+        transform *= Matrix::CreateScale(m_scale.get().x * (m_flippedH ? -1.f : 1.f), m_scale.get().y * (m_flippedV ? -1.f : 1.f), 1.f);
         transform *= Matrix::CreateRotationZ(DirectX::XMConvertToRadians(m_angle));
         transform *= Matrix::CreateTranslation(m_position.get().x, m_position.get().y, 0);
 
@@ -100,6 +102,11 @@ namespace seed
 
     void Sprite::SetAnim(const string& in_animName)
     {
+        if (in_animName == m_lastAnim)
+        {
+            return;
+        }
+        m_lastAnim = in_animName;
         m_anim.start(in_animName);
     }
     
@@ -116,5 +123,11 @@ namespace seed
     void Sprite::SetBlend(onut::SpriteBatch::eBlendMode in_blend)
     {
         m_blend = in_blend;
+    }
+
+    void Sprite::SetFlipped(bool in_flipH, bool in_flipV)
+    {
+        m_flippedH = in_flipH;
+        m_flippedV = in_flipV;
     }
 }
