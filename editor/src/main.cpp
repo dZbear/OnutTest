@@ -22,13 +22,9 @@ enum class State
 
 struct SpriteContainer
 {
-    using Id = uint32_t;
-
     seed::Sprite* pSprite = nullptr;
     onut::UITreeViewItem* pTreeViewItem = nullptr;
-    Id spriteId = 0;
 };
-SpriteContainer::Id nextSpriteId = 1;
 
 struct SpriteState
 {
@@ -81,21 +77,30 @@ struct SpriteState
     }
 };
 
-using Selection = std::vector<SpriteContainer*>;
-using Zoom = float;
+// Utilities
+onut::ActionManager actionManager;
 
-Selection selection;
-seed::View* pEditingView = nullptr;
+// Camera
+using Zoom = float;
+using ZoomIndex = int;
+static const std::vector<Zoom> zoomLevels = {.20f, .50f, .70f, 1.f, 1.5f, 2.f, 4.f};
+ZoomIndex zoomIndex = 3;
+Zoom zoom = zoomLevels[zoomIndex];
 Vector2 cameraPos = Vector2::Zero;
+
+// Selection
+using Selection = std::vector<SpriteContainer*>;
+Selection selection;
+OAnimf dottedLineAnim = 0.f;
+
+// State
+State state = State::Idle;
 Vector2 cameraPosOnDown;
 onut::sUIVector2 mousePosOnDown;
-Zoom zoom = 1.f;
-State state = State::Idle;
-Vector2 viewSize = Vector2(640, 480);
+
+// Controls
 onut::UIControl* pMainView = nullptr;
 onut::UITreeView* pTreeView = nullptr;
-onut::ActionManager actionManager;
-OAnimf dottedLineAnim = 0.f;
 
 onut::UITextBox* pPropertyName = nullptr;
 onut::UITextBox* pPropertyClass = nullptr;
@@ -110,6 +115,10 @@ onut::UITextBox* pPropertyAlignY = nullptr;
 onut::UITextBox* pPropertyAngle = nullptr;
 onut::UIPanel* pPropertyColor = nullptr;
 onut::UITextBox* pPropertyAlpha = nullptr;
+
+// Seed
+seed::View* pEditingView = nullptr;
+Vector2 viewSize = Vector2(640, 480);
 
 void updateProperties()
 {
@@ -359,8 +368,8 @@ void init()
     };
 
     auto mainViewRect = onut::UI2Onut(pMainView->getWorldRect(*OUIContext));
-    cameraPos.x = mainViewRect.z * .5f - viewSize.x * .5f;
-    cameraPos.y = mainViewRect.w * .5f - viewSize.y * .5f;
+    cameraPos.x = viewSize.x * .5f;
+    cameraPos.y = viewSize.y * .5f;
 
     // Bind toolbox actions
     OFindUI("btnCreateSprite")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
@@ -426,7 +435,7 @@ void init()
         if (state != State::Panning) return;
         Vector2 mouseDiff = Vector2((float)(event.mousePos.x - mousePosOnDown.x), (float)(event.mousePos.y - mousePosOnDown.y));
         mouseDiff /= zoom;
-        cameraPos = cameraPosOnDown + mouseDiff;
+        cameraPos = cameraPosOnDown - mouseDiff;
     };
     pMainView->onMiddleMouseUp = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
@@ -437,10 +446,13 @@ void init()
     // Draw the seed::View
     OUIContext->addStyle<onut::UIPanel>("mainView", [](const onut::UIControl* pControl, const onut::sUIRect& rect)
     {
-        Matrix transform = Matrix::CreateTranslation(cameraPos + Vector2((float)rect.position.x, (float)rect.position.y));
         OSB->drawRect(nullptr, onut::UI2Onut(rect), OColorHex(232323));
         OSB->end();
 
+        Matrix transform =
+            Matrix::CreateTranslation(-cameraPos) *
+            Matrix::CreateScale(zoom) *
+            Matrix::CreateTranslation(Vector2((float)rect.position.x + (float)rect.size.x * .5f, (float)rect.position.y + (float)rect.size.y * .5f));
         OSB->begin(transform);
         OSB->drawRect(nullptr, Rect(0, 0, viewSize.x, viewSize.y), Color::Black);
         pEditingView->Render();
@@ -449,7 +461,7 @@ void init()
         const Color DOTTED_LINE_COLOR = {1, 1, 1, .5f};
 
         auto pDottedLineTexture = OGetTexture("dottedLine.png");
-        auto dottedLineScale = 1.f / pDottedLineTexture->getSizef().x;
+        auto dottedLineScale = 1.f / pDottedLineTexture->getSizef().x * zoom;
         auto dottedLineOffset = dottedLineAnim.get();
         OSB->end();
 
@@ -463,11 +475,16 @@ void init()
                 auto& align = pContainer->pSprite->GetAlign();
 
                 OPB->begin(onut::ePrimitiveType::LINE_STRIP, pDottedLineTexture, spriteTransform * transform);
-                OPB->draw(Vector2(size.x * -align.x, size.y * -align.y), DOTTED_LINE_COLOR, Vector2(dottedLineOffset, dottedLineOffset));
-                OPB->draw(Vector2(size.x * -align.x, size.y * (1.f - align.y)), DOTTED_LINE_COLOR, Vector2(dottedLineOffset, dottedLineOffset + size.y * dottedLineScale));
-                OPB->draw(Vector2(size.x * (1.f - align.x), size.y * (1.f - align.y)), DOTTED_LINE_COLOR, Vector2(dottedLineOffset + size.x * dottedLineScale, dottedLineOffset + size.y * dottedLineScale));
-                OPB->draw(Vector2(size.x * (1.f - align.x), size.y * -align.y), DOTTED_LINE_COLOR, Vector2(dottedLineOffset + size.x * dottedLineScale, dottedLineOffset));
-                OPB->draw(Vector2(size.x * -align.x, size.y * -align.y), DOTTED_LINE_COLOR, Vector2(dottedLineOffset, dottedLineOffset));
+                OPB->draw(Vector2(size.x * -align.x, size.y * -align.y), DOTTED_LINE_COLOR, 
+                          Vector2(dottedLineOffset, dottedLineOffset));
+                OPB->draw(Vector2(size.x * -align.x, size.y * (1.f - align.y)), DOTTED_LINE_COLOR, 
+                          Vector2(dottedLineOffset, dottedLineOffset + size.y * dottedLineScale * pContainer->pSprite->GetScale().y));
+                OPB->draw(Vector2(size.x * (1.f - align.x), size.y * (1.f - align.y)), DOTTED_LINE_COLOR, 
+                          Vector2(dottedLineOffset + size.x * dottedLineScale * pContainer->pSprite->GetScale().x, dottedLineOffset + size.y * dottedLineScale * pContainer->pSprite->GetScale().y));
+                OPB->draw(Vector2(size.x * (1.f - align.x), size.y * -align.y), DOTTED_LINE_COLOR, 
+                          Vector2(dottedLineOffset + size.x * dottedLineScale * pContainer->pSprite->GetScale().x, dottedLineOffset));
+                OPB->draw(Vector2(size.x * -align.x, size.y * -align.y), DOTTED_LINE_COLOR, 
+                          Vector2(dottedLineOffset, dottedLineOffset));
                 OPB->end();
 
                 OSB->begin(transform);
@@ -486,6 +503,24 @@ void init()
 
 void update()
 {
+    if (state == State::Idle)
+    {
+        if (OUIContext->getHoverControl() == pMainView)
+        {
+            if (OInput->getStateValue(OINPUT_MOUSEZ) < 0)
+            {
+                --zoomIndex;
+                if (zoomIndex < 0) zoomIndex = 0;
+                zoom = zoomLevels[zoomIndex];
+            }
+            else if (OInput->getStateValue(OINPUT_MOUSEZ) > 0)
+            {
+                ++zoomIndex;
+                if (zoomIndex > (ZoomIndex)zoomLevels.size() - 1) zoomIndex = (ZoomIndex)zoomLevels.size() - 1;
+                zoom = zoomLevels[zoomIndex];
+            }
+        }
+    }
 }
 
 void render()
