@@ -5,9 +5,9 @@
 
 namespace seed
 {
-	class SpriteString : public Sprite
-	{
-	public:
+    class SpriteString : public Sprite
+    {
+    public:
 
         SpriteString();
         virtual ~SpriteString();
@@ -15,10 +15,10 @@ namespace seed
         void    SetFont(OFont* in_font);
         void    SetCaption(const string& in_caption);
 
-		// only to be used by the seed sdk
-		void    Render(Matrix* in_parentMatrix=nullptr);
+        // only to be used by the seed sdk
+        void    Render(Matrix* in_parentMatrix=nullptr);
 
-        virtual float	GetWidth();
+        virtual float    GetWidth();
         virtual float   GetHeight();
 
     private:
@@ -27,5 +27,5 @@ namespace seed
         OFont*      m_font;
 
         const onut::Align     GetFontAlignFromSpriteAlign();
-	};
+    };
 }

@@ -8,17 +8,17 @@ using namespace std;
 
 namespace seed
 {
-	class Sprite;
+    class Sprite;
     class Button;
-	class View;
+    class View;
     class Node;
 
-	typedef unordered_map<string, Sprite*>	SpriteMap;
-	typedef vector<Sprite*>					SpriteVect;
-    typedef vector<Node*>					NodeVect;
-	typedef unordered_map<string, View*>	ViewMap;
-	typedef vector<View*>					ViewStack;
-    typedef vector<Button*>					ButtonVect;
+    typedef unordered_map<string, Sprite*>  SpriteMap;
+    typedef vector<Sprite*>                 SpriteVect;
+    typedef vector<Node*>                   NodeVect;
+    typedef unordered_map<string, View*>    ViewMap;
+    typedef vector<View*>                   ViewStack;
+    typedef vector<Button*>                 ButtonVect;
 
 
     enum class eAppCommand

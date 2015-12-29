@@ -5,9 +5,9 @@
 namespace seed
 {
     class Sprite;
-	class Button
-	{
-	public:
+    class Button
+    {
+    public:
 
         Button();
         virtual ~Button();
@@ -19,9 +19,9 @@ namespace seed
         Sprite* GetSprite();
 
         
-	private:
+    private:
 
         string      m_cmd;
         Sprite*     m_sprite;
-	};
+    };
 }
