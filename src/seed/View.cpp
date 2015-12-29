@@ -128,25 +128,25 @@ namespace seed
         return false;
     }
 
-    void View::visitNodes(const VisitCallback& callback)
+    void View::VisitNodes(const VisitCallback& callback)
     {
         for (Node* s : m_nodes)
         {
-            if (s->visitBackgroundChildren(callback)) return;
+            if (s->VisitBackgroundChildren(callback)) return;
             if (callback(s)) return;
-            if (s->visitForegroundChildren(callback)) return;
+            if (s->VisitForegroundChildren(callback)) return;
         }
     }
 
-    void View::visitNodesBackward(const VisitCallback& callback)
+    void View::VisitNodesBackward(const VisitCallback& callback)
     {
         NodeVect::const_reverse_iterator end = m_nodes.rend();
         for (NodeVect::const_reverse_iterator it = m_nodes.rbegin(); it != end; ++it)
         {
             Node* s = *it;
-            if (s->visitForegroundChildrenBackward(callback)) return;
+            if (s->VisitForegroundChildrenBackward(callback)) return;
             if (callback(s)) return;
-            if (s->visitBackgroundChildrenBackward(callback)) return;
+            if (s->VisitBackgroundChildrenBackward(callback)) return;
         }
     }
 

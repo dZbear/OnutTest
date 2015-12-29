@@ -770,7 +770,7 @@ void init()
         mousePosInView = Vector2::Transform(mousePosInView, invViewTransform);
 
         // Find the topmost mouse hover sprite
-        pEditingView->visitNodesBackward([&](seed::Node* pNode) -> bool
+        pEditingView->VisitNodesBackward([&](seed::Node* pNode) -> bool
         {
             auto transform = pNode->GetTransform();
             auto invTransform = transform.Invert();

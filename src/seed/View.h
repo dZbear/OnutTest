@@ -43,8 +43,8 @@ namespace seed
         // Return true from the callback to interrupt searching.
         // VisitBackward to start with last node and their last children first
         using VisitCallback = std::function<bool(Node*)>;
-        void visitNodes(const VisitCallback& callback);
-        void visitNodesBackward(const VisitCallback& callback);
+        void VisitNodes(const VisitCallback& callback);
+        void VisitNodesBackward(const VisitCallback& callback);
         
     private:
 
