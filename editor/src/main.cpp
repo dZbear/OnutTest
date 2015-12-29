@@ -22,6 +22,8 @@ enum class State
     Zooming,
     Moving,
     MovingHandle,
+    Rotate,
+    IsAboutToRotate,
     IsAboutToMove,
     IsAboutToMoveHandle,
 };
@@ -34,6 +36,7 @@ public:
     onut::UITreeViewItem* pTreeViewItem = nullptr;
     Vector2 positionOnDown;
     Vector2 scaleOnDown;
+    Matrix transformOnDown;
     Matrix parentTransformOnDown;
 };
 
@@ -113,6 +116,7 @@ struct TransformHandle
 
 using TransformHandles = std::vector<TransformHandle>;
 using AABB = std::vector<Vector2>;
+using HandleIndex = AABB::size_type;
 
 struct Gizmo
 {
@@ -142,6 +146,8 @@ Gizmo gizmo;
 State state = State::Idle;
 Vector2 cameraPosOnDown;
 onut::sUIVector2 mousePosOnDown;
+Vector2 selectionCenter;
+HandleIndex handleIndexOnDown;
 
 // Controls
 onut::UIControl* pMainView = nullptr;
@@ -312,7 +318,7 @@ void updateTransformHandles()
         gizmo.transformHandles[0].handle = Handle::TOP_LEFT;
         gizmo.transformHandles[0].screenPos = gizmo.aabb[0];
         gizmo.transformHandles[0].transformDirection = Vector2(-1, -1);
-        gizmo.transformHandles[0].transformDirection.Normalize();
+        //gizmo.transformHandles[0].transformDirection.Normalize();
 
         gizmo.transformHandles[1].handle = Handle::LEFT;
         gizmo.transformHandles[1].screenPos = Vector2(gizmo.aabb[0].x, (gizmo.aabb[0].y + gizmo.aabb[1].y) * .5f);
@@ -321,7 +327,7 @@ void updateTransformHandles()
         gizmo.transformHandles[2].handle = Handle::BOTTOM_LEFT;
         gizmo.transformHandles[2].screenPos = Vector2(gizmo.aabb[0].x, gizmo.aabb[1].y);
         gizmo.transformHandles[2].transformDirection = Vector2(-1, 1);
-        gizmo.transformHandles[2].transformDirection.Normalize();
+        //gizmo.transformHandles[2].transformDirection.Normalize();
 
         gizmo.transformHandles[3].handle = Handle::BOTTOM;
         gizmo.transformHandles[3].screenPos = Vector2((gizmo.aabb[0].x + gizmo.aabb[1].x) * .5f, gizmo.aabb[1].y);
@@ -330,7 +336,7 @@ void updateTransformHandles()
         gizmo.transformHandles[4].handle = Handle::BOTTOM_RIGHT;
         gizmo.transformHandles[4].screenPos = gizmo.aabb[1];
         gizmo.transformHandles[4].transformDirection = Vector2(1, 1);
-        gizmo.transformHandles[4].transformDirection.Normalize();
+        //gizmo.transformHandles[4].transformDirection.Normalize();
 
         gizmo.transformHandles[5].handle = Handle::RIGHT;
         gizmo.transformHandles[5].screenPos = Vector2(gizmo.aabb[1].x, (gizmo.aabb[0].y + gizmo.aabb[1].y) * .5f);
@@ -339,11 +345,13 @@ void updateTransformHandles()
         gizmo.transformHandles[6].handle = Handle::TOP_RIGHT;
         gizmo.transformHandles[6].screenPos = Vector2(gizmo.aabb[1].x, gizmo.aabb[0].y);
         gizmo.transformHandles[6].transformDirection = Vector2(1, -1);
-        gizmo.transformHandles[6].transformDirection.Normalize();
+        //gizmo.transformHandles[6].transformDirection.Normalize();
 
         gizmo.transformHandles[7].handle = Handle::TOP;
         gizmo.transformHandles[7].screenPos = Vector2((gizmo.aabb[0].x + gizmo.aabb[1].x) * .5f, gizmo.aabb[0].y);
         gizmo.transformHandles[7].transformDirection = Vector2(0, -1);
+
+        selectionCenter = (gizmo.aabb[0] + gizmo.aabb[1]) * .5f;
     }
     else if (selection.empty())
     {
@@ -367,12 +375,15 @@ void updateTransformHandles()
                 norm[0].Normalize(); norm[1].Normalize();
                 gizmo.transformHandles[0].transformDirection = norm[0] + norm[1];
                 gizmo.transformHandles[0].transformDirection.Normalize();
+                gizmo.transformHandles[0].transformDirection = Vector2(-1, -1);
+                //gizmo.transformHandles[0].transformDirection.Normalize();
             }
             {
                 gizmo.transformHandles[1].handle = Handle::LEFT;
                 gizmo.transformHandles[1].screenPos = (spriteCorners[0] + spriteCorners[1]) * .5f;
                 gizmo.transformHandles[1].transformDirection = spriteCorners[0] - spriteCorners[3];
                 gizmo.transformHandles[1].transformDirection.Normalize();
+                gizmo.transformHandles[1].transformDirection = Vector2(-1, 0);
             }
             {
                 gizmo.transformHandles[2].handle = Handle::BOTTOM_LEFT;
@@ -381,12 +392,15 @@ void updateTransformHandles()
                 norm[0].Normalize(); norm[1].Normalize();
                 gizmo.transformHandles[2].transformDirection = norm[0] + norm[1];
                 gizmo.transformHandles[2].transformDirection.Normalize();
+                gizmo.transformHandles[2].transformDirection = Vector2(-1, 1);
+                //gizmo.transformHandles[2].transformDirection.Normalize();
             }
             {
                 gizmo.transformHandles[3].handle = Handle::BOTTOM;
                 gizmo.transformHandles[3].screenPos = (spriteCorners[1] + spriteCorners[2]) * .5f;
                 gizmo.transformHandles[3].transformDirection = spriteCorners[1] - spriteCorners[0];
                 gizmo.transformHandles[3].transformDirection.Normalize();
+                gizmo.transformHandles[3].transformDirection = Vector2(0, 1);
             }
             {
                 gizmo.transformHandles[4].handle = Handle::BOTTOM_RIGHT;
@@ -395,12 +409,15 @@ void updateTransformHandles()
                 norm[0].Normalize(); norm[1].Normalize();
                 gizmo.transformHandles[4].transformDirection = norm[0] + norm[1];
                 gizmo.transformHandles[4].transformDirection.Normalize();
+                gizmo.transformHandles[4].transformDirection = Vector2(1, 1);
+                //gizmo.transformHandles[4].transformDirection.Normalize();
             }
             {
                 gizmo.transformHandles[5].handle = Handle::RIGHT;
                 gizmo.transformHandles[5].screenPos = (spriteCorners[2] + spriteCorners[3]) * .5f;
                 gizmo.transformHandles[5].transformDirection = spriteCorners[2] - spriteCorners[1];
                 gizmo.transformHandles[5].transformDirection.Normalize();
+                gizmo.transformHandles[5].transformDirection = Vector2(1, 0);
             }
             {
                 gizmo.transformHandles[6].handle = Handle::TOP_RIGHT;
@@ -409,13 +426,17 @@ void updateTransformHandles()
                 norm[0].Normalize(); norm[1].Normalize();
                 gizmo.transformHandles[6].transformDirection = norm[0] + norm[1];
                 gizmo.transformHandles[6].transformDirection.Normalize();
+                gizmo.transformHandles[6].transformDirection = Vector2(1, -1);
+                //gizmo.transformHandles[6].transformDirection.Normalize();
             }
             {
                 gizmo.transformHandles[7].handle = Handle::TOP;
                 gizmo.transformHandles[7].screenPos = (spriteCorners[3] + spriteCorners[0]) * .5f;
                 gizmo.transformHandles[7].transformDirection = spriteCorners[3] - spriteCorners[2];
                 gizmo.transformHandles[7].transformDirection.Normalize();
+                gizmo.transformHandles[7].transformDirection = Vector2(0, -1);
             }
+            selectionCenter = pSprite->GetTransform().Translation();
         }
     }
 }
@@ -756,113 +777,102 @@ void init()
     pMainView->onMouseDown = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
         mousePosOnDown = event.mousePos;
-        state = State::IsAboutToMove;
 
-        // Transform mouse into view
-        seed::Node* pMouseHover = nullptr;
-        auto mousePosInView = onut::UI2Onut(event.localMousePos);
-        auto viewRect = pMainView->getWorldRect(*OUIContext);
-        Matrix viewTransform =
-            Matrix::CreateTranslation(-cameraPos) *
-            Matrix::CreateScale(zoom) *
-            Matrix::CreateTranslation(Vector2((float)viewRect.size.x * .5f, (float)viewRect.size.y * .5f));
-        auto invViewTransform = viewTransform.Invert();
-        mousePosInView = Vector2::Transform(mousePosInView, invViewTransform);
-
-        // Find the topmost mouse hover sprite
-        pEditingView->VisitNodesBackward([&](seed::Node* pNode) -> bool
+        // Check handles
+        if (selection.size() == 1 && !OPressed(OINPUT_LCONTROL))
         {
-            auto transform = pNode->GetTransform();
-            auto invTransform = transform.Invert();
-            auto mouseInSprite = Vector2::Transform(mousePosInView, invTransform);
-            auto pSprite = dynamic_cast<seed::Sprite*>(pNode);
-            if (pSprite)
+            HandleIndex index = 0;
+            HandleIndex closestIndex = 0;
+            auto& closest = gizmo.transformHandles.front();
+            float closestDis = Vector2::DistanceSquared(onut::UI2Onut(mousePosOnDown), closest.screenPos);
+            for (auto& handle : gizmo.transformHandles)
             {
-                if (mouseInSprite.x >= -pSprite->GetWidth() * pSprite->GetAlign().x &&
-                    mouseInSprite.x <= pSprite->GetWidth() * (1.f - pSprite->GetAlign().x) &&
-                    mouseInSprite.y >= -pSprite->GetHeight() * pSprite->GetAlign().y &&
-                    mouseInSprite.y <= pSprite->GetHeight() * (1.f - pSprite->GetAlign().y))
+                float dis = Vector2::DistanceSquared(onut::UI2Onut(mousePosOnDown), handle.screenPos);
+                if (dis < closestDis)
                 {
-                    pMouseHover = pSprite;
-                    return true;
+                    closest = handle;
+                    closestDis = dis;
+                    closestIndex = index;
                 }
+                ++index;
             }
-            else
+            if (closestDis < 8.f * 8.f)
             {
-                if (mouseInSprite.x >= -16 &&
-                    mouseInSprite.x <= 16 &&
-                    mouseInSprite.y >= -16 &&
-                    mouseInSprite.y <= 16)
-                {
-                    pMouseHover = pNode;
-                    return true;
-                }
+                state = State::IsAboutToMoveHandle;
+                handleIndexOnDown = closestIndex;
             }
-            return false;
-        });
+        }
 
-        // Add to selection
-        if (pMouseHover)
+        if (state == State::Idle)
         {
-            if (OPressed(OINPUT_LCONTROL))
+            state = State::IsAboutToMove;
+
+            // Transform mouse into view
+            seed::Node* pMouseHover = nullptr;
+            auto mousePosInView = onut::UI2Onut(event.localMousePos);
+            auto viewRect = pMainView->getWorldRect(*OUIContext);
+            Matrix viewTransform =
+                Matrix::CreateTranslation(-cameraPos) *
+                Matrix::CreateScale(zoom) *
+                Matrix::CreateTranslation(Vector2((float)viewRect.size.x * .5f, (float)viewRect.size.y * .5f));
+            auto invViewTransform = viewTransform.Invert();
+            mousePosInView = Vector2::Transform(mousePosInView, invViewTransform);
+
+            // Find the topmost mouse hover sprite
+            pEditingView->VisitNodesBackward([&](seed::Node* pNode) -> bool
             {
-                auto selectionBefore = selection;
-                auto selectionAfter = selection;
-                bool found = false;
-                for (auto it = selectionAfter.begin(); it != selectionAfter.end(); ++it)
+                auto transform = pNode->GetTransform();
+                auto invTransform = transform.Invert();
+                auto mouseInSprite = Vector2::Transform(mousePosInView, invTransform);
+                auto pSprite = dynamic_cast<seed::Sprite*>(pNode);
+                if (pSprite)
                 {
-                    if ((*it)->pNode == pMouseHover)
+                    if (mouseInSprite.x >= -pSprite->GetWidth() * pSprite->GetAlign().x &&
+                        mouseInSprite.x <= pSprite->GetWidth() * (1.f - pSprite->GetAlign().x) &&
+                        mouseInSprite.y >= -pSprite->GetHeight() * pSprite->GetAlign().y &&
+                        mouseInSprite.y <= pSprite->GetHeight() * (1.f - pSprite->GetAlign().y))
                     {
-                        found = true;
-                        selectionAfter.erase(it);
-                        break;
+                        pMouseHover = pSprite;
+                        return true;
                     }
                 }
-                auto pContainer = nodesToContainers[pMouseHover];
-                pContainer->retain();
-                if (!found)
+                else
                 {
-                    selectionAfter.push_back(pContainer);
-                }
-                actionManager.doAction(new onut::Action("Select",
-                    [=]
-                {
-                    selection = selectionAfter;
-                    updateProperties();
-                }, [=]
-                {
-                    selection = selectionBefore;
-                    updateProperties();
-                }, [=]
-                {
-                }, [=]
-                {
-                    pContainer->release();
-                }));
-            }
-            else
-            {
-                if (selection.size() == 1)
-                {
-                    if (selection.front()->pNode == pMouseHover) return; // Nothing changed
-                }
-                bool found = false;
-                for (auto pContainer : selection)
-                {
-                    if (pContainer->pNode == pMouseHover)
+                    if (mouseInSprite.x >= -16 &&
+                        mouseInSprite.x <= 16 &&
+                        mouseInSprite.y >= -16 &&
+                        mouseInSprite.y <= 16)
                     {
-                        found = true;
-                        break;
+                        pMouseHover = pNode;
+                        return true;
                     }
                 }
-                if (!found)
+                return false;
+            });
+
+            // Add to selection
+            if (pMouseHover)
+            {
+                if (OPressed(OINPUT_LCONTROL))
                 {
-                    auto pContainer = nodesToContainers[pMouseHover];
-                    pContainer->retain();
                     auto selectionBefore = selection;
                     auto selectionAfter = selection;
-                    selectionAfter.clear();
-                    selectionAfter.push_back(pContainer);
+                    bool found = false;
+                    for (auto it = selectionAfter.begin(); it != selectionAfter.end(); ++it)
+                    {
+                        if ((*it)->pNode == pMouseHover)
+                        {
+                            found = true;
+                            selectionAfter.erase(it);
+                            break;
+                        }
+                    }
+                    auto pContainer = nodesToContainers[pMouseHover];
+                    pContainer->retain();
+                    if (!found)
+                    {
+                        selectionAfter.push_back(pContainer);
+                    }
                     actionManager.doAction(new onut::Action("Select",
                         [=]
                     {
@@ -879,38 +889,78 @@ void init()
                         pContainer->release();
                     }));
                 }
-            }
-        }
-        else
-        {
-            // Unselect all if we are not within it's aabb
-            bool doSelection = true;
-            if (isMultiSelection())
-            {
-                auto aabb = getSelectionAABB();
-                if (event.mousePos.x >= aabb[0].x &&
-                    event.mousePos.y >= aabb[0].y &&
-                    event.mousePos.x <= aabb[1].x &&
-                    event.mousePos.y <= aabb[1].y)
+                else
                 {
-                    doSelection = false;
+                    if (selection.size() == 1)
+                    {
+                        if (selection.front()->pNode == pMouseHover) return; // Nothing changed
+                    }
+                    bool found = false;
+                    for (auto pContainer : selection)
+                    {
+                        if (pContainer->pNode == pMouseHover)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        auto pContainer = nodesToContainers[pMouseHover];
+                        pContainer->retain();
+                        auto selectionBefore = selection;
+                        auto selectionAfter = selection;
+                        selectionAfter.clear();
+                        selectionAfter.push_back(pContainer);
+                        actionManager.doAction(new onut::Action("Select",
+                            [=]
+                        {
+                            selection = selectionAfter;
+                            updateProperties();
+                        }, [=]
+                        {
+                            selection = selectionBefore;
+                            updateProperties();
+                        }, [=]
+                        {
+                        }, [=]
+                        {
+                            pContainer->release();
+                        }));
+                    }
                 }
             }
-            if (doSelection)
+            else
             {
-                auto selectionBefore = selection;
-                auto selectionAfter = selection;
-                selectionAfter.clear();
-                actionManager.doAction(new onut::Action("Unselect",
-                    [=]
+                // Unselect all if we are not within it's aabb
+                bool doSelection = true;
+                if (isMultiSelection())
                 {
-                    selection = selectionAfter;
-                    updateProperties();
-                }, [=]
+                    auto aabb = getSelectionAABB();
+                    if (event.mousePos.x >= aabb[0].x &&
+                        event.mousePos.y >= aabb[0].y &&
+                        event.mousePos.x <= aabb[1].x &&
+                        event.mousePos.y <= aabb[1].y)
+                    {
+                        doSelection = false;
+                    }
+                }
+                if (doSelection)
                 {
-                    selection = selectionBefore;
-                    updateProperties();
-                }));
+                    auto selectionBefore = selection;
+                    auto selectionAfter = selection;
+                    selectionAfter.clear();
+                    actionManager.doAction(new onut::Action("Unselect",
+                        [=]
+                    {
+                        selection = selectionAfter;
+                        updateProperties();
+                    }, [=]
+                    {
+                        selection = selectionBefore;
+                        updateProperties();
+                    }));
+                }
             }
         }
     };
@@ -935,6 +985,24 @@ void init()
                 }
             }
         }
+        if (state == State::IsAboutToMoveHandle)
+        {
+            if (mouseDiff.Length() >= 3.f)
+            {
+                state = State::MovingHandle;
+                for (auto pContainer : selection)
+                {
+                    pContainer->transformOnDown = pContainer->pNode->GetTransform();
+                    pContainer->parentTransformOnDown = Matrix::Identity;
+                    if (pContainer->pNode->GetParent())
+                    {
+                        pContainer->parentTransformOnDown = pContainer->pNode->GetParent()->GetTransform();
+                    }
+                    pContainer->positionOnDown = pContainer->pNode->GetPosition();
+                    pContainer->scaleOnDown = pContainer->pNode->GetScale();
+                }
+            }
+        }
         if (state == State::Moving)
         {
             for (auto pContainer : selection)
@@ -946,6 +1014,56 @@ void init()
                 pContainer->pNode->SetPosition(Vector2::Transform(worldPos, invTransform));
             }
             updateProperties();
+        }
+        else if (state == State::MovingHandle)
+        {
+            auto& handle = gizmo.transformHandles[handleIndexOnDown];
+            auto pContainer = selection.front();
+            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+            if (pSprite)
+            {
+                auto transform = pContainer->transformOnDown;
+                transform._41 = 0;
+                transform._42 = 0;
+                auto invTransform = transform.Invert();
+                invTransform._41 = 0;
+                invTransform._42 = 0;
+                auto size = Vector2(pSprite->GetWidth(), pSprite->GetHeight());
+
+                auto localMouseDiff = Vector2::Transform(mouseDiff, invTransform);
+                auto localScaleDiff = handle.transformDirection * localMouseDiff;
+                auto newScale = pContainer->scaleOnDown + localScaleDiff / size * pContainer->scaleOnDown;
+
+                auto scaleDiff = newScale - pContainer->scaleOnDown;
+                auto parentScaleDiff = Vector2::Transform(scaleDiff, transform);
+                auto newPosition = pContainer->positionOnDown + parentScaleDiff * size * pSprite->GetAlign();
+
+                //auto transform = pContainer->transformOnDown;
+                //auto invTransform = transform.Invert();
+                //transform._41 = 0;
+                //transform._42 = 0;
+                //invTransform._41 = 0;
+                //invTransform._42 = 0;
+
+                //auto parentTransform = pContainer->parentTransformOnDown;
+                //auto invParentTransform = parentTransform.Invert();
+                //parentTransform._41 = 0;
+                //parentTransform._42 = 0;
+                //invParentTransform._41 = 0;
+                //invParentTransform._42 = 0;
+
+                //auto transformedDiff = Vector2::Transform(mouseDiff, invTransform);
+                //auto scaleDir = handle.transformDirection * transformedDiff;
+                //auto newScale = pContainer->scaleOnDown + scaleDir / size * pContainer->scaleOnDown;
+
+                //auto parentTransformedDiff = Vector2::Transform(mouseDiff, invParentTransform);
+                //auto parentScaleDir = Vector2::Transform(handle.transformDirection * parentTransformedDiff, transform);
+                //auto newPosition = pContainer->positionOnDown + parentScaleDir * pContainer->scaleOnDown * pSprite->GetAlign();
+
+                pSprite->SetPosition(newPosition);
+                pSprite->SetScale(newScale);
+                updateProperties();
+            }
         }
     };
 
