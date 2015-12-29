@@ -12,6 +12,7 @@ namespace seed
     View::View()
         : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)
         , m_currentButton(nullptr)
+        , m_rootNode(nullptr)
     {
         memset(m_focusedButtons, 0, 4);
         memset(m_defaultFocusedButton, 0, 4);
@@ -25,14 +26,17 @@ namespace seed
 
     void View::Show()
     {
+        // create the root node
+        m_rootNode = new Node();
         OnShow();
     }
 
     void View::Hide()
     {
         // free all Nodes
-        DeleteNodes();
         OnHide();
+        DeleteNodes();
+        m_buttons.clear();
         m_currentButton = nullptr;
         memset(m_focusedButtons, 0, 4);
         memset(m_defaultFocusedButton, 0, 4);
@@ -41,10 +45,7 @@ namespace seed
     void View::Update()
     {
         // update nodes
-        for (Node* s : m_nodes)
-        {
-            s->Update();
-        }
+        m_rootNode->Update();
         OnUpdate();
 
         // update buttons interactions
@@ -55,14 +56,7 @@ namespace seed
     void View::Render()
     {
         // render nodes
-        for (Node* s : m_nodes)
-        {
-            if (!s->GetParent())
-            {
-                // render this sprite if it doesn't have a parent
-                s->Render();
-            }
-        }
+        m_rootNode->Render();
         OnRender();
     }
 
@@ -246,27 +240,19 @@ namespace seed
 
     void View::VisitNodes(const VisitCallback& callback)
     {
-        for (Node* s : m_nodes)
-        {
-            if (s->VisitBackgroundChildren(callback)) return;
-            if (callback(s)) return;
-            if (s->VisitForegroundChildren(callback)) return;
-        }
+        if (m_rootNode->VisitBackgroundChildren(callback)) return;
+        if (callback(m_rootNode)) return;
+        if (m_rootNode->VisitForegroundChildren(callback)) return;
     }
 
     void View::VisitNodesBackward(const VisitCallback& callback)
     {
-        NodeVect::const_reverse_iterator end = m_nodes.rend();
-        for (NodeVect::const_reverse_iterator it = m_nodes.rbegin(); it != end; ++it)
-        {
-            Node* s = *it;
-            if (s->VisitForegroundChildrenBackward(callback)) return;
-            if (callback(s)) return;
-            if (s->VisitBackgroundChildrenBackward(callback)) return;
-        }
+        if (m_rootNode->VisitForegroundChildrenBackward(callback)) return;
+        if (callback(m_rootNode)) return;
+        if (m_rootNode->VisitBackgroundChildrenBackward(callback)) return;
     }
 
-    Sprite* View::AddSprite(const string& in_textureName, int in_zIndex)
+    Sprite* View::AddSprite(const string& in_textureName, Node* in_parent, int in_zIndex)
     {
         OTexture* texture = OGetTexture(in_textureName.c_str());
         if (!texture)
@@ -278,14 +264,9 @@ namespace seed
         Sprite* newSprite = m_nodePool.alloc<Sprite>();
         newSprite->SetZindex(in_zIndex);
         newSprite->SetTexture(texture);
-        if (in_zIndex == INT_MAX)
-        {
-            m_nodes.push_back(newSprite);
-        }
-        else
-        {
-            InsertNode(newSprite, in_zIndex);
-        }
+
+        Node* parentNode = in_parent ? in_parent : m_rootNode;
+        parentNode->Attach(newSprite, in_zIndex);
         m_pooledNodes.push_back(newSprite);
         return newSprite;
     }
@@ -304,21 +285,8 @@ namespace seed
         newSpriteString->SetFont(font);
         m_pooledNodes.push_back(newSpriteString);
 
-        if (in_parent)
-        {
-            in_parent->Attach(newSpriteString, in_zIndex);
-        }
-        else
-        {
-            if (in_zIndex == INT_MAX)
-            {
-                m_nodes.push_back(newSpriteString);
-            }
-            else
-            {
-                InsertNode(newSpriteString, in_zIndex);
-            }
-        }
+        Node* parentNode = in_parent ? in_parent : m_rootNode;
+        parentNode->Attach(newSpriteString, in_zIndex);
         return newSpriteString;
     }
 
@@ -333,55 +301,36 @@ namespace seed
 
     void View::DeleteNode(Node* in_node)
     {
-        for (size_t i = 0, size = m_nodes.size(); i < size; ++i)
+        Node* parent = in_node->GetParent();
+        if (parent)
         {
-            if (m_nodes[i] == in_node)
-            {
-                Node* parent = in_node->GetParent();
-                if (parent)
-                {
-                    parent->Detach(in_node);
-                }
-                m_nodes.erase(m_nodes.begin() + i);
-                if (IsPooled(in_node))
-                {
-                    m_nodePool.dealloc(in_node);
-                }
-                return;
-            }
+            parent->Detach(in_node);
+        }
+
+        DeleteChildNodes(in_node->GetBgChildren());
+        DeleteChildNodes(in_node->GetFgChildren());
+
+        if (IsPooled(in_node))
+        {
+            m_nodePool.dealloc(in_node);
         }
     }
 
-    void View::InsertNode(Node* in_node, int in_zIndex)
+    void View::DeleteChildNodes(NodeVect& in_childVect)
     {
-        for (size_t i = 0, size = m_nodes.size(); i < size; ++i)
+        // make a safe copy before deleting the children
+        NodeVect copy = in_childVect;
+        for (Node* n : copy)
         {
-            if (m_nodes[i]->GetZindex() > in_zIndex)
-            {
-                // let's insert before this one
-                m_nodes.insert(m_nodes.begin() + i, in_node);
-                return;
-            }
+            DeleteNode(n);
         }
-
-        // if we're here it means we didnt find any suitable place for it, just insert at the end
-        m_nodes.push_back(in_node);
+        in_childVect.clear();
     }
 
     void View::DeleteNodes()
     {
-        for (size_t i = 0, size = m_nodes.size(); i < size; ++i)
-        {
-            if (IsPooled(m_nodes[i]))
-            {
-                m_nodePool.dealloc(m_nodes[i]);
-            }
-            else
-            {
-                delete m_nodes[i];
-            }
-        }
-        m_nodes.clear();
+        DeleteNode(m_rootNode);
+        delete m_rootNode;
         m_pooledNodes.clear();
         m_nodePool.clear();
     }

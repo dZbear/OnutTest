@@ -22,6 +22,31 @@ namespace seed
         UpdateChildren(m_fgChildren);
     }
 
+    void Node::Render(Matrix* in_parentMatrix)
+    {
+        if (!m_visible)
+        {
+            return;
+        }
+
+        // generate our matrix
+        Matrix transform = Matrix::Identity;
+        transform *= Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
+        transform *= Matrix::CreateRotationZ(DirectX::XMConvertToRadians(m_angle));
+        transform *= Matrix::CreateTranslation(m_position.get().x, m_position.get().y, 0);
+
+        if (in_parentMatrix)
+        {
+            transform = transform * *in_parentMatrix;
+        }
+
+        // render bg children
+        RenderChildren(m_bgChildren, &transform);
+
+        // render fg children
+        RenderChildren(m_fgChildren, &transform);
+    }
+
     void Node::SetZindex(int in_zIndex)
     {
         m_zIndex = in_zIndex;
@@ -231,6 +256,16 @@ namespace seed
     bool Node::GetVisible()
     {
         return m_visible;
+    }
+
+    NodeVect& Node::GetFgChildren()
+    {
+        return m_fgChildren;
+    }
+
+    NodeVect& Node::GetBgChildren()
+    {
+        return m_bgChildren;
     }
 
     bool Node::VisitBackgroundChildren(const VisitCallback& callback)

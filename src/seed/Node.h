@@ -13,12 +13,14 @@ namespace seed
         virtual ~Node();
 
         virtual void    Update();
-        virtual void    Render(Matrix* in_parentMatrix = nullptr) {};
+        virtual void    Render(Matrix* in_parentMatrix = nullptr);
 
         void            Attach(Node* in_newChild, int in_zIndex = INT_MAX);
         void            Detach(Node* in_child);
         Node*           GetParent() const;
         void            SetParent(Node* in_parent);
+        NodeVect&       GetFgChildren();
+        NodeVect&       GetBgChildren();
         void            SetZindex(int in_zIndex);
         int             GetZindex();
         void            SetPosition(const Vector2& in_position);

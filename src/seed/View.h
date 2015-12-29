@@ -14,10 +14,11 @@ namespace seed
         View();
         virtual ~View();
 
-        Sprite*         AddSprite(const string& in_textureName, int in_zIndex = INT_MAX);
+        Sprite*         AddSprite(const string& in_textureName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         SpriteString*   AddSpriteString(const string& in_fontName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         void            AddNode(Node* in_node, int in_zIndex = INT_MAX);
         void            DeleteNode(Node* in_node);
+        Node*           GetRootNode() { return m_rootNode; }
 
         Button*         AddButton(Sprite* in_sprite, const string& in_cmd);
         void            FocusButton(Button* in_button, int in_playerIndex = 1);
@@ -56,8 +57,8 @@ namespace seed
         
     private:
 
-        // actual sprites/nodes updated/rendered by this view
-        NodeVect            m_nodes;
+        // root node, updating/rendering all nodes attached to it
+        Node*               m_rootNode;
 
         // keep track of stuff in the pool
         NodeVect            m_pooledNodes;
@@ -68,8 +69,8 @@ namespace seed
         // sprites with UI interractions
         ButtonVect          m_buttons;
 
-        void            InsertNode(Node* in_node, int in_zIndex);
         void            DeleteNodes();
+        void            DeleteChildNodes(NodeVect& in_childVect);
         bool            IsPooled(Node* in_node);
 
         void            UpdateFocus();

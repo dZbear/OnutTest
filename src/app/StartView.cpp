@@ -77,7 +77,7 @@ bool StartView::OnCommand(const string& in_cmd)
 {
     if (in_cmd == "start")
     {
-        OLog("start");
+        SendCommand(seed::eAppCommand::POP_VIEW);
         return true;
     }
     else if (in_cmd == "quit")
