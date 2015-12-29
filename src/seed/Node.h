@@ -42,6 +42,15 @@ namespace seed
         virtual float   GetWidth() { return 0; }
         virtual float   GetHeight() { return 0; }
 
+        // Visit all children in order.
+        // Return true from the callback to interrupt searching.
+        // VisitBackward to start with last child and their last children first
+        using VisitCallback = std::function<bool(Node*)>;
+        bool VisitBackgroundChildren(const VisitCallback& callback);
+        bool VisitBackgroundChildrenBackward(const VisitCallback& callback);
+        bool VisitForegroundChildren(const VisitCallback& callback);
+        bool VisitForegroundChildrenBackward(const VisitCallback& callback);
+
     protected:
 
         int                     m_zIndex;
