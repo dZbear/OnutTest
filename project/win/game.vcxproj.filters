@@ -26,6 +26,12 @@
     <ClCompile Include="..\..\src\seed\SpriteString.cpp">
       <Filter>seed</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\seed\Emitter.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\app\GameView.cpp">
+      <Filter>app\Views</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -65,6 +71,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\seed\SpriteString.h">
       <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\Emitter.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\GameView.h">
+      <Filter>app\Views</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -7,6 +7,7 @@ namespace seed
     class Button;
     class Sprite;
     class SpriteString;
+    class Emitter;
     class View
     {
     public:
@@ -16,6 +17,7 @@ namespace seed
 
         Sprite*         AddSprite(const string& in_textureName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         SpriteString*   AddSpriteString(const string& in_fontName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
+        Emitter*        AddEmitter(const string& in_fxName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         void            AddNode(Node* in_node, int in_zIndex = INT_MAX);
         void            DeleteNode(Node* in_node);
         Node*           GetRootNode() { return m_rootNode; }

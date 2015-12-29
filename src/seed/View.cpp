@@ -1,6 +1,7 @@
 #include "View.h"
 #include "Sprite.h"
 #include "SpriteString.h"
+#include "Emitter.h"
 #include "Button.h"
 #include "onut.h"
 
@@ -288,6 +289,17 @@ namespace seed
         Node* parentNode = in_parent ? in_parent : m_rootNode;
         parentNode->Attach(newSpriteString, in_zIndex);
         return newSpriteString;
+    }
+
+    Emitter* View::AddEmitter(const string& in_fxName, Node* in_parent, int in_zIndex)
+    {
+        Emitter* newEmitter = m_nodePool.alloc<Emitter>();
+        newEmitter->Init(in_fxName);
+        m_pooledNodes.push_back(newEmitter);
+
+        Node* parentNode = in_parent ? in_parent : m_rootNode;
+        parentNode->Attach(newEmitter, in_zIndex);
+        return newEmitter;
     }
 
     Button* View::AddButton(Sprite* in_sprite, const string& in_cmd)
