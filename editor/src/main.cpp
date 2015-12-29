@@ -1023,45 +1023,19 @@ void init()
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
             if (pSprite)
             {
-                auto transform = pContainer->transformOnDown;
-                transform._41 = 0;
-                transform._42 = 0;
-                auto invTransform = transform.Invert();
+                auto invTransform = pContainer->transformOnDown.Invert();
                 invTransform._41 = 0;
                 invTransform._42 = 0;
                 auto size = Vector2(pSprite->GetWidth(), pSprite->GetHeight());
 
                 auto localMouseDiff = Vector2::Transform(mouseDiff, invTransform);
                 auto localScaleDiff = handle.transformDirection * localMouseDiff;
-                auto newScale = pContainer->scaleOnDown + localScaleDiff / size * pContainer->scaleOnDown;
+                if (OPressed(OINPUT_LSHIFT))
+                {
+                    localScaleDiff.x = localScaleDiff.y = std::max<>(localScaleDiff.x, localScaleDiff.y);
+                }
+                auto newScale = pContainer->scaleOnDown + localScaleDiff / size * 2.f * pContainer->scaleOnDown;
 
-                auto scaleDiff = newScale - pContainer->scaleOnDown;
-                auto parentScaleDiff = Vector2::Transform(scaleDiff, transform);
-                auto newPosition = pContainer->positionOnDown + parentScaleDiff * size * pSprite->GetAlign();
-
-                //auto transform = pContainer->transformOnDown;
-                //auto invTransform = transform.Invert();
-                //transform._41 = 0;
-                //transform._42 = 0;
-                //invTransform._41 = 0;
-                //invTransform._42 = 0;
-
-                //auto parentTransform = pContainer->parentTransformOnDown;
-                //auto invParentTransform = parentTransform.Invert();
-                //parentTransform._41 = 0;
-                //parentTransform._42 = 0;
-                //invParentTransform._41 = 0;
-                //invParentTransform._42 = 0;
-
-                //auto transformedDiff = Vector2::Transform(mouseDiff, invTransform);
-                //auto scaleDir = handle.transformDirection * transformedDiff;
-                //auto newScale = pContainer->scaleOnDown + scaleDir / size * pContainer->scaleOnDown;
-
-                //auto parentTransformedDiff = Vector2::Transform(mouseDiff, invParentTransform);
-                //auto parentScaleDir = Vector2::Transform(handle.transformDirection * parentTransformedDiff, transform);
-                //auto newPosition = pContainer->positionOnDown + parentScaleDir * pContainer->scaleOnDown * pSprite->GetAlign();
-
-                pSprite->SetPosition(newPosition);
                 pSprite->SetScale(newScale);
                 updateProperties();
             }
