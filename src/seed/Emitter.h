@@ -15,14 +15,19 @@ namespace seed
         void Start();
         void Stop();
 
+        void SetFilter(onut::SpriteBatch::eFiltering in_filter);
+        void SetBlend(onut::SpriteBatch::eBlendMode in_blend);
+
         // only to be used by the seed sdk
         virtual void    Update();
         virtual void    Render(Matrix* in_parentMatrix=nullptr);
 
     protected:
 
-        OEmitterInstance    m_emitter;
-        string              m_fxName;
+        OEmitterInstance                m_emitter;
+        string                          m_fxName;
+        onut::SpriteBatch::eFiltering   m_filter;
+        onut::SpriteBatch::eBlendMode   m_blend;
 
     };
 }

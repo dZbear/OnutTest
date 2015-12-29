@@ -6,7 +6,7 @@
 #include "onut.h"
 
 #define VIEW_DEFAULT_NODE_COUNT 64
-#define VIEW_DEFAULT_NODE_MAX_SIZE 512
+#define VIEW_DEFAULT_NODE_MAX_SIZE 640
 
 namespace seed
 {
@@ -265,6 +265,19 @@ namespace seed
         Sprite* newSprite = m_nodePool.alloc<Sprite>();
         newSprite->SetZindex(in_zIndex);
         newSprite->SetTexture(texture);
+
+        Node* parentNode = in_parent ? in_parent : m_rootNode;
+        parentNode->Attach(newSprite, in_zIndex);
+        m_pooledNodes.push_back(newSprite);
+        return newSprite;
+    }
+
+    Sprite* View::AddSpriteWithAnim(const string& in_animSource, const string& in_defaultAnim, Node* in_parent, int in_zIndex)
+    {
+        Sprite* newSprite = m_nodePool.alloc<Sprite>();
+        newSprite->SetZindex(in_zIndex);
+        newSprite->SetAnimSource(in_animSource);
+        newSprite->SetAnim(in_defaultAnim);
 
         Node* parentNode = in_parent ? in_parent : m_rootNode;
         parentNode->Attach(newSprite, in_zIndex);

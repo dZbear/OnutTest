@@ -6,18 +6,13 @@ namespace seed
         : m_texture(nullptr)
     {
         m_align = Vector2(.5f, .5f);
+        m_blend = onut::SpriteBatch::eBlendMode::PreMultiplied;
+        m_filter = onut::SpriteBatch::eFiltering::Linear;
     }
 
     Sprite::~Sprite()
     {
 
-    }
-
-    void Sprite::Update()
-    {
-        Node::Update();
-
-        // todo : update frame based anims
     }
 
     void Sprite::Render(Matrix* in_parentMatrix)
@@ -44,7 +39,16 @@ namespace seed
         // render ourself
         static Color color;
         m_color.get().Premultiply(color);
-        OSpriteBatch->drawSprite(m_texture, transform, color, m_align);
+        OSpriteBatch->changeBlendMode(m_blend);
+        OSpriteBatch->changeFiltering(m_filter);
+        if (!m_texture)
+        {
+            OSpriteBatch->drawSpriteWithUVs(m_anim.getTexture(), transform, m_anim.getUVs(), color, m_anim.getOrigin());
+        }
+        else
+        {
+            OSpriteBatch->drawSprite(m_texture, transform, color, m_align);
+        }
 
         // render fg children
         RenderChildren(m_fgChildren, &transform);
@@ -88,9 +92,29 @@ namespace seed
         }
         return 0;
     }
+
+    void Sprite::SetAnimSource(const string& in_sourceName)
+    {
+        m_anim = OSpriteAnim(in_sourceName);
+    }
+
+    void Sprite::SetAnim(const string& in_animName)
+    {
+        m_anim.start(in_animName);
+    }
+    
+    void Sprite::StopAnim()
+    {
+        m_anim.stop();
+    }
+
+    void Sprite::SetFilter(onut::SpriteBatch::eFiltering in_filter)
+    {
+        m_filter = in_filter;
+    }
+
+    void Sprite::SetBlend(onut::SpriteBatch::eBlendMode in_blend)
+    {
+        m_blend = in_blend;
+    }
 }
-
-
-
-
-

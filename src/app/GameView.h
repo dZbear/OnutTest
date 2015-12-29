@@ -14,7 +14,8 @@ public:
 	
 private:
 
-    seed::Emitter*    m_fireFX;
+    seed::Sprite*       m_dude;
+    seed::Emitter*      m_fireFX;
 
 
 };

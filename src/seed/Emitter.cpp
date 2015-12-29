@@ -5,6 +5,8 @@ namespace seed
 {
     Emitter::Emitter()
     {
+        m_blend = onut::SpriteBatch::eBlendMode::PreMultiplied;
+        m_filter = onut::SpriteBatch::eFiltering::Linear;
     }
 
     Emitter::~Emitter()
@@ -44,6 +46,8 @@ namespace seed
         RenderChildren(m_bgChildren, &transform);
 
         // render ourself
+        OSpriteBatch->changeBlendMode(m_blend);
+        OSpriteBatch->changeFiltering(m_filter);
         m_emitter.setTransform(transform.Translation());
         m_emitter.render();
 
@@ -60,5 +64,15 @@ namespace seed
     void Emitter::Stop()
     {
         m_emitter.stop();
+    }
+
+    void Emitter::SetFilter(onut::SpriteBatch::eFiltering in_filter)
+    {
+        m_filter = in_filter;
+    }
+
+    void Emitter::SetBlend(onut::SpriteBatch::eBlendMode in_blend)
+    {
+        m_blend = in_blend;
     }
 }

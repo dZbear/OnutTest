@@ -34,6 +34,10 @@ namespace seed
         {
             OSpriteBatch->end();
             OSpriteBatch->begin(transform);
+
+            OSpriteBatch->changeBlendMode(m_blend);
+            OSpriteBatch->changeFiltering(m_filter);
+
             m_font->draw(m_caption, { 0, 0 }, m_color, OSpriteBatch, GetFontAlignFromSpriteAlign());
             OSpriteBatch->end();
             OSpriteBatch->begin();
