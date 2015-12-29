@@ -150,6 +150,18 @@ namespace seed
         return m_position;
     }
 
+    Vector2 Node::GetAbsolutePosition()
+    {
+        Vector2 pos = GetPosition();
+        Node* parent = GetParent();
+        while (parent)
+        {
+            pos += parent->GetPosition();
+            parent = parent->GetParent();
+        }
+        return pos;
+    }
+
     void Node::SetScale(const Vector2& in_scale)
     {
         m_scale = in_scale;

@@ -26,6 +26,10 @@ namespace seed
         for (View* v : m_viewStack)
         {
             v->Update();
+
+            CommandVect& viewCommands = v->GetQueuedCommands();
+            s_commands.insert(std::end(s_commands), std::begin(viewCommands), std::end(viewCommands));
+            viewCommands.clear();
         }
         OnUpdate();
         ProcessCommands();
@@ -166,6 +170,23 @@ namespace seed
                 {
                     SwitchView(cmd.m_params[0]);
                     break;
+                }
+                case eAppCommand::APP_SPECIFIC:
+                {
+                    if (OnCommand(cmd.m_params[0]))
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        // command not used by app, let's send it to the top view
+                        if (m_viewStack.size() > 0)
+                        {
+                            View* v = m_viewStack.back();
+                            v->OnCommand(cmd.m_params[0]);
+                            break;
+                        }
+                    }
                 }
             }
         }

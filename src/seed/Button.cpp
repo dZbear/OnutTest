@@ -5,6 +5,7 @@ namespace seed
 {
     Button::Button()
         : m_sprite(nullptr)
+        , m_pressed(false)
     {
     }
 

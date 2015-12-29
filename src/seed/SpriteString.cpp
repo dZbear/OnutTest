@@ -17,8 +17,8 @@ namespace seed
     {
         // generate our matrix
         Matrix transform = Matrix::Identity;
-        transform *= Matrix::CreateRotationZ(DirectX::XMConvertToRadians(m_angle));
         transform *= Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
+        transform *= Matrix::CreateRotationZ(DirectX::XMConvertToRadians(m_angle));
         transform *= Matrix::CreateTranslation(m_position.get().x, m_position.get().y, 0);
 
         if (in_parentMatrix)
@@ -32,17 +32,11 @@ namespace seed
         // render the string
         if (m_font && m_caption.length() > 0)
         {
-            Vector2 pos = GetPosition();
-            Vector2 scale = GetScale();
-            Node* parent = GetParent();
-            while (parent)
-            {
-                pos += parent->GetPosition();
-                scale *= parent->GetScale();
-                parent = parent->GetParent();
-            }
-
-            m_font->draw(m_caption, pos, m_color, OSpriteBatch, GetFontAlignFromSpriteAlign());
+            OSpriteBatch->end();
+            OSpriteBatch->begin(transform);
+            m_font->draw(m_caption, { 0, 0 }, m_color, OSpriteBatch, GetFontAlignFromSpriteAlign());
+            OSpriteBatch->end();
+            OSpriteBatch->begin();
         }
 
         // render fg children

@@ -25,7 +25,7 @@ namespace seed
 
     protected:
 
-        Vector2                    m_align;
-        OTexture*                m_texture;
+        Vector2         m_align;
+        OTexture*       m_texture;
     };
 }

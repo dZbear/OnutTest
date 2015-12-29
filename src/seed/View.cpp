@@ -11,6 +11,7 @@ namespace seed
 {
     View::View()
         : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)
+        , m_currentButton(nullptr)
     {
     }
 
@@ -39,6 +40,9 @@ namespace seed
             s->Update();
         }
         OnUpdate();
+
+        // update buttons interactions
+        UpdateButtons();
     }
 
     void View::Render()
@@ -53,6 +57,75 @@ namespace seed
             }
         }
         OnRender();
+    }
+
+    void View::UpdateButtons()
+    {
+        // check for mouse click events
+        if (OJustPressed(OINPUT_MOUSEB1))
+        {
+            m_lastMouseDown = OMousePos;
+
+            // check if clicked inside a button
+            for (Button* but : m_buttons)
+            {
+                if (IsInside(m_lastMouseDown, but->GetSprite()))
+                {
+                    m_currentButton = but;
+                    m_currentButton->SetPressed(true);
+                    OnButtonDown(m_currentButton);
+                    return;
+                }
+            }
+        }
+
+        if (OJustReleased(OINPUT_MOUSEB1))
+        {
+            if (m_currentButton)
+            {
+                if (IsInside(OMousePos, m_currentButton->GetSprite()))
+                {
+                    m_currentButton->SetPressed(false);
+                    OnButtonUp(m_currentButton);
+                    SendCommand(seed::eAppCommand::APP_SPECIFIC, m_currentButton->GetCmd());
+                    m_currentButton->SetPressed(false);
+                }
+            }
+            m_currentButton = nullptr;
+        }
+
+        if (m_currentButton)
+        {
+            if (m_currentButton->IsPressed() && !IsInside(OMousePos, m_currentButton->GetSprite()))
+            {
+                m_currentButton->SetPressed(false);
+                OnButtonUp(m_currentButton);
+            }
+            else if (!m_currentButton->IsPressed() && IsInside(OMousePos, m_currentButton->GetSprite()))
+            {
+                m_currentButton->SetPressed(true);
+                OnButtonDown(m_currentButton);
+            }
+        }
+    }
+
+    bool View::IsInside(const Vector2& in_pos, Sprite* in_sprite)
+    {
+        Vector2 pos = in_sprite->GetAbsolutePosition();
+        Vector2 size = Vector2(in_sprite->GetWidth() * in_sprite->GetScale().x, in_sprite->GetHeight() * in_sprite->GetScale().y);
+        Vector2 align = in_sprite->GetAlign();
+        pos.x += size.x * -align.x;
+        pos.y += size.y * -align.y;
+
+        if (in_pos.x > pos.x
+            && in_pos.x < pos.x + size.x
+            && in_pos.y > pos.y
+            && in_pos.y < pos.y + size.y)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     Sprite* View::AddSprite(const string& in_textureName, int in_zIndex)
@@ -184,6 +257,15 @@ namespace seed
             }
         }
         return false;
+    }
+
+    void View::SendCommand(eAppCommand in_command, const string& in_params)
+    {
+        m_queuedCommands.push_back(SCommand());
+        SCommand& cmd = m_queuedCommands.back();
+
+        cmd.m_command = in_command;
+        cmd.m_params = onut::splitString(in_params, ',');
     }
 }
 

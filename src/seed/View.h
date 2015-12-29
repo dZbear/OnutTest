@@ -2,8 +2,6 @@
 #include "SeedGlobals.h"
 #include "onut.h"
 
-#include <limits>
-
 namespace seed
 {
     class Button;
@@ -16,25 +14,30 @@ namespace seed
         View();
         virtual ~View();
 
-        Sprite*            AddSprite(const string& in_textureName, int in_zIndex = std::numeric_limits<int>::max());
-        SpriteString*   AddSpriteString(const string& in_fontName, Node* in_parent = nullptr, int in_zIndex = std::numeric_limits<int>::max());
-        void            AddNode(Node* in_node, int in_zIndex = std::numeric_limits<int>::max());
+        Sprite*         AddSprite(const string& in_textureName, int in_zIndex = INT_MAX);
+        SpriteString*   AddSpriteString(const string& in_fontName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
+        void            AddNode(Node* in_node, int in_zIndex = INT_MAX);
         void            DeleteNode(Node* in_node);
 
         void            AddButton(Sprite* in_sprite, const string& in_cmd);
+        void            SendCommand(eAppCommand in_command, const string& in_params = "");
 
         // to be overriden by your "Game Specific" View
         virtual void OnUpdate() {};
         virtual void OnRender() {};
         virtual void OnShow() {};
         virtual void OnHide() {};
+        virtual void OnButtonDown(Button* in_button) {};
+        virtual void OnButtonUp(Button* in_button) {};
+        virtual void OnCommand(const string& in_cmd) {};
         /////
 
         // used exclusively by the SeedApp
-        void Update();
-        void Render();
-        void Show();
-        void Hide();
+        void            Update();
+        void            Render();
+        void            Show();
+        void            Hide();
+        CommandVect&    GetQueuedCommands() { return m_queuedCommands; }
         
     private:
 
@@ -54,6 +57,14 @@ namespace seed
         void            DeleteNodes();
         bool            IsPooled(Node* in_node);
 
+        void            UpdateButtons();
+        bool            IsInside(const Vector2& in_pos, Sprite* in_sprite);
+
+        Button*         m_currentButton;
+        Vector2         m_lastMouseDown;
+
+        CommandVect     m_queuedCommands;
+        
 
     };
 }

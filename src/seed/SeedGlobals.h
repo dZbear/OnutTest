@@ -19,14 +19,15 @@ namespace seed
     typedef unordered_map<string, View*>    ViewMap;
     typedef vector<View*>                   ViewStack;
     typedef vector<Button*>                 ButtonVect;
-
+    
 
     enum class eAppCommand
     {
         PUSH_VIEW,
         POP_VIEW,
         SWITCH_VIEW,
-        REMOVE_VIEW
+        REMOVE_VIEW,
+        APP_SPECIFIC,
     };
 
     struct SCommand
@@ -34,4 +35,7 @@ namespace seed
         eAppCommand     m_command;
         vector<string>  m_params;
     };
+
+    typedef vector<SCommand>                CommandVect;
+
 }

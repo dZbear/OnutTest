@@ -21,11 +21,13 @@ namespace seed
         virtual void OnStart() {};
         virtual void OnUpdate() {};
         virtual void OnRender() {};
+        virtual bool OnCommand(const string& in_cmd) { return false;  }
 
         // only called by seed sdk
         void    Start();
         void    Update();
         void    Render();
+
 
     protected:
 

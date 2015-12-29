@@ -25,6 +25,7 @@ namespace seed
         void            SetPosition(float in_x, float in_y);
         Vector2         GetPosition();
         OAnim<Vector2>& GetPositionAnim();
+        Vector2         GetAbsolutePosition();
         void            SetScale(const Vector2& in_scale);
         Vector2         GetScale();
         OAnim<Vector2>& GetScaleAnim();
@@ -35,6 +36,9 @@ namespace seed
         Color           GetColor();
         OAnim<Color>&   GetColorAnim();
         Matrix          GetTransform() const;
+
+        virtual float   GetWidth() { return 0; }
+        virtual float   GetHeight() { return 0; }
 
     protected:
 
