@@ -19,15 +19,22 @@ enum class State
 {
     Idle,
     Panning,
-    Zooming
+    Zooming,
+    Moving,
+    MovingHandle,
+    IsAboutToMove,
+    IsAboutToMoveHandle,
 };
 
-class SpriteContainer : public onut::Object
+class NodeContainer : public onut::Object
 {
 public:
-    SpriteContainer() { retain(); }
-    seed::Sprite* pSprite = nullptr;
+    NodeContainer() { retain(); }
+    seed::Node* pNode = nullptr;
     onut::UITreeViewItem* pTreeViewItem = nullptr;
+    Vector2 positionOnDown;
+    Vector2 scaleOnDown;
+    Matrix parentTransformOnDown;
 };
 
 struct SpriteState
@@ -38,7 +45,7 @@ struct SpriteState
     float angle;
     Color color;
     Vector2 align;
-    SpriteContainer* pContainer = nullptr;
+    NodeContainer* pContainer = nullptr;
 
     SpriteState() {}
 
@@ -53,36 +60,69 @@ struct SpriteState
         pContainer = copy.pContainer;
     }
 
-    SpriteState(SpriteContainer* in_pContainer)
+    SpriteState(NodeContainer* in_pContainer)
     {
         pContainer = in_pContainer;
-        auto pSprite = pContainer->pSprite;
-
-        texture = pSprite->GetTexture()->getName();
-        position = pSprite->GetPosition();
-        scale = pSprite->GetScale();
-        angle = pSprite->GetAngle();
-        color = pSprite->GetColor();
-        align = pSprite->GetAlign();
+        assert(pContainer);
+        auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+        if (pSprite)
+        {
+            texture = pSprite->GetTexture()->getName();
+            align = pSprite->GetAlign();
+        }
+        position = pContainer->pNode->GetPosition();
+        scale = pContainer->pNode->GetScale();
+        angle = pContainer->pNode->GetAngle();
+        color = pContainer->pNode->GetColor();
     }
 
     void apply() const
     {
-        if (!pContainer) return;
-        auto pSprite = pContainer->pSprite;
-        if (!pSprite) return;
-
-        pSprite->SetTexture(OGetTexture(texture.c_str()));
-        pSprite->SetPosition(position);
-        pSprite->SetScale(scale);
-        pSprite->SetAngle(angle);
-        pSprite->SetColor(color);
-        pSprite->SetAlign(align);
+        assert(pContainer);
+        auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+        if (pSprite)
+        {
+            pSprite->SetTexture(OGetTexture(texture.c_str()));
+            pSprite->SetAlign(align);
+        }
+        pContainer->pNode->SetPosition(position);
+        pContainer->pNode->SetScale(scale);
+        pContainer->pNode->SetAngle(angle);
+        pContainer->pNode->SetColor(color);
     }
+};
+
+enum class Handle
+{
+    TOP_LEFT,
+    LEFT,
+    BOTTOM_LEFT,
+    BOTTOM,
+    BOTTOM_RIGHT,
+    RIGHT,
+    TOP_RIGHT,
+    TOP
+};
+
+struct TransformHandle
+{
+    Vector2 screenPos;
+    Handle handle = Handle::TOP_LEFT;
+    Vector2 transformDirection;
+};
+
+using TransformHandles = std::vector<TransformHandle>;
+using AABB = std::vector<Vector2>;
+
+struct Gizmo
+{
+    TransformHandles transformHandles;
+    AABB aabb;
 };
 
 // Utilities
 onut::ActionManager actionManager;
+std::unordered_map<seed::Node*, NodeContainer*> nodesToContainers;
 
 // Camera
 using Zoom = float;
@@ -93,10 +133,10 @@ Zoom zoom = zoomLevels[zoomIndex];
 Vector2 cameraPos = Vector2::Zero;
 
 // Selection
-using Selection = std::vector<SpriteContainer*>;
+using Selection = std::vector<NodeContainer*>;
 Selection selection;
 OAnimf dottedLineAnim = 0.f;
-std::unordered_map<seed::Sprite*, onut::UITreeViewItem*> spritesToTreeViewItem;
+Gizmo gizmo;
 
 // State
 State state = State::Idle;
@@ -125,6 +165,8 @@ onut::UITextBox* pPropertyAlpha = nullptr;
 seed::View* pEditingView = nullptr;
 Vector2 viewSize = Vector2(640, 480);
 
+void updateTransformHandles();
+
 void updateProperties()
 {
     pPropertyName->isEnabled = false;
@@ -141,43 +183,58 @@ void updateProperties()
     pPropertyColor->isEnabled = false;
     pPropertyAlpha->isEnabled = false;
 
+    pPropertyTexture->isEnabled = true;
+    pPropertyTextureBrowse->isEnabled = true;
+    pPropertyAlignX->isEnabled = true;
+    pPropertyAlignY->isEnabled = true;
+
     for (auto pContainer : selection)
     {
         pPropertyName->isEnabled = true;
         pPropertyClass->isEnabled = true;
-        pPropertyTexture->isEnabled = true;
-        pPropertyTextureBrowse->isEnabled = true;
         pPropertyX->isEnabled = true;
         pPropertyY->isEnabled = true;
         pPropertyScaleX->isEnabled = true;
         pPropertyScaleY->isEnabled = true;
-        pPropertyAlignX->isEnabled = true;
-        pPropertyAlignY->isEnabled = true;
         pPropertyAngle->isEnabled = true;
         pPropertyColor->isEnabled = true;
         pPropertyAlpha->isEnabled = true;
 
         pPropertyName->textComponent.text = "";
         pPropertyClass->textComponent.text = "";
-        auto pTexture = pContainer->pSprite->GetTexture();
-        if (pTexture)
+
+        auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+        if (pSprite)
         {
-            pPropertyTexture->textComponent.text = pTexture->getName();
+            auto pTexture = pSprite->GetTexture();
+            if (pTexture)
+            {
+                pPropertyTexture->textComponent.text = pTexture->getName();
+            }
+            else
+            {
+                pPropertyTexture->textComponent.text = "";
+            }
+            pPropertyAlignX->setFloat(pSprite->GetAlign().x);
+            pPropertyAlignY->setFloat(pSprite->GetAlign().y);
         }
         else
         {
-            pPropertyTexture->textComponent.text = "";
+            pPropertyTexture->isEnabled = false;
+            pPropertyTextureBrowse->isEnabled = false;
+            pPropertyAlignX->isEnabled = false;
+            pPropertyAlignY->isEnabled = false;
         }
-        pPropertyX->setFloat(pContainer->pSprite->GetPosition().x);
-        pPropertyY->setFloat(pContainer->pSprite->GetPosition().y);
-        pPropertyScaleX->setFloat(pContainer->pSprite->GetScale().x);
-        pPropertyScaleY->setFloat(pContainer->pSprite->GetScale().y);
-        pPropertyAlignX->setFloat(pContainer->pSprite->GetAlign().x);
-        pPropertyAlignY->setFloat(pContainer->pSprite->GetAlign().y);
-        pPropertyAngle->setFloat(pContainer->pSprite->GetAngle());
-        pPropertyColor->color = onut::sUIColor(pContainer->pSprite->GetColor().x, pContainer->pSprite->GetColor().y, pContainer->pSprite->GetColor().z, pContainer->pSprite->GetColor().w);
-        pPropertyAlpha->setFloat(pContainer->pSprite->GetColor().w * 100.f);
+        pPropertyX->setFloat(pContainer->pNode->GetPosition().x);
+        pPropertyY->setFloat(pContainer->pNode->GetPosition().y);
+        pPropertyScaleX->setFloat(pContainer->pNode->GetScale().x);
+        pPropertyScaleY->setFloat(pContainer->pNode->GetScale().y);
+        pPropertyAngle->setFloat(pContainer->pNode->GetAngle());
+        pPropertyColor->color = onut::sUIColor(pContainer->pNode->GetColor().x, pContainer->pNode->GetColor().y, pContainer->pNode->GetColor().z, pContainer->pNode->GetColor().w);
+        pPropertyAlpha->setFloat(pContainer->pNode->GetColor().w * 100.f);
     }
+
+    updateTransformHandles();
 }
 
 // Main
@@ -191,6 +248,176 @@ int CALLBACK WinMain(HINSTANCE appInstance, HINSTANCE prevInstance, LPSTR cmdLin
 
     // Run
     ORun(init, update, render);
+}
+
+Matrix getViewTransform()
+{
+    auto viewRect = pMainView->getWorldRect(*OUIContext);
+    Matrix transform =
+        Matrix::CreateTranslation(-cameraPos) *
+        Matrix::CreateScale(zoom) *
+        Matrix::CreateTranslation(Vector2((float)viewRect.position.x + (float)viewRect.size.x * .5f, (float)viewRect.position.y + (float)viewRect.size.y * .5f));
+    return std::move(transform);
+}
+
+std::vector<Vector2> getSpriteCorners(seed::Sprite* pSprite)
+{
+    Matrix viewTransform = getViewTransform();
+    auto spriteTransform = pSprite->GetTransform();
+    auto finalTransform = spriteTransform * viewTransform;
+    Vector2 size = {pSprite->GetWidth(), pSprite->GetHeight()};
+    auto& align = pSprite->GetAlign();
+
+    std::vector<Vector2> points = {
+        Vector2::Transform(Vector2(size.x * -align.x, size.y * -align.y), finalTransform),
+        Vector2::Transform(Vector2(size.x * -align.x, size.y * (1.f - align.y)), finalTransform),
+        Vector2::Transform(Vector2(size.x * (1.f - align.x), size.y * (1.f - align.y)), finalTransform),
+        Vector2::Transform(Vector2(size.x * (1.f - align.x), size.y * -align.y), finalTransform)
+    };
+
+    return std::move(points);
+}
+
+AABB getSelectionAABB()
+{
+    Matrix transform = getViewTransform();
+    AABB aabb = {Vector2(100000, 100000), Vector2(-100000, -100000)};
+    for (auto pContainer : selection)
+    {
+        auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+        if (!pSprite) continue;
+
+        auto points = getSpriteCorners(pSprite);
+        for (auto& point : points)
+        {
+            aabb[0] = Vector2::Min(aabb[0], point);
+            aabb[1] = Vector2::Max(aabb[1], point);
+        }
+    }
+    return std::move(aabb);
+}
+
+bool isMultiSelection()
+{
+    return selection.size() > 1;
+}
+
+void updateTransformHandles()
+{
+    if (isMultiSelection())
+    {
+        gizmo.transformHandles.resize(8);
+        gizmo.aabb = getSelectionAABB();
+
+        gizmo.transformHandles[0].handle = Handle::TOP_LEFT;
+        gizmo.transformHandles[0].screenPos = gizmo.aabb[0];
+        gizmo.transformHandles[0].transformDirection = Vector2(-1, -1);
+        gizmo.transformHandles[0].transformDirection.Normalize();
+
+        gizmo.transformHandles[1].handle = Handle::LEFT;
+        gizmo.transformHandles[1].screenPos = Vector2(gizmo.aabb[0].x, (gizmo.aabb[0].y + gizmo.aabb[1].y) * .5f);
+        gizmo.transformHandles[1].transformDirection = Vector2(-1, 0);
+
+        gizmo.transformHandles[2].handle = Handle::BOTTOM_LEFT;
+        gizmo.transformHandles[2].screenPos = Vector2(gizmo.aabb[0].x, gizmo.aabb[1].y);
+        gizmo.transformHandles[2].transformDirection = Vector2(-1, 1);
+        gizmo.transformHandles[2].transformDirection.Normalize();
+
+        gizmo.transformHandles[3].handle = Handle::BOTTOM;
+        gizmo.transformHandles[3].screenPos = Vector2((gizmo.aabb[0].x + gizmo.aabb[1].x) * .5f, gizmo.aabb[1].y);
+        gizmo.transformHandles[3].transformDirection = Vector2(0, 1);
+
+        gizmo.transformHandles[4].handle = Handle::BOTTOM_RIGHT;
+        gizmo.transformHandles[4].screenPos = gizmo.aabb[1];
+        gizmo.transformHandles[4].transformDirection = Vector2(1, 1);
+        gizmo.transformHandles[4].transformDirection.Normalize();
+
+        gizmo.transformHandles[5].handle = Handle::RIGHT;
+        gizmo.transformHandles[5].screenPos = Vector2(gizmo.aabb[1].x, (gizmo.aabb[0].y + gizmo.aabb[1].y) * .5f);
+        gizmo.transformHandles[5].transformDirection = Vector2(1, 0);
+
+        gizmo.transformHandles[6].handle = Handle::TOP_RIGHT;
+        gizmo.transformHandles[6].screenPos = Vector2(gizmo.aabb[1].x, gizmo.aabb[0].y);
+        gizmo.transformHandles[6].transformDirection = Vector2(1, -1);
+        gizmo.transformHandles[6].transformDirection.Normalize();
+
+        gizmo.transformHandles[7].handle = Handle::TOP;
+        gizmo.transformHandles[7].screenPos = Vector2((gizmo.aabb[0].x + gizmo.aabb[1].x) * .5f, gizmo.aabb[0].y);
+        gizmo.transformHandles[7].transformDirection = Vector2(0, -1);
+    }
+    else if (selection.empty())
+    {
+        gizmo.transformHandles.clear();
+    }
+    else
+    {
+        auto pSprite = dynamic_cast<seed::Sprite*>(selection.front()->pNode);
+        if (!pSprite)
+        {
+            gizmo.transformHandles.clear();
+        }
+        else
+        {
+            gizmo.transformHandles.resize(8);
+            auto spriteCorners = getSpriteCorners(pSprite);
+            {
+                gizmo.transformHandles[0].handle = Handle::TOP_LEFT;
+                gizmo.transformHandles[0].screenPos = spriteCorners[0];
+                Vector2 norm[] = {spriteCorners[0] - spriteCorners[1], spriteCorners[0] - spriteCorners[3]};
+                norm[0].Normalize(); norm[1].Normalize();
+                gizmo.transformHandles[0].transformDirection = norm[0] + norm[1];
+                gizmo.transformHandles[0].transformDirection.Normalize();
+            }
+            {
+                gizmo.transformHandles[1].handle = Handle::LEFT;
+                gizmo.transformHandles[1].screenPos = (spriteCorners[0] + spriteCorners[1]) * .5f;
+                gizmo.transformHandles[1].transformDirection = spriteCorners[0] - spriteCorners[3];
+                gizmo.transformHandles[1].transformDirection.Normalize();
+            }
+            {
+                gizmo.transformHandles[2].handle = Handle::BOTTOM_LEFT;
+                gizmo.transformHandles[2].screenPos = spriteCorners[1];
+                Vector2 norm[] = {spriteCorners[1] - spriteCorners[0], spriteCorners[1] - spriteCorners[2]};
+                norm[0].Normalize(); norm[1].Normalize();
+                gizmo.transformHandles[2].transformDirection = norm[0] + norm[1];
+                gizmo.transformHandles[2].transformDirection.Normalize();
+            }
+            {
+                gizmo.transformHandles[3].handle = Handle::BOTTOM;
+                gizmo.transformHandles[3].screenPos = (spriteCorners[1] + spriteCorners[2]) * .5f;
+                gizmo.transformHandles[3].transformDirection = spriteCorners[1] - spriteCorners[0];
+                gizmo.transformHandles[3].transformDirection.Normalize();
+            }
+            {
+                gizmo.transformHandles[4].handle = Handle::BOTTOM_RIGHT;
+                gizmo.transformHandles[4].screenPos = spriteCorners[2];
+                Vector2 norm[] = {spriteCorners[2] - spriteCorners[1], spriteCorners[2] - spriteCorners[3]};
+                norm[0].Normalize(); norm[1].Normalize();
+                gizmo.transformHandles[4].transformDirection = norm[0] + norm[1];
+                gizmo.transformHandles[4].transformDirection.Normalize();
+            }
+            {
+                gizmo.transformHandles[5].handle = Handle::RIGHT;
+                gizmo.transformHandles[5].screenPos = (spriteCorners[2] + spriteCorners[3]) * .5f;
+                gizmo.transformHandles[5].transformDirection = spriteCorners[2] - spriteCorners[1];
+                gizmo.transformHandles[5].transformDirection.Normalize();
+            }
+            {
+                gizmo.transformHandles[6].handle = Handle::TOP_RIGHT;
+                gizmo.transformHandles[6].screenPos = spriteCorners[3];
+                Vector2 norm[] = {spriteCorners[3] - spriteCorners[2], spriteCorners[3] - spriteCorners[0]};
+                norm[0].Normalize(); norm[1].Normalize();
+                gizmo.transformHandles[6].transformDirection = norm[0] + norm[1];
+                gizmo.transformHandles[6].transformDirection.Normalize();
+            }
+            {
+                gizmo.transformHandles[7].handle = Handle::TOP;
+                gizmo.transformHandles[7].screenPos = (spriteCorners[3] + spriteCorners[0]) * .5f;
+                gizmo.transformHandles[7].transformDirection = spriteCorners[3] - spriteCorners[2];
+                gizmo.transformHandles[7].transformDirection.Normalize();
+            }
+        }
+    }
 }
 
 std::string fileOpen(const char* szFilters)
@@ -215,7 +442,7 @@ std::string fileOpen(const char* szFilters)
     return ofn.lpstrFile;
 }
 
-void changeSpriteProperty(const std::function<void(SpriteContainer*)>& logic)
+void changeSpriteProperty(const std::function<void(NodeContainer*)>& logic)
 {
     auto pActionGroup = new onut::ActionGroup("Move Sprite");
     for (auto pContainer : selection)
@@ -255,7 +482,14 @@ void init()
 
     pPropertyTexture->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        for (auto pContainer : selection) pContainer->pSprite->SetTexture(OGetTexture(pPropertyTexture->textComponent.text.c_str()));
+        changeSpriteProperty([](NodeContainer* pContainer)
+        {
+            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+            if (pSprite)
+            {
+                pSprite->SetTexture(OGetTexture(pPropertyTexture->textComponent.text.c_str()));
+            }
+        });
     };
     pPropertyTextureBrowse->onClick = [=](onut::UIControl* pControl, const onut::UIMouseEvent& mouseEvent)
     {
@@ -274,51 +508,59 @@ void init()
     };
     pPropertyX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](SpriteContainer* pContainer)
+        changeSpriteProperty([](NodeContainer* pContainer)
         {
-            pContainer->pSprite->SetPosition(Vector2(pPropertyX->getFloat(), pContainer->pSprite->GetPosition().y));
+            pContainer->pNode->SetPosition(Vector2(pPropertyX->getFloat(), pContainer->pNode->GetPosition().y));
         });
     };
     pPropertyY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](SpriteContainer* pContainer)
+        changeSpriteProperty([](NodeContainer* pContainer)
         {
-            for (auto pContainer : selection) pContainer->pSprite->SetPosition(Vector2(pContainer->pSprite->GetPosition().x, pPropertyY->getFloat()));
+            pContainer->pNode->SetPosition(Vector2(pContainer->pNode->GetPosition().x, pPropertyY->getFloat()));
         });
     };
     pPropertyScaleX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](SpriteContainer* pContainer)
+        changeSpriteProperty([](NodeContainer* pContainer)
         {
-            for (auto pContainer : selection) pContainer->pSprite->SetScale(Vector2(pPropertyScaleX->getFloat(), pContainer->pSprite->GetScale().y));
+            pContainer->pNode->SetScale(Vector2(pPropertyScaleX->getFloat(), pContainer->pNode->GetScale().y));
         });
     };
     pPropertyScaleY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](SpriteContainer* pContainer)
+        changeSpriteProperty([](NodeContainer* pContainer)
         {
-            for (auto pContainer : selection) pContainer->pSprite->SetScale(Vector2(pContainer->pSprite->GetScale().x, pPropertyScaleY->getFloat()));
+            pContainer->pNode->SetScale(Vector2(pContainer->pNode->GetScale().x, pPropertyScaleY->getFloat()));
         });
     };
     pPropertyAlignX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](SpriteContainer* pContainer)
+        changeSpriteProperty([](NodeContainer* pContainer)
         {
-            for (auto pContainer : selection) pContainer->pSprite->SetAlign(Vector2(pPropertyAlignX->getFloat(), pContainer->pSprite->GetAlign().y));
+            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+            if (pSprite)
+            {
+                pSprite->SetAlign(Vector2(pPropertyAlignX->getFloat(), pSprite->GetAlign().y));
+            }
         });
     };
     pPropertyAlignY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](SpriteContainer* pContainer)
+        changeSpriteProperty([](NodeContainer* pContainer)
         {
-            for (auto pContainer : selection) pContainer->pSprite->SetAlign(Vector2(pContainer->pSprite->GetAlign().x, pPropertyAlignY->getFloat()));
+            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+            if (pSprite)
+            {
+                pSprite->SetAlign(Vector2(pSprite->GetAlign().x, pPropertyAlignY->getFloat()));
+            }
         });
     };
     pPropertyAngle->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](SpriteContainer* pContainer)
+        changeSpriteProperty([](NodeContainer* pContainer)
         {
-            for (auto pContainer : selection) pContainer->pSprite->SetAngle(pPropertyAngle->getFloat());
+            pContainer->pNode->SetAngle(pPropertyAngle->getFloat());
         });
     };
     pPropertyColor->onClick = [=](onut::UIControl* pControl, const onut::UIMouseEvent& evt)
@@ -341,19 +583,19 @@ void init()
             color.packed = ((rgbCurrent << 24) & 0xff000000) | ((rgbCurrent << 8) & 0x00ff0000) | ((rgbCurrent >> 8) & 0x0000ff00) | 0x000000ff;
             color.unpack();
             pPropertyColor->color = color;
-            changeSpriteProperty([color](SpriteContainer* pContainer)
+            changeSpriteProperty([color](NodeContainer* pContainer)
             {
-                auto colorBefore = pContainer->pSprite->GetColor();
-                pContainer->pSprite->SetColor(Color(color.r, color.g, color.g, colorBefore.w));
+                auto colorBefore = pContainer->pNode->GetColor();
+                pContainer->pNode->SetColor(Color(color.r, color.g, color.g, colorBefore.w));
             });
         }
     };
     pPropertyAlpha->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](SpriteContainer* pContainer)
+        changeSpriteProperty([](NodeContainer* pContainer)
         {
             auto alpha = pPropertyAlpha->getFloat() / 100.f;
-            for (auto pContainer : selection) pContainer->pSprite->SetColor(Color(pContainer->pSprite->GetColor().x, pContainer->pSprite->GetColor().y, pContainer->pSprite->GetColor().z, alpha));
+            pContainer->pNode->SetColor(Color(pContainer->pNode->GetColor().x, pContainer->pNode->GetColor().y, pContainer->pNode->GetColor().z, alpha));
         });
     };
 
@@ -382,8 +624,8 @@ void init()
         if (state != State::Idle) return;
 
         // Undo/redo
-        SpriteContainer* pContainer = new SpriteContainer();
-        auto* pSelection = new Selection(selection);
+        NodeContainer* pContainer = new NodeContainer();
+        auto oldSelection = selection;
         actionManager.doAction(new onut::ActionGroup("Create Sprite",
         {
             new onut::Action("",
@@ -395,23 +637,22 @@ void init()
                 pTreeItem->pUserData = pContainer;
                 pTreeView->addItem(pTreeItem);
 
-                pContainer->pSprite = pSprite;
+                pContainer->pNode = pSprite;
                 pContainer->pTreeViewItem = pTreeItem;
-
-                spritesToTreeViewItem[pSprite] = pTreeItem;
+                nodesToContainers[pSprite] = pContainer;
             },
                 [=]{ // OnUndo
-                auto it = spritesToTreeViewItem.find(pContainer->pSprite);
-                if (it != spritesToTreeViewItem.end()) spritesToTreeViewItem.erase(it);
-                pEditingView->DeleteNode(pContainer->pSprite);
+                auto it = nodesToContainers.find(pContainer->pNode);
+                if (it != nodesToContainers.end()) nodesToContainers.erase(it);
+                pEditingView->DeleteNode(pContainer->pNode);
                 pTreeView->removeItem(pContainer->pTreeViewItem);
                 pContainer->pTreeViewItem = nullptr;
-                pContainer->pSprite = nullptr;
+                pContainer->pNode = nullptr;
             },
                 [=]{ // Init
             },
                 [=]{ // Destroy
-                delete pContainer;
+                pContainer->release();
             }),
             new onut::Action("",
                 [=]{ // OnRedo
@@ -420,13 +661,8 @@ void init()
                 updateProperties();
             },
                 [=]{ // OnUndo
-                selection = *pSelection;
+                selection = oldSelection;
                 updateProperties();
-            },
-                [=]{ // Init
-            },
-                [=]{ // Destroy
-                delete pSelection;
             }),
         }));
     };
@@ -458,16 +694,15 @@ void init()
         OSB->drawRect(nullptr, onut::UI2Onut(rect), OColorHex(232323));
         OSB->end();
 
-        Matrix transform =
-            Matrix::CreateTranslation(-cameraPos) *
-            Matrix::CreateScale(zoom) *
-            Matrix::CreateTranslation(Vector2((float)rect.position.x + (float)rect.size.x * .5f, (float)rect.position.y + (float)rect.size.y * .5f));
+        Matrix transform = getViewTransform();
         OSB->begin(transform);
         OSB->drawRect(nullptr, Rect(0, 0, viewSize.x, viewSize.y), Color::Black);
         pEditingView->Render();
 
         // Draw selection
         const Color DOTTED_LINE_COLOR = {1, 1, 1, .5f};
+        const Color AABB_DOTTED_LINE_COLOR = {1, 1, .5f, .5f};
+        const Color HANDLE_COLOR = OColorHex(999999);
 
         auto pDottedLineTexture = OGetTexture("dottedLine.png");
         auto dottedLineScale = 1.f / pDottedLineTexture->getSizef().x * zoom;
@@ -476,43 +711,57 @@ void init()
 
         for (auto pContainer : selection)
         {
-            auto spriteTransform = pContainer->pSprite->GetTransform();
-            Vector2 size = {pContainer->pSprite->GetWidth(), pContainer->pSprite->GetHeight()};
+            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+            if (!pSprite) continue;
 
-            if (dynamic_cast<seed::Sprite*>(pContainer->pSprite))
+            auto points = getSpriteCorners(pSprite);
+            Vector2 size = {pSprite->GetWidth(), pSprite->GetHeight()};
+
+            OPB->begin(onut::ePrimitiveType::LINE_STRIP, pDottedLineTexture);
+            OPB->draw(points[0], DOTTED_LINE_COLOR, Vector2(dottedLineOffset, dottedLineOffset));
+            OPB->draw(points[1], DOTTED_LINE_COLOR, Vector2(dottedLineOffset, dottedLineOffset + size.y * dottedLineScale * pSprite->GetScale().y));
+            OPB->draw(points[2], DOTTED_LINE_COLOR, Vector2(dottedLineOffset + size.x * dottedLineScale * pSprite->GetScale().x, dottedLineOffset + size.y * dottedLineScale * pSprite->GetScale().y));
+            OPB->draw(points[3], DOTTED_LINE_COLOR, Vector2(dottedLineOffset + size.x * dottedLineScale * pSprite->GetScale().x, dottedLineOffset));
+            OPB->draw(points[0], DOTTED_LINE_COLOR, Vector2(dottedLineOffset, dottedLineOffset));
+            OPB->end();
+
+            if (!isMultiSelection())
             {
-                auto& align = pContainer->pSprite->GetAlign();
-
-                OPB->begin(onut::ePrimitiveType::LINE_STRIP, pDottedLineTexture, spriteTransform * transform);
-                OPB->draw(Vector2(size.x * -align.x, size.y * -align.y), DOTTED_LINE_COLOR, 
-                          Vector2(dottedLineOffset, dottedLineOffset));
-                OPB->draw(Vector2(size.x * -align.x, size.y * (1.f - align.y)), DOTTED_LINE_COLOR, 
-                          Vector2(dottedLineOffset, dottedLineOffset + size.y * dottedLineScale * pContainer->pSprite->GetScale().y));
-                OPB->draw(Vector2(size.x * (1.f - align.x), size.y * (1.f - align.y)), DOTTED_LINE_COLOR, 
-                          Vector2(dottedLineOffset + size.x * dottedLineScale * pContainer->pSprite->GetScale().x, dottedLineOffset + size.y * dottedLineScale * pContainer->pSprite->GetScale().y));
-                OPB->draw(Vector2(size.x * (1.f - align.x), size.y * -align.y), DOTTED_LINE_COLOR, 
-                          Vector2(dottedLineOffset + size.x * dottedLineScale * pContainer->pSprite->GetScale().x, dottedLineOffset));
-                OPB->draw(Vector2(size.x * -align.x, size.y * -align.y), DOTTED_LINE_COLOR, 
-                          Vector2(dottedLineOffset, dottedLineOffset));
-                OPB->end();
-
+                auto spriteTransform = pSprite->GetTransform();
                 OSB->begin(transform);
-                OSB->drawCross(spriteTransform.Translation(), 10.f, DOTTED_LINE_COLOR);
+                OSB->drawCross(spriteTransform.Translation(), 10.f, HANDLE_COLOR);
                 OSB->end();
             }
-            else
-            {
-            }
         }
+        if (isMultiSelection())
+        {
+            OPB->begin(onut::ePrimitiveType::LINE_STRIP, pDottedLineTexture);
+            OPB->draw(gizmo.aabb[0], AABB_DOTTED_LINE_COLOR, Vector2(dottedLineOffset, dottedLineOffset));
+            OPB->draw(Vector2(gizmo.aabb[0].x, gizmo.aabb[1].y), AABB_DOTTED_LINE_COLOR, Vector2(dottedLineOffset, dottedLineOffset + (gizmo.aabb[1].y - gizmo.aabb[0].y) * dottedLineScale));
+            OPB->draw(gizmo.aabb[1], AABB_DOTTED_LINE_COLOR, Vector2(dottedLineOffset + (gizmo.aabb[1].x - gizmo.aabb[0].x) * dottedLineScale, dottedLineOffset + (gizmo.aabb[1].y - gizmo.aabb[0].y) * dottedLineScale));
+            OPB->draw(Vector2(gizmo.aabb[1].x, gizmo.aabb[0].y), AABB_DOTTED_LINE_COLOR, Vector2(dottedLineOffset + (gizmo.aabb[1].x - gizmo.aabb[0].x) * dottedLineScale, dottedLineOffset));
+            OPB->draw(gizmo.aabb[0], AABB_DOTTED_LINE_COLOR, Vector2(dottedLineOffset, dottedLineOffset));
+            OPB->end();
+        }
+
+        // Handles
         OSB->begin();
+        for (auto& handle : gizmo.transformHandles)
+        {
+            OSB->drawSprite(nullptr, handle.screenPos, HANDLE_COLOR, 0, 6);
+        }
     });
 
     // Mouse down for select
-    pMainView->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
+    pMainView->onMouseDown = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
-        auto viewRect = pControl->getWorldRect(*OUIContext);
-        seed::Sprite* pMouseHover = nullptr;
+        mousePosOnDown = event.mousePos;
+        state = State::IsAboutToMove;
+
+        // Transform mouse into view
+        seed::Node* pMouseHover = nullptr;
         auto mousePosInView = onut::UI2Onut(event.localMousePos);
+        auto viewRect = pMainView->getWorldRect(*OUIContext);
         Matrix viewTransform =
             Matrix::CreateTranslation(-cameraPos) *
             Matrix::CreateScale(zoom) *
@@ -523,18 +772,29 @@ void init()
         // Find the topmost mouse hover sprite
         pEditingView->visitNodesBackward([&](seed::Node* pNode) -> bool
         {
+            auto transform = pNode->GetTransform();
+            auto invTransform = transform.Invert();
+            auto mouseInSprite = Vector2::Transform(mousePosInView, invTransform);
             auto pSprite = dynamic_cast<seed::Sprite*>(pNode);
             if (pSprite)
             {
-                auto transform = pNode->GetTransform();
-                auto invTransform = transform.Invert();
-                auto mouseInSprite = Vector2::Transform(mousePosInView, invTransform);
                 if (mouseInSprite.x >= -pSprite->GetWidth() * pSprite->GetAlign().x &&
                     mouseInSprite.x <= pSprite->GetWidth() * (1.f - pSprite->GetAlign().x) &&
                     mouseInSprite.y >= -pSprite->GetHeight() * pSprite->GetAlign().y &&
                     mouseInSprite.y <= pSprite->GetHeight() * (1.f - pSprite->GetAlign().y))
                 {
                     pMouseHover = pSprite;
+                    return true;
+                }
+            }
+            else
+            {
+                if (mouseInSprite.x >= -16 &&
+                    mouseInSprite.x <= 16 &&
+                    mouseInSprite.y >= -16 &&
+                    mouseInSprite.y <= 16)
+                {
+                    pMouseHover = pNode;
                     return true;
                 }
             }
@@ -551,16 +811,15 @@ void init()
                 bool found = false;
                 for (auto it = selectionAfter.begin(); it != selectionAfter.end(); ++it)
                 {
-                    if ((*it)->pSprite == pMouseHover)
+                    if ((*it)->pNode == pMouseHover)
                     {
                         found = true;
                         selectionAfter.erase(it);
                         break;
                     }
                 }
-                auto pContainer = new SpriteContainer();
-                pContainer->pSprite = pMouseHover;
-                pContainer->pTreeViewItem = spritesToTreeViewItem[pContainer->pSprite];
+                auto pContainer = nodesToContainers[pMouseHover];
+                pContainer->retain();
                 if (!found)
                 {
                     selectionAfter.push_back(pContainer);
@@ -569,59 +828,152 @@ void init()
                     [=]
                 {
                     selection = selectionAfter;
+                    updateProperties();
                 }, [=]
                 {
                     selection = selectionBefore;
+                    updateProperties();
                 }, [=]
                 {
                 }, [=]
                 {
-                    delete pContainer;
+                    pContainer->release();
                 }));
             }
             else
             {
                 if (selection.size() == 1)
                 {
-                    if (selection.front()->pSprite == pMouseHover) return; // Nothing changed
+                    if (selection.front()->pNode == pMouseHover) return; // Nothing changed
                 }
-                auto pContainer = new SpriteContainer();
-                pContainer->pSprite = pMouseHover;
-                pContainer->pTreeViewItem = spritesToTreeViewItem[pContainer->pSprite];
-                auto selectionBefore = selection;
-                auto selectionAfter = selection;
-                selectionAfter.clear();
-                selectionAfter.push_back(pContainer);
-                actionManager.doAction(new onut::Action("Select",
-                    [=]
+                bool found = false;
+                for (auto pContainer : selection)
                 {
-                    selection = selectionAfter;
-                }, [=]
+                    if (pContainer->pNode == pMouseHover)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
                 {
-                    selection = selectionBefore;
-                }, [=]
-                {
-                }, [=]
-                {
-                    delete pContainer;
-                }));
+                    auto pContainer = nodesToContainers[pMouseHover];
+                    pContainer->retain();
+                    auto selectionBefore = selection;
+                    auto selectionAfter = selection;
+                    selectionAfter.clear();
+                    selectionAfter.push_back(pContainer);
+                    actionManager.doAction(new onut::Action("Select",
+                        [=]
+                    {
+                        selection = selectionAfter;
+                        updateProperties();
+                    }, [=]
+                    {
+                        selection = selectionBefore;
+                        updateProperties();
+                    }, [=]
+                    {
+                    }, [=]
+                    {
+                        pContainer->release();
+                    }));
+                }
             }
         }
         else
         {
-            // Unselect all
-            auto selectionBefore = selection;
-            auto selectionAfter = selection;
-            selectionAfter.clear();
-            actionManager.doAction(new onut::Action("Unselect",
-                [=]
+            // Unselect all if we are not within it's aabb
+            bool doSelection = true;
+            if (isMultiSelection())
             {
-                selection = selectionAfter;
-            }, [=]
+                auto aabb = getSelectionAABB();
+                if (event.mousePos.x >= aabb[0].x &&
+                    event.mousePos.y >= aabb[0].y &&
+                    event.mousePos.x <= aabb[1].x &&
+                    event.mousePos.y <= aabb[1].y)
+                {
+                    doSelection = false;
+                }
+            }
+            if (doSelection)
             {
-                selection = selectionBefore;
-            }));
+                auto selectionBefore = selection;
+                auto selectionAfter = selection;
+                selectionAfter.clear();
+                actionManager.doAction(new onut::Action("Unselect",
+                    [=]
+                {
+                    selection = selectionAfter;
+                    updateProperties();
+                }, [=]
+                {
+                    selection = selectionBefore;
+                    updateProperties();
+                }));
+            }
         }
+    };
+
+    pMainView->onMouseMove = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
+    {
+        auto mouseDiff = onut::UI2Onut(event.mousePos) - onut::UI2Onut(mousePosOnDown);
+        if (state == State::IsAboutToMove)
+        {
+            if (mouseDiff.Length() >= 3.f)
+            {
+                state = State::Moving;
+                for (auto pContainer : selection)
+                {
+                    pContainer->parentTransformOnDown = Matrix::Identity;
+                    if (pContainer->pNode->GetParent())
+                    {
+                        pContainer->parentTransformOnDown = pContainer->pNode->GetParent()->GetTransform();
+                    }
+                    pContainer->positionOnDown = pContainer->pNode->GetPosition();
+                    pContainer->scaleOnDown = pContainer->pNode->GetScale();
+                }
+            }
+        }
+        if (state == State::Moving)
+        {
+            for (auto pContainer : selection)
+            {
+                auto transform = pContainer->parentTransformOnDown;
+                auto worldPos = Vector2::Transform(pContainer->positionOnDown, transform);
+                auto invTransform = transform.Invert();
+                worldPos += mouseDiff;
+                pContainer->pNode->SetPosition(Vector2::Transform(worldPos, invTransform));
+            }
+            updateProperties();
+        }
+    };
+
+    pMainView->onMouseUp = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
+    {
+        if (state == State::Moving)
+        {
+            auto pGroup = new onut::ActionGroup("Move");
+            for (auto pContainer : selection)
+            {
+                pContainer->retain();
+                auto positionBefore = pContainer->positionOnDown;
+                auto positionAfter = pContainer->pNode->GetPosition();
+                pGroup->addAction(new onut::Action("",
+                    [=]{
+                    pContainer->pNode->SetPosition(positionAfter);
+                    updateProperties();
+                }, [=] {
+                    pContainer->pNode->SetPosition(positionBefore);
+                    updateProperties();
+                }, [=] {
+                }, [=] {
+                    pContainer->release();
+                }));
+            }
+            actionManager.doAction(pGroup);
+        }
+        state = State::Idle;
     };
 
     updateProperties();
