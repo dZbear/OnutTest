@@ -13,7 +13,10 @@ namespace seed
         : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)
         , m_currentButton(nullptr)
     {
+        memset(m_focusedButtons, 0, 4);
+        memset(m_defaultFocusedButton, 0, 4);
     }
+
 
     View::~View()
     {
@@ -30,6 +33,9 @@ namespace seed
         // free all Nodes
         DeleteNodes();
         OnHide();
+        m_currentButton = nullptr;
+        memset(m_focusedButtons, 0, 4);
+        memset(m_defaultFocusedButton, 0, 4);
     }
 
     void View::Update()
@@ -43,6 +49,7 @@ namespace seed
 
         // update buttons interactions
         UpdateButtons();
+        UpdateFocus();
     }
 
     void View::Render()
@@ -59,17 +66,127 @@ namespace seed
         OnRender();
     }
 
+    void View::FocusButton(Button* in_button, int in_playerIndex)
+    {
+        if (in_button == m_focusedButtons[in_playerIndex - 1])
+        {
+            return;
+        }
+
+        if (!in_button->CanBeFocused(in_playerIndex))
+        {
+            return;
+        }
+
+
+        if (m_focusedButtons[in_playerIndex - 1])
+        {
+            OnButtonFocusLost(m_focusedButtons[in_playerIndex - 1], in_playerIndex);
+        }
+
+        m_focusedButtons[in_playerIndex - 1] = in_button;
+        OnButtonFocused(in_button, in_playerIndex);
+    }
+
+    void View::UpdateFocus()
+    {
+        if (m_currentButton)
+        {
+            if (m_focusedButtons[0])
+            {
+                OnButtonFocusLost(m_focusedButtons[0], 1);
+                if (m_focusedButtons[0]->IsPressed())
+                {
+                    OnButtonUp(m_focusedButtons[0]);
+                    m_focusedButtons[0]->SetPressed(false);
+                }
+                m_focusedButtons[0] = nullptr;
+            }
+
+            // no need to continue if the mouse is already clicking buttons
+            return;
+        }
+
+        // check if a player is touching a gamepad, or keyboard for player 1
+        for (int playerIndex = 1; playerIndex <= 4; ++playerIndex)
+        {
+            Vector2 dir = GetDirectionFromInputDevices(playerIndex);
+            if (dir.x != 0 || dir.y != 0)
+            {
+                Button* newFocusedButton = GetNextFocusedButton(dir, playerIndex);
+                if (newFocusedButton)
+                {
+                    Button* currentlyFocusedButton = m_focusedButtons[playerIndex - 1];
+                    if (currentlyFocusedButton)
+                    {
+                        OnButtonFocusLost(currentlyFocusedButton, playerIndex);
+                        if (currentlyFocusedButton->IsPressed())
+                        {
+                            OnButtonUp(currentlyFocusedButton);
+                            currentlyFocusedButton->SetPressed(false);
+                        }
+                        m_focusedButtons[playerIndex - 1] = nullptr;
+                    }
+                    OnButtonFocused(newFocusedButton, playerIndex);
+                    m_focusedButtons[playerIndex - 1] = newFocusedButton;
+                }
+            }
+            
+            Button* focusedButton = m_focusedButtons[playerIndex - 1];
+            if (focusedButton)
+            {
+                // verify if we are pressing 'enter' or default A button on a gamepad
+                if (playerIndex == 1)
+                {
+                    // check for "enter"
+                    if (OJustPressed(OINPUT_RETURN))
+                    {
+                        focusedButton->SetPressed(true);
+                        OnButtonDown(focusedButton);
+                    }
+                    else if (OJustReleased(OINPUT_RETURN) && focusedButton->IsPressed())
+                    {
+                        focusedButton->SetPressed(false);
+                        OnButtonUp(focusedButton);
+                        SendCommand(seed::eAppCommand::APP_SPECIFIC, focusedButton->GetCmd());
+                    }
+                }
+
+                // test for gamepad input
+                if (OGamePadJustPressed(onut::GamePad::A, playerIndex - 1))
+                {
+                    focusedButton->SetPressed(true);
+                    OnButtonDown(focusedButton);
+                }
+                else if (OGamePadJustReleased(onut::GamePad::A, playerIndex - 1))
+                {
+                    focusedButton->SetPressed(false);
+                    OnButtonUp(focusedButton);
+                    SendCommand(seed::eAppCommand::APP_SPECIFIC, focusedButton->GetCmd());
+                }
+            }
+        }
+    }
+
+    Button* View::GetFocusedButton(int in_playerIndex)
+    {
+        return m_focusedButtons[in_playerIndex - 1];
+    }
+
+    void View::SetDefaultFocusedButton(Button* in_button, int in_playerIndex)
+    {
+        m_defaultFocusedButton[in_playerIndex - 1] = in_button;
+    }
+
     void View::UpdateButtons()
     {
         // check for mouse click events
         if (OJustPressed(OINPUT_MOUSEB1))
         {
-            m_lastMouseDown = OMousePos;
-
             // check if clicked inside a button
             for (Button* but : m_buttons)
             {
-                if (IsInside(m_lastMouseDown, but->GetSprite()))
+                if (IsInside(OMousePos, but->GetSprite()))
                 {
                     m_currentButton = but;
                     m_currentButton->SetPressed(true);
@@ -88,7 +205,6 @@ namespace seed
                     m_currentButton->SetPressed(false);
                     OnButtonUp(m_currentButton);
                     SendCommand(seed::eAppCommand::APP_SPECIFIC, m_currentButton->GetCmd());
-                    m_currentButton->SetPressed(false);
                 }
             }
             m_currentButton = nullptr;
@@ -184,12 +300,13 @@ namespace seed
         return newSpriteString;
     }
 
-    void View::AddButton(Sprite* in_sprite, const string& in_cmd)
+    Button* View::AddButton(Sprite* in_sprite, const string& in_cmd)
     {
         Button* newButton = new Button();
         newButton->SetSprite(in_sprite);
         newButton->SetCmd(in_cmd);
         m_buttons.push_back(newButton);
+        return newButton;
     }
 
     void View::DeleteNode(Node* in_node)
@@ -267,9 +384,299 @@ namespace seed
         cmd.m_command = in_command;
         cmd.m_params = onut::splitString(in_params, ',');
     }
+
+    Vector2 View::GetDirectionFromInputDevices(int in_playerIndex)
+    {
+        if (in_playerIndex == 1)
+        {
+            // check keyboard for player 1
+            if (OJustPressed(OINPUT_UP))
+            {
+                return Vector2(0, -1);
+            }
+            else if (OJustPressed(OINPUT_DOWN))
+            {
+                return Vector2(0, 1);
+            }
+            else if (OJustPressed(OINPUT_LEFT))
+            {
+                return Vector2(-1, 0);
+            }
+            else if (OJustPressed(OINPUT_RIGHT))
+            {
+                return Vector2(1, 0);
+            }
+        }
+
+        // verify gamepads inputs
+        if (OGamePadJustPressed(onut::GamePad::DPAD_UP, in_playerIndex - 1))
+        {
+            return Vector2(0, -1);
+        }
+        else if (OGamePadJustPressed(onut::GamePad::DPAD_DOWN, in_playerIndex - 1))
+        {
+            return Vector2(0, 1);
+        }
+        else if (OGamePadJustPressed(onut::GamePad::DPAD_LEFT, in_playerIndex - 1))
+        {
+            return Vector2(-1, 0);
+        }
+        else if (OGamePadJustPressed(onut::GamePad::DPAD_RIGHT, in_playerIndex - 1))
+        {
+            return Vector2(1, 0);
+        }
+        return Vector2();
+    }
+
+    Button* View::GetNextFocusedButton(const Vector2& in_dir, int in_playerIndex)
+    {
+        Button* focusedButton = m_focusedButtons[in_playerIndex - 1];
+        if (!focusedButton)
+        {
+            // no button has focus, return the default
+            return m_defaultFocusedButton[in_playerIndex - 1];
+        }
+
+        Vector2 focusedAbsPos = focusedButton->GetSprite()->GetAbsolutePosition();
+
+        const float maxDot = -.7f;
+        float bestDot = .5f;
+        Button* bestButton = nullptr;
+        ButtonVect candidates = GetPotentialCandidates(in_dir, in_playerIndex);
+        for (Button* btn : candidates)
+        {
+            Vector2 spriteAbsPos = btn->GetSprite()->GetAbsolutePosition();
+            // define the direction vector from this potential candidate to the currently focused sprite
+            Vector2 sDir = focusedAbsPos - spriteAbsPos;
+            sDir.Normalize();
+            float dot = in_dir.Dot(sDir);
+            //float dotDiff = fabsf(dot - bestDot);
+
+            if (dot < maxDot)
+            {
+                bool canAccept = true;
+                if (bestButton)
+                {
+                    // only accept this entry if it's closer to the currently focused button
+
+                    if (Vector2::DistanceSquared(focusedAbsPos, spriteAbsPos) > Vector2::DistanceSquared(focusedAbsPos, bestButton->GetSprite()->GetAbsolutePosition()))
+                    {
+                        // can't accept it, it's too far
+                        canAccept = false;
+                    }
+                }
+
+                if (canAccept)
+                {
+                    bestDot = dot;
+                    bestButton = btn;
+                }
+            }
+        }
+        return bestButton;
+    }
+
+    ButtonVect View::GetPotentialCandidates(const Vector2& in_dir, int in_playerIndex)
+    {
+        ButtonVect result;
+        Button* focusedButton = m_focusedButtons[in_playerIndex - 1];
+        Vector2 focusedAbsPos = focusedButton->GetSprite()->GetAbsolutePosition();
+        for (Button* btn : m_buttons)
+        {
+            if (btn == focusedButton || !focusedButton->GetSprite()->GetVisible())
+            {
+                continue;
+            }
+
+            if (!btn->CanBeFocused(in_playerIndex))
+            {
+                continue;
+            }
+
+            Vector2 absPos = btn->GetSprite()->GetAbsolutePosition();
+            if (in_dir.x < 0)
+            {
+                if (absPos.x < focusedAbsPos.x)
+                {
+                    if (!AlreadyInVector(btn, result))
+                    {
+                        result.push_back(btn);
+                    }
+                }
+            }
+            else if (in_dir.x >= 0)
+            {
+                if (absPos.x > focusedAbsPos.x)
+                {
+                    if (!AlreadyInVector(btn, result))
+                    {
+                        result.push_back(btn);
+                    }
+                }
+            }
+
+
+            if (in_dir.y < 0)
+            {
+                if (absPos.y < focusedAbsPos.y)
+                {
+                    if (!AlreadyInVector(btn, result))
+                    {
+                        result.push_back(btn);
+                    }
+                }
+            }
+            else if (in_dir.y >= 0)
+            {
+                if (absPos.y > focusedAbsPos.y)
+                {
+                    if (!AlreadyInVector(btn, result))
+                    {
+                        result.push_back(btn);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    bool View::AlreadyInVector(Button* in_button, ButtonVect& in_vector)
+    {
+        for (Button* btn : in_vector)
+        {
+            if (btn == in_button)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 
 
 
 
+/*
+Sprite* FocusMgr::GetNextFocusedSprite(const Vector2f& in_touchStart, const Vector2f& in_touchEnd)
+{
+    if (!m_focusedSprite)
+    {
+        // can't find the 'next' focused sprite without an actual focused sprite
+        return 0;
+    }
+
+    Vector2f focusedAbsPos = m_focusedSprite->GetAbsolutePosition() + m_focusedSprite->GetFocusOffset();
+    // define the direction unit vector the user is swipping to
+    Vector2f dir = (in_touchEnd - in_touchStart).Normalize();
+
+    const float maxDot = -.7f;
+    float bestDot = .5f;
+    Sprite* bestSprite = 0;
+    vector<Sprite*> candidates = GetPotentialCandidates(dir);
+    for (Sprite* s : candidates)
+    {
+        Vector2f spriteAbsPos = s->GetAbsolutePosition() + s->GetFocusOffset();
+        // define the direction vector from this potential candidate to the currently focused sprite
+        Vector2f sDir = (focusedAbsPos - spriteAbsPos).Normalize();
+        float dot = dir.Dot(sDir);
+        //float dotDiff = fabsf(dot - bestDot);
+
+        if (dot < maxDot)
+        {
+            bool canAccept = true;
+            if (bestSprite)
+            {
+                // only accept this entry if it's closer to the currently focused sprite
+                if (focusedAbsPos.DistanceSqr(spriteAbsPos) > focusedAbsPos.DistanceSqr(bestSprite->GetAbsolutePosition() + bestSprite->GetFocusOffset()))
+                {
+                    // can't accept it, it's farther to the
+                    canAccept = false;
+                }
+            }
+
+            if (canAccept)
+            {
+                bestDot = dot;
+                bestSprite = s;
+            }
+        }
+    }
+    return bestSprite;
+}
+
+vector<Sprite*> FocusMgr::GetPotentialCandidates(const Vector2f in_dir)
+{
+    vector<Sprite*> result;
+    Vector2f focusedAbsPos = m_focusedSprite->GetAbsolutePosition() + m_focusedSprite->GetFocusOffset();
+    for (Sprite* s : m_sprites)
+    {
+        if (!s)
+        {
+            continue;
+        }
+
+        if (s == m_focusedSprite || !s->GetVisible())
+        {
+            continue;
+        }
+
+        Vector2f absPos = s->GetAbsolutePosition() + s->GetFocusOffset();
+        if (in_dir.x < 0)
+        {
+            if (absPos.x < focusedAbsPos.x)
+            {
+                if (!AlreadyInVector(s, result))
+                {
+                    result.push_back(s);
+                }
+            }
+        }
+        else if (in_dir.x >= 0)
+        {
+            if (absPos.x > focusedAbsPos.x)
+            {
+                if (!AlreadyInVector(s, result))
+                {
+                    result.push_back(s);
+                }
+            }
+        }
+
+
+        if (in_dir.y < 0)
+        {
+            if (absPos.y < focusedAbsPos.y)
+            {
+                if (!AlreadyInVector(s, result))
+                {
+                    result.push_back(s);
+                }
+            }
+        }
+        else if (in_dir.y >= 0)
+        {
+            if (absPos.y > focusedAbsPos.y)
+            {
+                if (!AlreadyInVector(s, result))
+                {
+                    result.push_back(s);
+                }
+            }
+        }
+    }
+    return result;
+}
+
+bool FocusMgr::AlreadyInVector(Sprite* in_sprite, vector<Sprite*>& in_vector)
+{
+    for (Sprite* s : in_vector)
+    {
+        if (s == in_sprite)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+*/

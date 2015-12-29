@@ -8,6 +8,7 @@ namespace seed
         m_scale = Vector2(1.f, 1.f);
         m_angle = 0;
         m_color = Color(1.f, 1.f, 1.f, 1.f);
+        m_visible = true;
     }
 
     Node::~Node()
@@ -221,6 +222,17 @@ namespace seed
 
         return std::move(transform);
     }
+
+    void Node::SetVisible(bool in_visible)
+    {
+        m_visible = in_visible;
+    }
+
+    bool Node::GetVisible()
+    {
+        return m_visible;
+    }
+
 }
 
 

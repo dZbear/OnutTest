@@ -36,6 +36,8 @@ namespace seed
         Color           GetColor();
         OAnim<Color>&   GetColorAnim();
         Matrix          GetTransform() const;
+        void            SetVisible(bool in_visible);
+        bool            GetVisible();
 
         virtual float   GetWidth() { return 0; }
         virtual float   GetHeight() { return 0; }
@@ -50,6 +52,7 @@ namespace seed
         OAnim<Vector2>          m_scale;
         OAnim<float>            m_angle;
         OAnim<Color>            m_color;
+        bool                    m_visible;
 
         void        RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix = nullptr);
         void        UpdateChildren(NodeVect& in_children);

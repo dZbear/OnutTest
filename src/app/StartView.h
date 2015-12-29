@@ -14,8 +14,10 @@ public:
 
     virtual void OnButtonDown(seed::Button* in_button);
     virtual void OnButtonUp(seed::Button* in_button);
+    virtual void OnButtonFocused(seed::Button* in_button, int in_playerIndex);
+    virtual void OnButtonFocusLost(seed::Button* in_button, int in_playerIndex);
 
-    virtual void OnCommand(const string& in_cmd);
+    virtual bool OnCommand(const string& in_cmd);
 	
 private:
 

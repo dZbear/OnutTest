@@ -22,6 +22,11 @@ namespace seed
 
     void Sprite::Render(Matrix* in_parentMatrix)
     {
+        if (!m_visible)
+        {
+            return;
+        }
+
         // generate our matrix
         Matrix transform = Matrix::Identity;
         transform *= Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
