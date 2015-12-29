@@ -244,6 +244,28 @@ namespace seed
         return false;
     }
 
+    void View::VisitNodes(const VisitCallback& callback)
+    {
+        for (Node* s : m_nodes)
+        {
+            if (s->VisitBackgroundChildren(callback)) return;
+            if (callback(s)) return;
+            if (s->VisitForegroundChildren(callback)) return;
+        }
+    }
+
+    void View::VisitNodesBackward(const VisitCallback& callback)
+    {
+        NodeVect::const_reverse_iterator end = m_nodes.rend();
+        for (NodeVect::const_reverse_iterator it = m_nodes.rbegin(); it != end; ++it)
+        {
+            Node* s = *it;
+            if (s->VisitForegroundChildrenBackward(callback)) return;
+            if (callback(s)) return;
+            if (s->VisitBackgroundChildrenBackward(callback)) return;
+        }
+    }
+
     Sprite* View::AddSprite(const string& in_textureName, int in_zIndex)
     {
         OTexture* texture = OGetTexture(in_textureName.c_str());

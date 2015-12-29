@@ -233,6 +233,49 @@ namespace seed
         return m_visible;
     }
 
+    bool Node::VisitBackgroundChildren(const VisitCallback& callback)
+    {
+        for (Node* node : m_bgChildren)
+        {
+            if (node->VisitBackgroundChildren(callback)) return true;
+            if (callback(node)) return true;
+        }
+        return false;
+    }
+
+    bool Node::VisitBackgroundChildrenBackward(const VisitCallback& callback)
+    {
+        NodeVect::const_reverse_iterator end = m_bgChildren.rend();
+        for (NodeVect::const_reverse_iterator it = m_bgChildren.rbegin(); it != end; ++it)
+        {
+            Node* node = *it;
+            if (callback(node)) return true;
+            if (node->VisitBackgroundChildrenBackward(callback)) return true;
+        }
+        return false;
+    }
+
+    bool Node::VisitForegroundChildren(const VisitCallback& callback)
+    {
+        for (Node* node : m_fgChildren)
+        {
+            if (callback(node)) return true;
+            if (node->VisitForegroundChildren(callback)) return true;
+        }
+        return false;
+    }
+
+    bool Node::VisitForegroundChildrenBackward(const VisitCallback& callback)
+    {
+        NodeVect::const_reverse_iterator end = m_fgChildren.rend();
+        for (NodeVect::const_reverse_iterator it = m_fgChildren.rbegin(); it != end; ++it)
+        {
+            Node* node = *it;
+            if (node->VisitForegroundChildrenBackward(callback)) return true;
+            if (callback(node)) return true;
+        }
+        return false;
+    }
 }
 
 
