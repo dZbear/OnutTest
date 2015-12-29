@@ -484,6 +484,7 @@ void init()
     OUI->add(OLoadUI("editor.json"));
 
     pEditingView = new seed::View();
+    pEditingView->Show();
 
     pMainView = OFindUI("mainView");
     pTreeView = dynamic_cast<onut::UITreeView*>(OFindUI("treeView"));
