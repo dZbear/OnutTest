@@ -20,6 +20,16 @@ enum class State
     Zooming
 };
 
+struct SpriteContainer
+{
+    using Id = uint32_t;
+
+    seed::Sprite* pSprite = nullptr;
+    onut::UITreeViewItem* pTreeViewItem = nullptr;
+    Id spriteId = 0;
+};
+SpriteContainer::Id nextSpriteId = 1;
+
 struct SpriteState
 {
     std::string texture;
@@ -28,10 +38,26 @@ struct SpriteState
     float angle;
     Color color;
     Vector2 align;
+    SpriteContainer* pContainer = nullptr;
 
     SpriteState() {}
-    SpriteState(seed::Sprite* pSprite)
+
+    SpriteState(const SpriteState& copy)
     {
+        texture = copy.texture;
+        position = copy.position;
+        scale = copy.scale;
+        angle = copy.angle;
+        color = copy.color;
+        align = copy.align;
+        pContainer = copy.pContainer;
+    }
+
+    SpriteState(SpriteContainer* in_pContainer)
+    {
+        pContainer = in_pContainer;
+        auto pSprite = pContainer->pSprite;
+
         texture = pSprite->GetTexture()->getName();
         position = pSprite->GetPosition();
         scale = pSprite->GetScale();
@@ -39,12 +65,20 @@ struct SpriteState
         color = pSprite->GetColor();
         align = pSprite->GetAlign();
     }
-};
 
-struct SpriteContainer
-{
-    seed::Sprite* pSprite = nullptr;
-    onut::UITreeViewItem* pTreeViewItem = nullptr;
+    void apply() const
+    {
+        if (!pContainer) return;
+        auto pSprite = pContainer->pSprite;
+        if (!pSprite) return;
+
+        pSprite->SetTexture(OGetTexture(texture.c_str()));
+        pSprite->SetPosition(position);
+        pSprite->SetScale(scale);
+        pSprite->SetAngle(angle);
+        pSprite->SetColor(color);
+        pSprite->SetAlign(align);
+    }
 };
 
 using Selection = std::vector<SpriteContainer*>;
@@ -167,6 +201,21 @@ std::string fileOpen(const char* szFilters)
     return ofn.lpstrFile;
 }
 
+void changeSpriteProperty(const std::function<void(SpriteContainer*)>& logic)
+{
+    auto pActionGroup = new onut::ActionGroup("Move Sprite");
+    for (auto pContainer : selection)
+    {
+        SpriteState spriteStateBefore(pContainer);
+        logic(pContainer);
+        SpriteState spriteStateAfter(pContainer);
+        pActionGroup->addAction(new onut::Action("",
+            [=]{spriteStateAfter.apply(); updateProperties(); },
+            [=]{spriteStateBefore.apply(); updateProperties(); }));
+    }
+    actionManager.doAction(pActionGroup);
+}
+
 void init()
 {
     createUIStyles(OUIContext);
@@ -211,31 +260,52 @@ void init()
     };
     pPropertyX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        for (auto pContainer : selection) pContainer->pSprite->SetPosition(Vector2(pPropertyX->getFloat(), pContainer->pSprite->GetPosition().y));
+        changeSpriteProperty([](SpriteContainer* pContainer)
+        {
+            pContainer->pSprite->SetPosition(Vector2(pPropertyX->getFloat(), pContainer->pSprite->GetPosition().y));
+        });
     };
     pPropertyY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        for (auto pContainer : selection) pContainer->pSprite->SetPosition(Vector2(pContainer->pSprite->GetPosition().x, pPropertyY->getFloat()));
+        changeSpriteProperty([](SpriteContainer* pContainer)
+        {
+            for (auto pContainer : selection) pContainer->pSprite->SetPosition(Vector2(pContainer->pSprite->GetPosition().x, pPropertyY->getFloat()));
+        });
     };
     pPropertyScaleX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        for (auto pContainer : selection) pContainer->pSprite->SetScale(Vector2(pPropertyScaleX->getFloat(), pContainer->pSprite->GetScale().y));
+        changeSpriteProperty([](SpriteContainer* pContainer)
+        {
+            for (auto pContainer : selection) pContainer->pSprite->SetScale(Vector2(pPropertyScaleX->getFloat(), pContainer->pSprite->GetScale().y));
+        });
     };
     pPropertyScaleY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        for (auto pContainer : selection) pContainer->pSprite->SetScale(Vector2(pContainer->pSprite->GetScale().x, pPropertyScaleY->getFloat()));
+        changeSpriteProperty([](SpriteContainer* pContainer)
+        {
+            for (auto pContainer : selection) pContainer->pSprite->SetScale(Vector2(pContainer->pSprite->GetScale().x, pPropertyScaleY->getFloat()));
+        });
     };
     pPropertyAlignX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        for (auto pContainer : selection) pContainer->pSprite->SetAlign(Vector2(pPropertyAlignX->getFloat(), pContainer->pSprite->GetAlign().y));
+        changeSpriteProperty([](SpriteContainer* pContainer)
+        {
+            for (auto pContainer : selection) pContainer->pSprite->SetAlign(Vector2(pPropertyAlignX->getFloat(), pContainer->pSprite->GetAlign().y));
+        });
     };
     pPropertyAlignY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        for (auto pContainer : selection) pContainer->pSprite->SetAlign(Vector2(pContainer->pSprite->GetAlign().x, pPropertyAlignY->getFloat()));
+        changeSpriteProperty([](SpriteContainer* pContainer)
+        {
+            for (auto pContainer : selection) pContainer->pSprite->SetAlign(Vector2(pContainer->pSprite->GetAlign().x, pPropertyAlignY->getFloat()));
+        });
     };
     pPropertyAngle->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        for (auto pContainer : selection) pContainer->pSprite->SetAngle(pPropertyAngle->getFloat());
+        changeSpriteProperty([](SpriteContainer* pContainer)
+        {
+            for (auto pContainer : selection) pContainer->pSprite->SetAngle(pPropertyAngle->getFloat());
+        });
     };
     pPropertyColor->onClick = [=](onut::UIControl* pControl, const onut::UIMouseEvent& evt)
     {
@@ -257,17 +327,20 @@ void init()
             color.packed = ((rgbCurrent << 24) & 0xff000000) | ((rgbCurrent << 8) & 0x00ff0000) | ((rgbCurrent >> 8) & 0x0000ff00) | 0x000000ff;
             color.unpack();
             pPropertyColor->color = color;
-            for (auto pContainer : selection)
+            changeSpriteProperty([color](SpriteContainer* pContainer)
             {
                 auto colorBefore = pContainer->pSprite->GetColor();
                 pContainer->pSprite->SetColor(Color(color.r, color.g, color.g, colorBefore.w));
-            }
+            });
         }
     };
     pPropertyAlpha->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        auto alpha = pControl->getFloat() / 100.f;
-        for (auto pContainer : selection) pContainer->pSprite->SetColor(Color(pContainer->pSprite->GetColor().x, pContainer->pSprite->GetColor().y, pContainer->pSprite->GetColor().z, alpha));
+        changeSpriteProperty([](SpriteContainer* pContainer)
+        {
+            auto alpha = pPropertyAlpha->getFloat() / 100.f;
+            for (auto pContainer : selection) pContainer->pSprite->SetColor(Color(pContainer->pSprite->GetColor().x, pContainer->pSprite->GetColor().y, pContainer->pSprite->GetColor().z, alpha));
+        });
     };
 
     dottedLineAnim.start(0.f, -1.f, .5f, OLinear, OLoop);
