@@ -128,6 +128,28 @@ namespace seed
         return false;
     }
 
+    void View::visitNodes(const VisitCallback& callback)
+    {
+        for (Node* s : m_nodes)
+        {
+            if (s->visitBackgroundChildren(callback)) return;
+            if (callback(s)) return;
+            if (s->visitForegroundChildren(callback)) return;
+        }
+    }
+
+    void View::visitNodesBackward(const VisitCallback& callback)
+    {
+        NodeVect::const_reverse_iterator end = m_nodes.rend();
+        for (NodeVect::const_reverse_iterator it = m_nodes.rbegin(); it != end; ++it)
+        {
+            Node* s = *it;
+            if (s->visitForegroundChildrenBackward(callback)) return;
+            if (callback(s)) return;
+            if (s->visitBackgroundChildrenBackward(callback)) return;
+        }
+    }
+
     Sprite* View::AddSprite(const string& in_textureName, int in_zIndex)
     {
         OTexture* texture = OGetTexture(in_textureName.c_str());

@@ -8,6 +8,8 @@
 #include "ActionManager.h"
 #include "menu.h"
 
+#include <unordered_map>
+
 void createUIStyles(onut::UIContext* pContext);
 void init();
 void update();
@@ -20,8 +22,10 @@ enum class State
     Zooming
 };
 
-struct SpriteContainer
+class SpriteContainer : public onut::Object
 {
+public:
+    SpriteContainer() { retain(); }
     seed::Sprite* pSprite = nullptr;
     onut::UITreeViewItem* pTreeViewItem = nullptr;
 };
@@ -92,6 +96,7 @@ Vector2 cameraPos = Vector2::Zero;
 using Selection = std::vector<SpriteContainer*>;
 Selection selection;
 OAnimf dottedLineAnim = 0.f;
+std::unordered_map<seed::Sprite*, onut::UITreeViewItem*> spritesToTreeViewItem;
 
 // State
 State state = State::Idle;
@@ -392,8 +397,12 @@ void init()
 
                 pContainer->pSprite = pSprite;
                 pContainer->pTreeViewItem = pTreeItem;
+
+                spritesToTreeViewItem[pSprite] = pTreeItem;
             },
                 [=]{ // OnUndo
+                auto it = spritesToTreeViewItem.find(pContainer->pSprite);
+                if (it != spritesToTreeViewItem.end()) spritesToTreeViewItem.erase(it);
                 pEditingView->DeleteNode(pContainer->pSprite);
                 pTreeView->removeItem(pContainer->pTreeViewItem);
                 pContainer->pTreeViewItem = nullptr;
@@ -497,6 +506,123 @@ void init()
         }
         OSB->begin();
     });
+
+    // Mouse down for select
+    pMainView->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
+    {
+        auto viewRect = pControl->getWorldRect(*OUIContext);
+        seed::Sprite* pMouseHover = nullptr;
+        auto mousePosInView = onut::UI2Onut(event.localMousePos);
+        Matrix viewTransform =
+            Matrix::CreateTranslation(-cameraPos) *
+            Matrix::CreateScale(zoom) *
+            Matrix::CreateTranslation(Vector2((float)viewRect.size.x * .5f, (float)viewRect.size.y * .5f));
+        auto invViewTransform = viewTransform.Invert();
+        mousePosInView = Vector2::Transform(mousePosInView, invViewTransform);
+
+        // Find the topmost mouse hover sprite
+        pEditingView->visitNodesBackward([&](seed::Node* pNode) -> bool
+        {
+            auto pSprite = dynamic_cast<seed::Sprite*>(pNode);
+            if (pSprite)
+            {
+                auto transform = pNode->GetTransform();
+                auto invTransform = transform.Invert();
+                auto mouseInSprite = Vector2::Transform(mousePosInView, invTransform);
+                if (mouseInSprite.x >= -pSprite->GetWidth() * pSprite->GetAlign().x &&
+                    mouseInSprite.x <= pSprite->GetWidth() * (1.f - pSprite->GetAlign().x) &&
+                    mouseInSprite.y >= -pSprite->GetHeight() * pSprite->GetAlign().y &&
+                    mouseInSprite.y <= pSprite->GetHeight() * (1.f - pSprite->GetAlign().y))
+                {
+                    pMouseHover = pSprite;
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        // Add to selection
+        if (pMouseHover)
+        {
+            if (OPressed(OINPUT_LCONTROL))
+            {
+                auto selectionBefore = selection;
+                auto selectionAfter = selection;
+                bool found = false;
+                for (auto it = selectionAfter.begin(); it != selectionAfter.end(); ++it)
+                {
+                    if ((*it)->pSprite == pMouseHover)
+                    {
+                        found = true;
+                        selectionAfter.erase(it);
+                        break;
+                    }
+                }
+                auto pContainer = new SpriteContainer();
+                pContainer->pSprite = pMouseHover;
+                pContainer->pTreeViewItem = spritesToTreeViewItem[pContainer->pSprite];
+                if (!found)
+                {
+                    selectionAfter.push_back(pContainer);
+                }
+                actionManager.doAction(new onut::Action("Select",
+                    [=]
+                {
+                    selection = selectionAfter;
+                }, [=]
+                {
+                    selection = selectionBefore;
+                }, [=]
+                {
+                }, [=]
+                {
+                    delete pContainer;
+                }));
+            }
+            else
+            {
+                if (selection.size() == 1)
+                {
+                    if (selection.front()->pSprite == pMouseHover) return; // Nothing changed
+                }
+                auto pContainer = new SpriteContainer();
+                pContainer->pSprite = pMouseHover;
+                pContainer->pTreeViewItem = spritesToTreeViewItem[pContainer->pSprite];
+                auto selectionBefore = selection;
+                auto selectionAfter = selection;
+                selectionAfter.clear();
+                selectionAfter.push_back(pContainer);
+                actionManager.doAction(new onut::Action("Select",
+                    [=]
+                {
+                    selection = selectionAfter;
+                }, [=]
+                {
+                    selection = selectionBefore;
+                }, [=]
+                {
+                }, [=]
+                {
+                    delete pContainer;
+                }));
+            }
+        }
+        else
+        {
+            // Unselect all
+            auto selectionBefore = selection;
+            auto selectionAfter = selection;
+            selectionAfter.clear();
+            actionManager.doAction(new onut::Action("Unselect",
+                [=]
+            {
+                selection = selectionAfter;
+            }, [=]
+            {
+                selection = selectionBefore;
+            }));
+        }
+    };
 
     updateProperties();
 }

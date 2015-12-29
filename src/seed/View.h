@@ -38,6 +38,13 @@ namespace seed
         void            Show();
         void            Hide();
         CommandVect&    GetQueuedCommands() { return m_queuedCommands; }
+
+        // Visit all nodes and their children in order.
+        // Return true from the callback to interrupt searching.
+        // VisitBackward to start with last node and their last children first
+        using VisitCallback = std::function<bool(Node*)>;
+        void visitNodes(const VisitCallback& callback);
+        void visitNodesBackward(const VisitCallback& callback);
         
     private:
 
