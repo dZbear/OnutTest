@@ -31,7 +31,12 @@ namespace seed
         Sprite* copy = (Sprite*)in_copy;
         copy->SetAlign(GetAlign());
         copy->SetTexture(GetTexture());
+
         copy->SetSpriteAnim(GetSpriteAnim());
+        if (m_anim.isPlaying())
+        {
+            copy->SetSpriteAnim(m_lastAnim);
+        }
         copy->SetFilter(GetFilter());
         copy->SetBlend(GetBlend());
         copy->SetFlipped(GetFlippedH(), GetFlippedV());
@@ -70,11 +75,29 @@ namespace seed
         OSpriteBatch->changeFiltering(m_filter);
         if (!m_texture)
         {
-            OSpriteBatch->drawSpriteWithUVs(m_anim.getTexture(), transform, m_anim.getUVs(), color, m_anim.getOrigin());
+            Vector4 uvs = m_anim.getUVs();
+            if (m_flippedH)
+            {
+                std::swap(uvs.x, uvs.z);
+            }
+            if (m_flippedV)
+            {
+                std::swap(uvs.y, uvs.w);
+            }
+            OSpriteBatch->drawSpriteWithUVs(m_anim.getTexture(), transform, uvs, color, m_anim.getOrigin());
         }
         else
         {
-            OSpriteBatch->drawSprite(m_texture, transform, color, m_align);
+            Vector4 uvs = Vector4(0, 0, 1, 1);
+            if (m_flippedH)
+            {
+                std::swap(uvs.x, uvs.z);
+            }
+            if (m_flippedV)
+            {
+                std::swap(uvs.y, uvs.w);
+            }
+            OSpriteBatch->drawSpriteWithUVs(m_texture, transform, uvs, color, m_align);
         }
 
         // render fg children
