@@ -38,6 +38,7 @@ public:
     Vector2 scaleOnDown;
     Matrix transformOnDown;
     Matrix parentTransformOnDown;
+    float angleOnDown;
 };
 
 struct SpriteState
@@ -351,7 +352,10 @@ void updateTransformHandles()
         gizmo.transformHandles[7].screenPos = Vector2((gizmo.aabb[0].x + gizmo.aabb[1].x) * .5f, gizmo.aabb[0].y);
         gizmo.transformHandles[7].transformDirection = Vector2(0, -1);
 
-        selectionCenter = (gizmo.aabb[0] + gizmo.aabb[1]) * .5f;
+        if (state != State::Rotate)
+        {
+            selectionCenter = (gizmo.aabb[0] + gizmo.aabb[1]) * .5f;
+        }
     }
     else if (selection.empty())
     {
@@ -436,7 +440,7 @@ void updateTransformHandles()
                 gizmo.transformHandles[7].transformDirection.Normalize();
                 gizmo.transformHandles[7].transformDirection = Vector2(0, -1);
             }
-            selectionCenter = pSprite->GetTransform().Translation();
+            selectionCenter = Vector2::Transform(pSprite->GetTransform().Translation(), getViewTransform());
         }
     }
 }
@@ -780,7 +784,7 @@ void init()
         mousePosOnDown = event.mousePos;
 
         // Check handles
-        if (selection.size() == 1 && !OPressed(OINPUT_LCONTROL))
+        if (selection.size() > 0 && !OPressed(OINPUT_LCONTROL))
         {
             HandleIndex index = 0;
             HandleIndex closestIndex = 0;
@@ -797,17 +801,19 @@ void init()
                 }
                 ++index;
             }
-            if (closestDis < 8.f * 8.f)
+            if (closestDis < 8.f * 8.f && !isMultiSelection())
             {
                 state = State::IsAboutToMoveHandle;
                 handleIndexOnDown = closestIndex;
             }
+            else if (closestDis < 32.f * 32.f)
+            {
+                state = State::IsAboutToRotate;
+            }
         }
 
-        if (state == State::Idle)
+        if (state == State::Idle || state == State::IsAboutToRotate)
         {
-            state = State::IsAboutToMove;
-
             // Transform mouse into view
             seed::Node* pMouseHover = nullptr;
             auto mousePosInView = onut::UI2Onut(event.localMousePos);
@@ -892,9 +898,13 @@ void init()
                 }
                 else
                 {
+                    state = State::IsAboutToMove;
                     if (selection.size() == 1)
                     {
-                        if (selection.front()->pNode == pMouseHover) return; // Nothing changed
+                        if (selection.front()->pNode == pMouseHover)
+                        {
+                            return; // Nothing changed
+                        }
                     }
                     bool found = false;
                     for (auto pContainer : selection)
@@ -934,33 +944,40 @@ void init()
             else
             {
                 // Unselect all if we are not within it's aabb
-                bool doSelection = true;
-                if (isMultiSelection())
+                if (state != State::IsAboutToRotate)
                 {
-                    auto aabb = getSelectionAABB();
-                    if (event.mousePos.x >= aabb[0].x &&
-                        event.mousePos.y >= aabb[0].y &&
-                        event.mousePos.x <= aabb[1].x &&
-                        event.mousePos.y <= aabb[1].y)
+                    bool doSelection = true;
+                    if (isMultiSelection())
                     {
-                        doSelection = false;
+                        auto aabb = getSelectionAABB();
+                        if (event.mousePos.x >= aabb[0].x &&
+                            event.mousePos.y >= aabb[0].y &&
+                            event.mousePos.x <= aabb[1].x &&
+                            event.mousePos.y <= aabb[1].y)
+                        {
+                            doSelection = false;
+                        }
                     }
-                }
-                if (doSelection)
-                {
-                    auto selectionBefore = selection;
-                    auto selectionAfter = selection;
-                    selectionAfter.clear();
-                    actionManager.doAction(new onut::Action("Unselect",
-                        [=]
+                    if (doSelection)
                     {
-                        selection = selectionAfter;
-                        updateProperties();
-                    }, [=]
+                        auto selectionBefore = selection;
+                        auto selectionAfter = selection;
+                        selectionAfter.clear();
+                        actionManager.doAction(new onut::Action("Unselect",
+                            [=]
+                        {
+                            selection = selectionAfter;
+                            updateProperties();
+                        }, [=]
+                        {
+                            selection = selectionBefore;
+                            updateProperties();
+                        }));
+                    }
+                    else
                     {
-                        selection = selectionBefore;
-                        updateProperties();
-                    }));
+                        state = State::IsAboutToMove;
+                    }
                 }
             }
         }
@@ -1004,6 +1021,24 @@ void init()
                 }
             }
         }
+        if (state == State::IsAboutToRotate)
+        {
+            if (mouseDiff.Length() >= 3.f)
+            {
+                state = State::Rotate;
+                for (auto pContainer : selection)
+                {
+                    pContainer->transformOnDown = pContainer->pNode->GetTransform();
+                    pContainer->parentTransformOnDown = Matrix::Identity;
+                    if (pContainer->pNode->GetParent())
+                    {
+                        pContainer->parentTransformOnDown = pContainer->pNode->GetParent()->GetTransform();
+                    }
+                    pContainer->angleOnDown = pContainer->pNode->GetAngle();
+                    pContainer->positionOnDown = pContainer->pNode->GetPosition();
+                }
+            }
+        }
         if (state == State::Moving)
         {
             for (auto pContainer : selection)
@@ -1039,6 +1074,37 @@ void init()
                 pSprite->SetScale(newScale);
                 updateProperties();
             }
+        }
+        else if (state == State::Rotate)
+        {
+            auto diff1 = onut::UI2Onut(mousePosOnDown) - selectionCenter;
+            auto diff2 = onut::UI2Onut(event.mousePos) - selectionCenter;
+            auto angle1 = DirectX::XMConvertToDegrees(std::atan2f(diff1.y, diff1.x));
+            auto angle2 = DirectX::XMConvertToDegrees(std::atan2f(diff2.y, diff2.x));
+            auto angleDiff = angle2 - angle1;
+            if (isMultiSelection())
+            {
+                auto viewTransform = getViewTransform();
+                auto invViewTransform = viewTransform.Invert();
+                for (auto pContainer : selection)
+                {
+                    auto screenPosition = Vector2::Transform(pContainer->transformOnDown.Translation(), viewTransform);
+                    auto centerVect = screenPosition - selectionCenter;
+                    centerVect = Vector2::Transform(centerVect, Matrix::CreateRotationZ(DirectX::XMConvertToRadians(angleDiff)));
+                    screenPosition = centerVect + selectionCenter;
+                    auto viewPosition = Vector2::Transform(screenPosition, invViewTransform);
+                    auto invParentTransform = pContainer->parentTransformOnDown.Invert();
+                    auto localPosition = Vector2::Transform(viewPosition, invParentTransform);
+                    pContainer->pNode->SetPosition(localPosition);
+                    pContainer->pNode->SetAngle(pContainer->angleOnDown + angleDiff);
+                }
+            }
+            else
+            {
+                auto pContainer = selection.front();
+                pContainer->pNode->SetAngle(pContainer->angleOnDown + angleDiff);
+            }
+            updateProperties();
         }
     };
 
