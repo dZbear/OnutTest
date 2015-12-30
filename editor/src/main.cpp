@@ -28,18 +28,7 @@ enum class State
     IsAboutToMoveHandle,
 };
 
-class NodeContainer : public onut::Object
-{
-public:
-    NodeContainer() { retain(); }
-    seed::Node* pNode = nullptr;
-    onut::UITreeViewItem* pTreeViewItem = nullptr;
-    Vector2 positionOnDown;
-    Vector2 scaleOnDown;
-    Matrix transformOnDown;
-    Matrix parentTransformOnDown;
-    float angleOnDown;
-};
+class NodeContainer;
 
 struct SpriteState
 {
@@ -49,52 +38,74 @@ struct SpriteState
     float angle;
     Color color;
     Vector2 align;
+    Matrix transform;
+    Matrix parentTransform;
     NodeContainer* pContainer = nullptr;
 
     SpriteState() {}
-
-    SpriteState(const SpriteState& copy)
-    {
-        texture = copy.texture;
-        position = copy.position;
-        scale = copy.scale;
-        angle = copy.angle;
-        color = copy.color;
-        align = copy.align;
-        pContainer = copy.pContainer;
-    }
-
-    SpriteState(NodeContainer* in_pContainer)
-    {
-        pContainer = in_pContainer;
-        assert(pContainer);
-        auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-        if (pSprite)
-        {
-            texture = pSprite->GetTexture()->getName();
-            align = pSprite->GetAlign();
-        }
-        position = pContainer->pNode->GetPosition();
-        scale = pContainer->pNode->GetScale();
-        angle = pContainer->pNode->GetAngle();
-        color = pContainer->pNode->GetColor();
-    }
-
-    void apply() const
-    {
-        assert(pContainer);
-        auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-        if (pSprite)
-        {
-            pSprite->SetTexture(OGetTexture(texture.c_str()));
-            pSprite->SetAlign(align);
-        }
-        pContainer->pNode->SetPosition(position);
-        pContainer->pNode->SetScale(scale);
-        pContainer->pNode->SetAngle(angle);
-        pContainer->pNode->SetColor(color);
-    }
+    SpriteState(const SpriteState& copy);
+    SpriteState(NodeContainer* in_pContainer);
+    void apply() const;
 };
+
+class NodeContainer : public onut::Object
+{
+public:
+    NodeContainer() { retain(); }
+    seed::Node* pNode = nullptr;
+    onut::UITreeViewItem* pTreeViewItem = nullptr;
+    SpriteState stateOnDown;
+};
+
+SpriteState::SpriteState(const SpriteState& copy)
+{
+    texture = copy.texture;
+    position = copy.position;
+    scale = copy.scale;
+    angle = copy.angle;
+    color = copy.color;
+    align = copy.align;
+    transform = copy.transform;
+    parentTransform = copy.parentTransform;
+    pContainer = copy.pContainer;
+}
+
+SpriteState::SpriteState(NodeContainer* in_pContainer)
+{
+    pContainer = in_pContainer;
+    assert(pContainer);
+    auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+    if (pSprite)
+    {
+        texture = pSprite->GetTexture()->getName();
+        align = pSprite->GetAlign();
+    }
+    position = pContainer->pNode->GetPosition();
+    scale = pContainer->pNode->GetScale();
+    angle = pContainer->pNode->GetAngle();
+    color = pContainer->pNode->GetColor();
+    transform = pContainer->pNode->GetTransform();
+    parentTransform = Matrix::Identity;
+    if (pContainer->pNode->GetParent())
+    {
+        parentTransform = pContainer->pNode->GetParent()->GetTransform();
+    }
+}
+
+void SpriteState::apply() const
+{
+    assert(pContainer);
+    auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+    if (pSprite)
+    {
+        pSprite->SetTexture(OGetTexture(texture.c_str()));
+        pSprite->SetAlign(align);
+    }
+    pContainer->pNode->SetPosition(position);
+    pContainer->pNode->SetScale(scale);
+    pContainer->pNode->SetAngle(angle);
+    pContainer->pNode->SetColor(color);
+}
 
 enum class Handle
 {
@@ -190,10 +201,13 @@ void updateProperties()
     pPropertyColor->isEnabled = false;
     pPropertyAlpha->isEnabled = false;
 
-    pPropertyTexture->isEnabled = true;
-    pPropertyTextureBrowse->isEnabled = true;
-    pPropertyAlignX->isEnabled = true;
-    pPropertyAlignY->isEnabled = true;
+    if (!selection.empty())
+    {
+        pPropertyTexture->isEnabled = true;
+        pPropertyTextureBrowse->isEnabled = true;
+        pPropertyAlignX->isEnabled = true;
+        pPropertyAlignY->isEnabled = true;
+    }
 
     for (auto pContainer : selection)
     {
@@ -319,7 +333,6 @@ void updateTransformHandles()
         gizmo.transformHandles[0].handle = Handle::TOP_LEFT;
         gizmo.transformHandles[0].screenPos = gizmo.aabb[0];
         gizmo.transformHandles[0].transformDirection = Vector2(-1, -1);
-        //gizmo.transformHandles[0].transformDirection.Normalize();
 
         gizmo.transformHandles[1].handle = Handle::LEFT;
         gizmo.transformHandles[1].screenPos = Vector2(gizmo.aabb[0].x, (gizmo.aabb[0].y + gizmo.aabb[1].y) * .5f);
@@ -328,7 +341,6 @@ void updateTransformHandles()
         gizmo.transformHandles[2].handle = Handle::BOTTOM_LEFT;
         gizmo.transformHandles[2].screenPos = Vector2(gizmo.aabb[0].x, gizmo.aabb[1].y);
         gizmo.transformHandles[2].transformDirection = Vector2(-1, 1);
-        //gizmo.transformHandles[2].transformDirection.Normalize();
 
         gizmo.transformHandles[3].handle = Handle::BOTTOM;
         gizmo.transformHandles[3].screenPos = Vector2((gizmo.aabb[0].x + gizmo.aabb[1].x) * .5f, gizmo.aabb[1].y);
@@ -337,7 +349,6 @@ void updateTransformHandles()
         gizmo.transformHandles[4].handle = Handle::BOTTOM_RIGHT;
         gizmo.transformHandles[4].screenPos = gizmo.aabb[1];
         gizmo.transformHandles[4].transformDirection = Vector2(1, 1);
-        //gizmo.transformHandles[4].transformDirection.Normalize();
 
         gizmo.transformHandles[5].handle = Handle::RIGHT;
         gizmo.transformHandles[5].screenPos = Vector2(gizmo.aabb[1].x, (gizmo.aabb[0].y + gizmo.aabb[1].y) * .5f);
@@ -346,7 +357,6 @@ void updateTransformHandles()
         gizmo.transformHandles[6].handle = Handle::TOP_RIGHT;
         gizmo.transformHandles[6].screenPos = Vector2(gizmo.aabb[1].x, gizmo.aabb[0].y);
         gizmo.transformHandles[6].transformDirection = Vector2(1, -1);
-        //gizmo.transformHandles[6].transformDirection.Normalize();
 
         gizmo.transformHandles[7].handle = Handle::TOP;
         gizmo.transformHandles[7].screenPos = Vector2((gizmo.aabb[0].x + gizmo.aabb[1].x) * .5f, gizmo.aabb[0].y);
@@ -372,74 +382,39 @@ void updateTransformHandles()
         {
             gizmo.transformHandles.resize(8);
             auto spriteCorners = getSpriteCorners(pSprite);
-            {
-                gizmo.transformHandles[0].handle = Handle::TOP_LEFT;
-                gizmo.transformHandles[0].screenPos = spriteCorners[0];
-                Vector2 norm[] = {spriteCorners[0] - spriteCorners[1], spriteCorners[0] - spriteCorners[3]};
-                norm[0].Normalize(); norm[1].Normalize();
-                gizmo.transformHandles[0].transformDirection = norm[0] + norm[1];
-                gizmo.transformHandles[0].transformDirection.Normalize();
-                gizmo.transformHandles[0].transformDirection = Vector2(-1, -1);
-                //gizmo.transformHandles[0].transformDirection.Normalize();
-            }
-            {
-                gizmo.transformHandles[1].handle = Handle::LEFT;
-                gizmo.transformHandles[1].screenPos = (spriteCorners[0] + spriteCorners[1]) * .5f;
-                gizmo.transformHandles[1].transformDirection = spriteCorners[0] - spriteCorners[3];
-                gizmo.transformHandles[1].transformDirection.Normalize();
-                gizmo.transformHandles[1].transformDirection = Vector2(-1, 0);
-            }
-            {
-                gizmo.transformHandles[2].handle = Handle::BOTTOM_LEFT;
-                gizmo.transformHandles[2].screenPos = spriteCorners[1];
-                Vector2 norm[] = {spriteCorners[1] - spriteCorners[0], spriteCorners[1] - spriteCorners[2]};
-                norm[0].Normalize(); norm[1].Normalize();
-                gizmo.transformHandles[2].transformDirection = norm[0] + norm[1];
-                gizmo.transformHandles[2].transformDirection.Normalize();
-                gizmo.transformHandles[2].transformDirection = Vector2(-1, 1);
-                //gizmo.transformHandles[2].transformDirection.Normalize();
-            }
-            {
-                gizmo.transformHandles[3].handle = Handle::BOTTOM;
-                gizmo.transformHandles[3].screenPos = (spriteCorners[1] + spriteCorners[2]) * .5f;
-                gizmo.transformHandles[3].transformDirection = spriteCorners[1] - spriteCorners[0];
-                gizmo.transformHandles[3].transformDirection.Normalize();
-                gizmo.transformHandles[3].transformDirection = Vector2(0, 1);
-            }
-            {
-                gizmo.transformHandles[4].handle = Handle::BOTTOM_RIGHT;
-                gizmo.transformHandles[4].screenPos = spriteCorners[2];
-                Vector2 norm[] = {spriteCorners[2] - spriteCorners[1], spriteCorners[2] - spriteCorners[3]};
-                norm[0].Normalize(); norm[1].Normalize();
-                gizmo.transformHandles[4].transformDirection = norm[0] + norm[1];
-                gizmo.transformHandles[4].transformDirection.Normalize();
-                gizmo.transformHandles[4].transformDirection = Vector2(1, 1);
-                //gizmo.transformHandles[4].transformDirection.Normalize();
-            }
-            {
-                gizmo.transformHandles[5].handle = Handle::RIGHT;
-                gizmo.transformHandles[5].screenPos = (spriteCorners[2] + spriteCorners[3]) * .5f;
-                gizmo.transformHandles[5].transformDirection = spriteCorners[2] - spriteCorners[1];
-                gizmo.transformHandles[5].transformDirection.Normalize();
-                gizmo.transformHandles[5].transformDirection = Vector2(1, 0);
-            }
-            {
-                gizmo.transformHandles[6].handle = Handle::TOP_RIGHT;
-                gizmo.transformHandles[6].screenPos = spriteCorners[3];
-                Vector2 norm[] = {spriteCorners[3] - spriteCorners[2], spriteCorners[3] - spriteCorners[0]};
-                norm[0].Normalize(); norm[1].Normalize();
-                gizmo.transformHandles[6].transformDirection = norm[0] + norm[1];
-                gizmo.transformHandles[6].transformDirection.Normalize();
-                gizmo.transformHandles[6].transformDirection = Vector2(1, -1);
-                //gizmo.transformHandles[6].transformDirection.Normalize();
-            }
-            {
-                gizmo.transformHandles[7].handle = Handle::TOP;
-                gizmo.transformHandles[7].screenPos = (spriteCorners[3] + spriteCorners[0]) * .5f;
-                gizmo.transformHandles[7].transformDirection = spriteCorners[3] - spriteCorners[2];
-                gizmo.transformHandles[7].transformDirection.Normalize();
-                gizmo.transformHandles[7].transformDirection = Vector2(0, -1);
-            }
+
+            gizmo.transformHandles[0].handle = Handle::TOP_LEFT;
+            gizmo.transformHandles[0].screenPos = spriteCorners[0];
+            gizmo.transformHandles[0].transformDirection = Vector2(-1, -1);
+
+            gizmo.transformHandles[1].handle = Handle::LEFT;
+            gizmo.transformHandles[1].screenPos = (spriteCorners[0] + spriteCorners[1]) * .5f;
+            gizmo.transformHandles[1].transformDirection = Vector2(-1, 0);
+
+            gizmo.transformHandles[2].handle = Handle::BOTTOM_LEFT;
+            gizmo.transformHandles[2].screenPos = spriteCorners[1];
+            gizmo.transformHandles[2].transformDirection = Vector2(-1, 1);
+
+            gizmo.transformHandles[3].handle = Handle::BOTTOM;
+            gizmo.transformHandles[3].screenPos = (spriteCorners[1] + spriteCorners[2]) * .5f;
+            gizmo.transformHandles[3].transformDirection = Vector2(0, 1);
+
+            gizmo.transformHandles[4].handle = Handle::BOTTOM_RIGHT;
+            gizmo.transformHandles[4].screenPos = spriteCorners[2];
+            gizmo.transformHandles[4].transformDirection = Vector2(1, 1);
+
+            gizmo.transformHandles[5].handle = Handle::RIGHT;
+            gizmo.transformHandles[5].screenPos = (spriteCorners[2] + spriteCorners[3]) * .5f;
+            gizmo.transformHandles[5].transformDirection = Vector2(1, 0);
+
+            gizmo.transformHandles[6].handle = Handle::TOP_RIGHT;
+            gizmo.transformHandles[6].screenPos = spriteCorners[3];
+            gizmo.transformHandles[6].transformDirection = Vector2(1, -1);
+
+            gizmo.transformHandles[7].handle = Handle::TOP;
+            gizmo.transformHandles[7].screenPos = (spriteCorners[3] + spriteCorners[0]) * .5f;
+            gizmo.transformHandles[7].transformDirection = Vector2(0, -1);
+
             selectionCenter = Vector2::Transform(pSprite->GetTransform().Translation(), getViewTransform());
         }
     }
@@ -480,6 +455,47 @@ void changeSpriteProperty(const std::function<void(NodeContainer*)>& logic)
             [=]{spriteStateBefore.apply(); updateProperties(); }));
     }
     actionManager.doAction(pActionGroup);
+}
+
+void checkAboutToAction(State aboutState, State targetState, const Vector2& mouseDiff)
+{
+    if (state == aboutState)
+    {
+        if (mouseDiff.Length() >= 3.f)
+        {
+            state = targetState;
+            for (auto pContainer : selection)
+            {
+                pContainer->stateOnDown = SpriteState(pContainer);
+            }
+        }
+    }
+}
+
+void finalizeAction(const std::string& name, State actionState)
+{
+    if (state == actionState)
+    {
+        auto pGroup = new onut::ActionGroup(name);
+        for (auto pContainer : selection)
+        {
+            pContainer->retain();
+            auto stateBefore = pContainer->stateOnDown;
+            auto stateAfter = SpriteState(pContainer);
+            pGroup->addAction(new onut::Action("",
+                [=]{
+                stateAfter.apply();
+                updateProperties();
+            }, [=] {
+                stateBefore.apply();
+                updateProperties();
+            }, [=] {
+            }, [=] {
+                pContainer->release();
+            }));
+        }
+        actionManager.doAction(pGroup);
+    }
 }
 
 void init()
@@ -986,65 +1002,15 @@ void init()
     pMainView->onMouseMove = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
         auto mouseDiff = onut::UI2Onut(event.mousePos) - onut::UI2Onut(mousePosOnDown);
-        if (state == State::IsAboutToMove)
-        {
-            if (mouseDiff.Length() >= 3.f)
-            {
-                state = State::Moving;
-                for (auto pContainer : selection)
-                {
-                    pContainer->parentTransformOnDown = Matrix::Identity;
-                    if (pContainer->pNode->GetParent())
-                    {
-                        pContainer->parentTransformOnDown = pContainer->pNode->GetParent()->GetTransform();
-                    }
-                    pContainer->positionOnDown = pContainer->pNode->GetPosition();
-                    pContainer->scaleOnDown = pContainer->pNode->GetScale();
-                }
-            }
-        }
-        if (state == State::IsAboutToMoveHandle)
-        {
-            if (mouseDiff.Length() >= 3.f)
-            {
-                state = State::MovingHandle;
-                for (auto pContainer : selection)
-                {
-                    pContainer->transformOnDown = pContainer->pNode->GetTransform();
-                    pContainer->parentTransformOnDown = Matrix::Identity;
-                    if (pContainer->pNode->GetParent())
-                    {
-                        pContainer->parentTransformOnDown = pContainer->pNode->GetParent()->GetTransform();
-                    }
-                    pContainer->positionOnDown = pContainer->pNode->GetPosition();
-                    pContainer->scaleOnDown = pContainer->pNode->GetScale();
-                }
-            }
-        }
-        if (state == State::IsAboutToRotate)
-        {
-            if (mouseDiff.Length() >= 3.f)
-            {
-                state = State::Rotate;
-                for (auto pContainer : selection)
-                {
-                    pContainer->transformOnDown = pContainer->pNode->GetTransform();
-                    pContainer->parentTransformOnDown = Matrix::Identity;
-                    if (pContainer->pNode->GetParent())
-                    {
-                        pContainer->parentTransformOnDown = pContainer->pNode->GetParent()->GetTransform();
-                    }
-                    pContainer->angleOnDown = pContainer->pNode->GetAngle();
-                    pContainer->positionOnDown = pContainer->pNode->GetPosition();
-                }
-            }
-        }
+        checkAboutToAction(State::IsAboutToMove, State::Moving, mouseDiff);
+        checkAboutToAction(State::IsAboutToMoveHandle, State::MovingHandle, mouseDiff);
+        checkAboutToAction(State::IsAboutToRotate, State::Rotate, mouseDiff);
         if (state == State::Moving)
         {
             for (auto pContainer : selection)
             {
-                auto transform = pContainer->parentTransformOnDown;
-                auto worldPos = Vector2::Transform(pContainer->positionOnDown, transform);
+                auto transform = pContainer->stateOnDown.parentTransform;
+                auto worldPos = Vector2::Transform(pContainer->stateOnDown.position, transform);
                 auto invTransform = transform.Invert();
                 worldPos += mouseDiff;
                 pContainer->pNode->SetPosition(Vector2::Transform(worldPos, invTransform));
@@ -1058,7 +1024,7 @@ void init()
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
             if (pSprite)
             {
-                auto invTransform = pContainer->transformOnDown.Invert();
+                auto invTransform = pContainer->stateOnDown.transform.Invert();
                 invTransform._41 = 0;
                 invTransform._42 = 0;
                 auto size = Vector2(pSprite->GetWidth(), pSprite->GetHeight());
@@ -1069,7 +1035,7 @@ void init()
                 {
                     localScaleDiff.x = localScaleDiff.y = std::max<>(localScaleDiff.x, localScaleDiff.y);
                 }
-                auto newScale = pContainer->scaleOnDown + localScaleDiff / size * 2.f * pContainer->scaleOnDown;
+                auto newScale = pContainer->stateOnDown.scale + localScaleDiff / size * 2.f * pContainer->stateOnDown.scale;
 
                 pSprite->SetScale(newScale);
                 updateProperties();
@@ -1088,21 +1054,21 @@ void init()
                 auto invViewTransform = viewTransform.Invert();
                 for (auto pContainer : selection)
                 {
-                    auto screenPosition = Vector2::Transform(pContainer->transformOnDown.Translation(), viewTransform);
+                    auto screenPosition = Vector2::Transform(pContainer->stateOnDown.transform.Translation(), viewTransform);
                     auto centerVect = screenPosition - selectionCenter;
                     centerVect = Vector2::Transform(centerVect, Matrix::CreateRotationZ(DirectX::XMConvertToRadians(angleDiff)));
                     screenPosition = centerVect + selectionCenter;
                     auto viewPosition = Vector2::Transform(screenPosition, invViewTransform);
-                    auto invParentTransform = pContainer->parentTransformOnDown.Invert();
+                    auto invParentTransform = pContainer->stateOnDown.parentTransform.Invert();
                     auto localPosition = Vector2::Transform(viewPosition, invParentTransform);
                     pContainer->pNode->SetPosition(localPosition);
-                    pContainer->pNode->SetAngle(pContainer->angleOnDown + angleDiff);
+                    pContainer->pNode->SetAngle(pContainer->stateOnDown.angle + angleDiff);
                 }
             }
             else
             {
                 auto pContainer = selection.front();
-                pContainer->pNode->SetAngle(pContainer->angleOnDown + angleDiff);
+                pContainer->pNode->SetAngle(pContainer->stateOnDown.angle + angleDiff);
             }
             updateProperties();
         }
@@ -1110,28 +1076,9 @@ void init()
 
     pMainView->onMouseUp = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
-        if (state == State::Moving)
-        {
-            auto pGroup = new onut::ActionGroup("Move");
-            for (auto pContainer : selection)
-            {
-                pContainer->retain();
-                auto positionBefore = pContainer->positionOnDown;
-                auto positionAfter = pContainer->pNode->GetPosition();
-                pGroup->addAction(new onut::Action("",
-                    [=]{
-                    pContainer->pNode->SetPosition(positionAfter);
-                    updateProperties();
-                }, [=] {
-                    pContainer->pNode->SetPosition(positionBefore);
-                    updateProperties();
-                }, [=] {
-                }, [=] {
-                    pContainer->release();
-                }));
-            }
-            actionManager.doAction(pGroup);
-        }
+        finalizeAction("Move", State::Moving);
+        finalizeAction("Scale", State::MovingHandle);
+        finalizeAction("Rotate", State::Rotate);
         state = State::Idle;
     };
 
