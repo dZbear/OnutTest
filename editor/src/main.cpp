@@ -1403,6 +1403,21 @@ void update()
             }
         }
     }
+    else if (state == State::Moving ||
+             state == State::Rotate ||
+             state == State::MovingHandle)
+    {
+        if (OJustPressed(OINPUT_MOUSEB2))
+        {
+            // cancel!!!
+            state = State::Idle;
+            for (auto pContainer : selection)
+            {
+                pContainer->stateOnDown.apply();
+            }
+            updateProperties();
+        }
+    }
 }
 
 void render()
