@@ -88,6 +88,12 @@ onut::UIControl* pMainView = nullptr;
 onut::UITreeView* pTreeView = nullptr;
 onut::UITreeViewItem* pTreeViewRoot = nullptr;
 
+onut::UIControl* pPropertiesView = nullptr;
+onut::UIControl* pPropertiesNode = nullptr;
+onut::UIControl* pPropertiesSprite = nullptr;
+
+onut::UITextBox* pPropertyViewWidth = nullptr;
+onut::UITextBox* pPropertyViewHeight = nullptr;
 onut::UITextBox* pPropertyName = nullptr;
 onut::UITextBox* pPropertyClass = nullptr;
 onut::UITextBox* pPropertyTexture = nullptr;
@@ -118,48 +124,41 @@ void updateTransformHandles();
 
 void updateProperties()
 {
-    pPropertyName->isEnabled = false;
-    pPropertyClass->isEnabled = false;
-    pPropertyTexture->isEnabled = false;
-    pPropertyTextureBrowse->isEnabled = false;
-    pPropertyX->isEnabled = false;
-    pPropertyY->isEnabled = false;
-    pPropertyScaleX->isEnabled = false;
-    pPropertyScaleY->isEnabled = false;
-    pPropertyAlignX->isEnabled = false;
-    pPropertyAlignY->isEnabled = false;
-    pPropertyAngle->isEnabled = false;
-    pPropertyColor->isEnabled = false;
-    pPropertyAlpha->isEnabled = false;
-
-    if (!selection.empty())
-    {
-        pPropertyTexture->isEnabled = true;
-        pPropertyTextureBrowse->isEnabled = true;
-        pPropertyAlignX->isEnabled = true;
-        pPropertyAlignY->isEnabled = true;
-    }
-
     pTreeView->unselectAll();
+
+    pPropertiesView->isVisible = false;
+    pPropertiesNode->isVisible = false;
+    pPropertiesSprite->isVisible = false;
+
+    if (selection.empty())
+    {
+        pPropertiesView->isVisible = true;
+        pPropertyViewWidth->setInt((int)viewSize.x);
+        pPropertyViewHeight->setInt((int)viewSize.y);
+    }
 
     for (auto pContainer : selection)
     {
-        pPropertyName->isEnabled = true;
-        pPropertyClass->isEnabled = true;
-        pPropertyX->isEnabled = true;
-        pPropertyY->isEnabled = true;
-        pPropertyScaleX->isEnabled = true;
-        pPropertyScaleY->isEnabled = true;
-        pPropertyAngle->isEnabled = true;
-        pPropertyColor->isEnabled = true;
-        pPropertyAlpha->isEnabled = true;
-
-        pPropertyName->textComponent.text = "";
-        pPropertyClass->textComponent.text = "";
-
+        auto pNode = pContainer->pNode;
         auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+
+        if (pNode)
+        {
+            pPropertiesNode->isVisible = true;
+            pPropertyName->textComponent.text = "";
+            pPropertyClass->textComponent.text = "";
+            pPropertyX->setFloat(pContainer->pNode->GetPosition().x);
+            pPropertyY->setFloat(pContainer->pNode->GetPosition().y);
+            pPropertyScaleX->setFloat(pContainer->pNode->GetScale().x);
+            pPropertyScaleY->setFloat(pContainer->pNode->GetScale().y);
+            pPropertyAngle->setFloat(pContainer->pNode->GetAngle());
+            pPropertyColor->color = onut::sUIColor(pContainer->pNode->GetColor().x, pContainer->pNode->GetColor().y, pContainer->pNode->GetColor().z, pContainer->pNode->GetColor().w);
+            pPropertyAlpha->setFloat(pContainer->pNode->GetColor().w * 100.f);
+        }
+
         if (pSprite)
         {
+            pPropertiesSprite->isVisible = true;
             auto pTexture = pSprite->GetTexture();
             if (pTexture)
             {
@@ -172,20 +171,6 @@ void updateProperties()
             pPropertyAlignX->setFloat(pSprite->GetAlign().x);
             pPropertyAlignY->setFloat(pSprite->GetAlign().y);
         }
-        else
-        {
-            pPropertyTexture->isEnabled = false;
-            pPropertyTextureBrowse->isEnabled = false;
-            pPropertyAlignX->isEnabled = false;
-            pPropertyAlignY->isEnabled = false;
-        }
-        pPropertyX->setFloat(pContainer->pNode->GetPosition().x);
-        pPropertyY->setFloat(pContainer->pNode->GetPosition().y);
-        pPropertyScaleX->setFloat(pContainer->pNode->GetScale().x);
-        pPropertyScaleY->setFloat(pContainer->pNode->GetScale().y);
-        pPropertyAngle->setFloat(pContainer->pNode->GetAngle());
-        pPropertyColor->color = onut::sUIColor(pContainer->pNode->GetColor().x, pContainer->pNode->GetColor().y, pContainer->pNode->GetColor().z, pContainer->pNode->GetColor().w);
-        pPropertyAlpha->setFloat(pContainer->pNode->GetColor().w * 100.f);
 
         pTreeView->expandTo(pContainer->pTreeViewItem);
         pTreeView->addSelectedItem(pContainer->pTreeViewItem);
@@ -578,6 +563,13 @@ void init()
     pTreeViewRoot = new onut::UITreeViewItem("View");
     pTreeView->addItem(pTreeViewRoot);
 
+    pPropertiesView = OFindUI("propertiesView");
+    pPropertiesNode = OFindUI("propertiesNode");
+    pPropertiesSprite = OFindUI("propertiesSprite");
+
+    pPropertyViewWidth = dynamic_cast<onut::UITextBox*>(OFindUI("txtViewWidth"));
+    pPropertyViewHeight = dynamic_cast<onut::UITextBox*>(OFindUI("txtViewHeight"));
+
     pPropertyName = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteName"));
     pPropertyClass = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteClass"));
     pPropertyTexture = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteTexture"));
@@ -591,6 +583,35 @@ void init()
     pPropertyAngle = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAngle"));
     pPropertyColor = dynamic_cast<onut::UIPanel*>(OFindUI("colSpriteColor"));
     pPropertyAlpha = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlpha"));
+
+    pPropertyViewWidth->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        auto oldSize = viewSize;
+        auto newSize = Vector2((float)pPropertyViewWidth->getInt(), viewSize.y);
+        actionManager.doAction(new onut::Action("Change View Width",
+            [=]
+        {
+            viewSize = newSize;
+        }, [=]
+        {
+            viewSize = oldSize;
+        }));
+        updateProperties();
+    };
+    pPropertyViewHeight->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        auto oldSize = viewSize;
+        auto newSize = Vector2(viewSize.x, (float)pPropertyViewHeight->getInt());
+        actionManager.doAction(new onut::Action("Change View Height",
+            [=]
+        {
+            viewSize = newSize;
+        }, [=]
+        {
+            viewSize = oldSize;
+        }));
+        updateProperties();
+    };
 
     pPropertyTexture->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
@@ -787,13 +808,6 @@ void init()
         state = State::Panning;
         cameraPosOnDown = cameraPos;
         mousePosOnDown = event.mousePos;
-    };
-    pMainView->onMouseMove = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
-    {
-        if (state != State::Panning) return;
-        Vector2 mouseDiff = Vector2((float)(event.mousePos.x - mousePosOnDown.x), (float)(event.mousePos.y - mousePosOnDown.y));
-        mouseDiff /= zoom;
-        cameraPos = cameraPosOnDown - mouseDiff;
     };
     pMainView->onMiddleMouseUp = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
@@ -1104,6 +1118,15 @@ void init()
 
     pMainView->onMouseMove = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
+        if (state == State::Panning)
+        {
+            Vector2 mouseDiff = Vector2((float)(event.mousePos.x - mousePosOnDown.x), (float)(event.mousePos.y - mousePosOnDown.y));
+            mouseDiff /= zoom;
+            cameraPos = cameraPosOnDown - mouseDiff;
+            updateProperties();
+            return;
+        }
+
         auto mouseDiff = onut::UI2Onut(event.mousePos) - onut::UI2Onut(mousePosOnDown);
         checkAboutToAction(State::IsAboutToMove, State::Moving, mouseDiff);
         checkAboutToAction(State::IsAboutToMoveHandle, State::MovingHandle, mouseDiff);
@@ -1371,12 +1394,14 @@ void update()
                 --zoomIndex;
                 if (zoomIndex < 0) zoomIndex = 0;
                 zoom = zoomLevels[zoomIndex];
+                updateProperties();
             }
             else if (OInput->getStateValue(OINPUT_MOUSEZ) > 0)
             {
                 ++zoomIndex;
                 if (zoomIndex > (ZoomIndex)zoomLevels.size() - 1) zoomIndex = (ZoomIndex)zoomLevels.size() - 1;
                 zoom = zoomLevels[zoomIndex];
+                updateProperties();
             }
         }
     }
