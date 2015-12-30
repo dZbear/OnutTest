@@ -109,6 +109,7 @@
     <ClInclude Include="..\..\..\src\seed\SpriteString.h" />
     <ClInclude Include="..\..\..\src\seed\View.h" />
     <ClInclude Include="..\..\src\menu.h" />
+    <ClInclude Include="..\..\src\NodeContainer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -32,7 +32,7 @@ namespace seed
     protected:
 
         Vector2                         m_align;
-        OTexture*                       m_texture;
+        OTexture*                       m_texture = nullptr;
         OSpriteAnim                     m_anim;
         onut::SpriteBatch::eFiltering   m_filter;
         onut::SpriteBatch::eBlendMode   m_blend;

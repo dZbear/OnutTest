@@ -7,6 +7,7 @@
 #include "onut.h"
 #include "ActionManager.h"
 #include "menu.h"
+#include "NodeContainer.h"
 
 #include <unordered_map>
 
@@ -27,85 +28,6 @@ enum class State
     IsAboutToMove,
     IsAboutToMoveHandle,
 };
-
-class NodeContainer;
-
-struct SpriteState
-{
-    std::string texture;
-    Vector2 position;
-    Vector2 scale;
-    float angle;
-    Color color;
-    Vector2 align;
-    Matrix transform;
-    Matrix parentTransform;
-    NodeContainer* pContainer = nullptr;
-
-    SpriteState() {}
-    SpriteState(const SpriteState& copy);
-    SpriteState(NodeContainer* in_pContainer);
-    void apply() const;
-};
-
-class NodeContainer : public onut::Object
-{
-public:
-    NodeContainer() { retain(); }
-    seed::Node* pNode = nullptr;
-    onut::UITreeViewItem* pTreeViewItem = nullptr;
-    SpriteState stateOnDown;
-};
-
-SpriteState::SpriteState(const SpriteState& copy)
-{
-    texture = copy.texture;
-    position = copy.position;
-    scale = copy.scale;
-    angle = copy.angle;
-    color = copy.color;
-    align = copy.align;
-    transform = copy.transform;
-    parentTransform = copy.parentTransform;
-    pContainer = copy.pContainer;
-}
-
-SpriteState::SpriteState(NodeContainer* in_pContainer)
-{
-    pContainer = in_pContainer;
-    assert(pContainer);
-    auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-    if (pSprite)
-    {
-        texture = pSprite->GetTexture()->getName();
-        align = pSprite->GetAlign();
-    }
-    position = pContainer->pNode->GetPosition();
-    scale = pContainer->pNode->GetScale();
-    angle = pContainer->pNode->GetAngle();
-    color = pContainer->pNode->GetColor();
-    transform = pContainer->pNode->GetTransform();
-    parentTransform = Matrix::Identity;
-    if (pContainer->pNode->GetParent())
-    {
-        parentTransform = pContainer->pNode->GetParent()->GetTransform();
-    }
-}
-
-void SpriteState::apply() const
-{
-    assert(pContainer);
-    auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-    if (pSprite)
-    {
-        pSprite->SetTexture(OGetTexture(texture.c_str()));
-        pSprite->SetAlign(align);
-    }
-    pContainer->pNode->SetPosition(position);
-    pContainer->pNode->SetScale(scale);
-    pContainer->pNode->SetAngle(angle);
-    pContainer->pNode->SetColor(color);
-}
 
 enum class Handle
 {
@@ -164,6 +86,7 @@ HandleIndex handleIndexOnDown;
 // Controls
 onut::UIControl* pMainView = nullptr;
 onut::UITreeView* pTreeView = nullptr;
+onut::UITreeViewItem* pTreeViewRoot = nullptr;
 
 onut::UITextBox* pPropertyName = nullptr;
 onut::UITextBox* pPropertyClass = nullptr;
@@ -217,6 +140,8 @@ void updateProperties()
         pPropertyAlignY->isEnabled = true;
     }
 
+    pTreeView->unselectAll();
+
     for (auto pContainer : selection)
     {
         pPropertyName->isEnabled = true;
@@ -261,6 +186,9 @@ void updateProperties()
         pPropertyAngle->setFloat(pContainer->pNode->GetAngle());
         pPropertyColor->color = onut::sUIColor(pContainer->pNode->GetColor().x, pContainer->pNode->GetColor().y, pContainer->pNode->GetColor().z, pContainer->pNode->GetColor().w);
         pPropertyAlpha->setFloat(pContainer->pNode->GetColor().w * 100.f);
+
+        pTreeView->expandTo(pContainer->pTreeViewItem);
+        pTreeView->addSelectedItem(pContainer->pTreeViewItem);
     }
 
     updateTransformHandles();
@@ -647,6 +575,9 @@ void init()
 
     pMainView = OFindUI("mainView");
     pTreeView = dynamic_cast<onut::UITreeView*>(OFindUI("treeView"));
+    pTreeViewRoot = new onut::UITreeViewItem("View");
+    pTreeView->addItem(pTreeViewRoot);
+
     pPropertyName = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteName"));
     pPropertyClass = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteClass"));
     pPropertyTexture = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteTexture"));
@@ -817,7 +748,7 @@ void init()
 
                 auto pTreeItem = new onut::UITreeViewItem("default.png");
                 pTreeItem->pUserData = pContainer;
-                pTreeView->addItem(pTreeItem);
+                pTreeViewRoot->addItem(pTreeItem);
 
                 pContainer->pNode = pSprite;
                 pContainer->pTreeViewItem = pTreeItem;
@@ -827,7 +758,7 @@ void init()
                 auto it = nodesToContainers.find(pContainer->pNode);
                 if (it != nodesToContainers.end()) nodesToContainers.erase(it);
                 pEditingView->DeleteNode(pContainer->pNode);
-                pTreeView->removeItem(pContainer->pTreeViewItem);
+                pTreeViewRoot->removeItem(pContainer->pTreeViewItem);
                 pContainer->pTreeViewItem = nullptr;
                 pContainer->pNode = nullptr;
             },
@@ -943,6 +874,36 @@ void init()
         }
     };
 
+    pTreeView->onSelectionChanged = [](onut::UITreeView* in_pTreeView, const onut::UITreeViewSelectEvent& event)
+    {
+        auto selectionBefore = selection;
+        auto selectionAfter = selection;
+        selectionAfter.clear();
+        for (auto pItem : *event.pSelectedItems)
+        {
+            auto pContainer = reinterpret_cast<NodeContainer*>(pItem->pUserData);
+            if (pContainer) selectionAfter.push_back(pContainer);
+        }
+        actionManager.doAction(new onut::Action("Select",
+            [=]
+        {
+            selection = selectionAfter;
+            updateProperties();
+        }, [=]
+        {
+            selection = selectionBefore;
+            updateProperties();
+        }, [=]
+        {
+            for (auto pContainer : selectionBefore) pContainer->retain();
+            for (auto pContainer : selectionAfter) pContainer->retain();
+        }, [=]
+        {
+            for (auto pContainer : selectionBefore) pContainer->release();
+            for (auto pContainer : selectionAfter) pContainer->release();
+        }));
+    };
+
     pMainView->onMouseDown = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
         mousePosOnDown = event.mousePos;
@@ -1033,8 +994,12 @@ void init()
                         updateProperties();
                     }, [=]
                     {
+                        for (auto pContainer : selectionBefore) pContainer->retain();
+                        for (auto pContainer : selectionAfter) pContainer->retain();
                     }, [=]
                     {
+                        for (auto pContainer : selectionBefore) pContainer->release();
+                        for (auto pContainer : selectionAfter) pContainer->release();
                         pContainer->release();
                     }));
                 }
@@ -1076,8 +1041,12 @@ void init()
                             updateProperties();
                         }, [=]
                         {
+                            for (auto pContainer : selectionBefore) pContainer->retain();
+                            for (auto pContainer : selectionAfter) pContainer->retain();
                         }, [=]
                         {
+                            for (auto pContainer : selectionBefore) pContainer->release();
+                            for (auto pContainer : selectionAfter) pContainer->release();
                             pContainer->release();
                         }));
                     }
@@ -1114,6 +1083,14 @@ void init()
                         {
                             selection = selectionBefore;
                             updateProperties();
+                        }, [=]
+                        {
+                            for (auto pContainer : selectionBefore) pContainer->retain();
+                            for (auto pContainer : selectionAfter) pContainer->retain();
+                        }, [=]
+                        {
+                            for (auto pContainer : selectionBefore) pContainer->release();
+                            for (auto pContainer : selectionAfter) pContainer->release();
                         }));
                     }
                     else
