@@ -33,7 +33,9 @@
   </anim>
   <anim name="run_side" fps="8" loop="true">
     <frame id="18"/>
+    <frame id="16"/>
     <frame id="19"/>
+    <frame id="16"/>
   </anim>
   <anim name="attack" fps="24" loop="false">
     <frame id="6"/>
