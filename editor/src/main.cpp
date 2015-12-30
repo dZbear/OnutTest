@@ -543,6 +543,28 @@ decltype(curARROW) directionCursor(decltype(curARROW) cursor, const Matrix& tran
     return directionCursor(cursor, DirectX::XMConvertToDegrees(std::atan2f(right.y, right.x)));
 }
 
+void transformToParent(seed::Node* pParent, seed::Node* pNode)
+{
+    auto transform = pNode->GetTransform();
+    auto targetTransform = pParent->GetTransform();
+
+    auto worldAngle = DirectX::XMConvertToDegrees(std::atan2<>(transform.AxisX().y, transform.AxisX().x));
+    auto parentWorldAngle = DirectX::XMConvertToDegrees(std::atan2<>(targetTransform.AxisX().y, targetTransform.AxisX().x));
+    pNode->SetAngle(worldAngle - parentWorldAngle);
+
+    auto worldPos = transform.Translation();
+    auto localTransform = Vector2::Transform(worldPos, targetTransform.Invert());
+    pNode->SetPosition(localTransform);
+
+    auto worldScale = Vector2(transform.AxisX().Length(), transform.AxisY().Length());
+    auto parentWorldScale = Vector2(targetTransform.AxisX().Length(), targetTransform.AxisY().Length());
+    if (parentWorldScale.x != 0 &&
+        parentWorldScale.y != 0)
+    {
+        pNode->SetScale(worldScale / parentWorldScale);
+    }
+}
+
 void init()
 {
     curARROW = LoadCursor(nullptr, IDC_ARROW);
@@ -562,6 +584,14 @@ void init()
     pTreeView = dynamic_cast<onut::UITreeView*>(OFindUI("treeView"));
     pTreeViewRoot = new onut::UITreeViewItem("View");
     pTreeView->addItem(pTreeViewRoot);
+    pTreeView->allowReorder = true;
+
+    auto pRootContainer = new NodeContainer();
+    pRootContainer->retain();
+    pRootContainer->pNode = pEditingView->GetRootNode();
+    pRootContainer->pTreeViewItem = pTreeViewRoot;
+    pRootContainer->pTreeViewItem->pUserData = pRootContainer;
+    nodesToContainers[pRootContainer->pNode] = pRootContainer;
 
     pPropertiesView = OFindUI("propertiesView");
     pPropertiesNode = OFindUI("propertiesNode");
@@ -583,6 +613,273 @@ void init()
     pPropertyAngle = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAngle"));
     pPropertyColor = dynamic_cast<onut::UIPanel*>(OFindUI("colSpriteColor"));
     pPropertyAlpha = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlpha"));
+
+    pTreeView->onMoveItemInto = [](onut::UITreeView* in_pTreeView, const onut::UITreeViewMoveEvent& event)
+    {
+        auto pTargetContainer = reinterpret_cast<NodeContainer*>(event.pTarget->pUserData);
+        if (pTargetContainer)
+        {
+            auto pGroup = new onut::ActionGroup("Parent");
+            for (auto pItem : *event.pSelectedItems)
+            {
+                auto pContainer = reinterpret_cast<NodeContainer*>(pItem->pUserData);
+                auto pParentContainer = nodesToContainers[pContainer->pNode->GetParent()];
+                NodeContainer* pAfterSibbling = nullptr;
+                auto& bgChildren = pParentContainer->pNode->GetBgChildren();
+                auto& fgChildren = pParentContainer->pNode->GetFgChildren();
+                for (decltype(bgChildren.size()) i = 0; i < bgChildren.size(); ++i)
+                {
+                    if (bgChildren[i] == pContainer->pNode)
+                    {
+                        if (i < bgChildren.size() - 1)
+                        {
+                            pAfterSibbling = nodesToContainers[bgChildren[i + 1]];
+                            break;
+                        }
+                    }
+                }
+                if (!pAfterSibbling)
+                {
+                    for (decltype(fgChildren.size()) i = 0; i < fgChildren.size(); ++i)
+                    {
+                        if (fgChildren[i] == pContainer->pNode)
+                        {
+                            if (i < fgChildren.size() - 1)
+                            {
+                                pAfterSibbling = nodesToContainers[fgChildren[i + 1]];
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                pContainer->retain();
+                pParentContainer->retain();
+                pTargetContainer->retain();
+                if (pAfterSibbling) pAfterSibbling->retain();
+
+                SpriteState stateBefore(pContainer);
+                transformToParent(pTargetContainer->pNode, pContainer->pNode);
+                SpriteState stateAfter(pContainer);
+
+                pGroup->addAction(new onut::Action("",
+                    [=]
+                {
+                    pContainer->pNode->GetParent()->Detach(pContainer->pNode);
+                    pTargetContainer->pNode->Attach(pContainer->pNode);
+                    stateAfter.apply();
+                    updateProperties();
+                    pTargetContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
+                }, [=]
+                {
+                    pContainer->pNode->GetParent()->Detach(pContainer->pNode);
+                    if (pAfterSibbling)
+                    {
+                        pParentContainer->pNode->AttachBefore(pContainer->pNode, pAfterSibbling->pNode);
+                        pParentContainer->pTreeViewItem->addItemBefore(pContainer->pTreeViewItem, pAfterSibbling->pTreeViewItem);
+                    }
+                    else
+                    {
+                        pParentContainer->pNode->Attach(pContainer->pNode);
+                        pParentContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
+                    }
+                    stateBefore.apply();
+                    updateProperties();
+                }, [=]
+                {
+                }, [=]
+                {
+                    pContainer->release();
+                    pTargetContainer->release();
+                    pParentContainer->release();
+                    if (pAfterSibbling) pAfterSibbling->release();
+                }));
+            }
+            actionManager.doAction(pGroup);
+        }
+    };
+
+    pTreeView->onMoveItemBefore = [](onut::UITreeView* in_pTreeView, const onut::UITreeViewMoveEvent& event)
+    {
+        auto pTargetContainer = reinterpret_cast<NodeContainer*>(event.pTarget->pUserData);
+        if (pTargetContainer)
+        {
+            auto pGroup = new onut::ActionGroup("Reorder");
+
+            auto pTargetParent = pTargetContainer->pNode->GetParent();
+            for (auto pItem : *event.pSelectedItems)
+            {
+                auto pContainer = reinterpret_cast<NodeContainer*>(pItem->pUserData);
+                auto pParentContainer = nodesToContainers[pContainer->pNode->GetParent()];
+                NodeContainer* pAfterSibbling = nullptr;
+                auto& bgChildren = pParentContainer->pNode->GetBgChildren();
+                auto& fgChildren = pParentContainer->pNode->GetFgChildren();
+                for (decltype(bgChildren.size()) i = 0; i < bgChildren.size(); ++i)
+                {
+                    if (bgChildren[i] == pContainer->pNode)
+                    {
+                        if (i < bgChildren.size() - 1)
+                        {
+                            pAfterSibbling = nodesToContainers[bgChildren[i + 1]];
+                            break;
+                        }
+                    }
+                }
+                if (!pAfterSibbling)
+                {
+                    for (decltype(fgChildren.size()) i = 0; i < fgChildren.size(); ++i)
+                    {
+                        if (fgChildren[i] == pContainer->pNode)
+                        {
+                            if (i < fgChildren.size() - 1)
+                            {
+                                pAfterSibbling = nodesToContainers[fgChildren[i + 1]];
+                                break;
+                            }
+                        }
+                    }
+                }
+                auto pTargetParentContainer = nodesToContainers[pTargetParent];
+
+                pContainer->retain();
+                pParentContainer->retain();
+                pTargetContainer->retain();
+                pTargetParentContainer->retain();
+                if (pAfterSibbling) pAfterSibbling->retain();
+
+                SpriteState stateBefore(pContainer);
+                transformToParent(pTargetParent, pContainer->pNode);
+                SpriteState stateAfter(pContainer);
+
+                pGroup->addAction(new onut::Action("",
+                    [=]
+                {
+                    pContainer->pNode->GetParent()->Detach(pContainer->pNode);
+                    pTargetParentContainer->pNode->AttachBefore(pContainer->pNode, pTargetContainer->pNode);
+                    stateAfter.apply();
+                    updateProperties();
+                    pTargetParentContainer->pTreeViewItem->addItemBefore(pContainer->pTreeViewItem, pTargetContainer->pTreeViewItem);
+                }, [=]
+                {
+                    pContainer->pNode->GetParent()->Detach(pContainer->pNode);
+                    if (pAfterSibbling)
+                    {
+                        pParentContainer->pNode->AttachBefore(pContainer->pNode, pAfterSibbling->pNode);
+                        pParentContainer->pTreeViewItem->addItemBefore(pContainer->pTreeViewItem, pAfterSibbling->pTreeViewItem);
+                    }
+                    else
+                    {
+                        pParentContainer->pNode->Attach(pContainer->pNode);
+                        pParentContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
+                    }
+                    stateBefore.apply();
+                    updateProperties();
+                }, [=]
+                {
+                }, [=]
+                {
+                    pContainer->release();
+                    pTargetContainer->release();
+                    pParentContainer->release();
+                    pTargetParentContainer->release();
+                    if (pAfterSibbling) pAfterSibbling->release();
+                }));
+            }
+
+            actionManager.doAction(pGroup);
+        }
+    };
+
+    pTreeView->onMoveItemAfter = [](onut::UITreeView* in_pTreeView, const onut::UITreeViewMoveEvent& event)
+    {
+        auto pTargetContainer = reinterpret_cast<NodeContainer*>(event.pTarget->pUserData);
+        if (pTargetContainer)
+        {
+            auto pGroup = new onut::ActionGroup("Reorder");
+
+            auto pTargetParent = pTargetContainer->pNode->GetParent();
+            for (auto pItem : *event.pSelectedItems)
+            {
+                auto pContainer = reinterpret_cast<NodeContainer*>(pItem->pUserData);
+                auto pParentContainer = nodesToContainers[pContainer->pNode->GetParent()];
+                NodeContainer* pAfterSibbling = nullptr;
+                auto& bgChildren = pParentContainer->pNode->GetBgChildren();
+                auto& fgChildren = pParentContainer->pNode->GetFgChildren();
+                for (decltype(bgChildren.size()) i = 0; i < bgChildren.size(); ++i)
+                {
+                    if (bgChildren[i] == pContainer->pNode)
+                    {
+                        if (i < bgChildren.size() - 1)
+                        {
+                            pAfterSibbling = nodesToContainers[bgChildren[i + 1]];
+                            break;
+                        }
+                    }
+                }
+                if (!pAfterSibbling)
+                {
+                    for (decltype(fgChildren.size()) i = 0; i < fgChildren.size(); ++i)
+                    {
+                        if (fgChildren[i] == pContainer->pNode)
+                        {
+                            if (i < fgChildren.size() - 1)
+                            {
+                                pAfterSibbling = nodesToContainers[fgChildren[i + 1]];
+                                break;
+                            }
+                        }
+                    }
+                }
+                auto pTargetParentContainer = nodesToContainers[pTargetParent];
+
+                pContainer->retain();
+                pParentContainer->retain();
+                pTargetContainer->retain();
+                pTargetParentContainer->retain();
+                if (pAfterSibbling) pAfterSibbling->retain();
+
+                SpriteState stateBefore(pContainer);
+                transformToParent(pTargetParent, pContainer->pNode);
+                SpriteState stateAfter(pContainer);
+
+                pGroup->addAction(new onut::Action("",
+                    [=]
+                {
+                    pContainer->pNode->GetParent()->Detach(pContainer->pNode);
+                    pTargetParentContainer->pNode->AttachAfter(pContainer->pNode, pTargetContainer->pNode);
+                    stateAfter.apply();
+                    updateProperties();
+                    pTargetParentContainer->pTreeViewItem->addItemAfter(pContainer->pTreeViewItem, pTargetContainer->pTreeViewItem);
+                }, [=]
+                {
+                    pContainer->pNode->GetParent()->Detach(pContainer->pNode);
+                    if (pAfterSibbling)
+                    {
+                        pParentContainer->pNode->AttachBefore(pContainer->pNode, pAfterSibbling->pNode);
+                        pParentContainer->pTreeViewItem->addItemBefore(pContainer->pTreeViewItem, pAfterSibbling->pTreeViewItem);
+                    }
+                    else
+                    {
+                        pParentContainer->pNode->Attach(pContainer->pNode);
+                        pParentContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
+                    }
+                    stateBefore.apply();
+                    updateProperties();
+                }, [=]
+                {
+                }, [=]
+                {
+                    pContainer->release();
+                    pTargetContainer->release();
+                    pParentContainer->release();
+                    pTargetParentContainer->release();
+                    if (pAfterSibbling) pAfterSibbling->release();
+                }));
+            }
+
+            actionManager.doAction(pGroup);
+        }
+    };
 
     pPropertyViewWidth->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
