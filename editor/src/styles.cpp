@@ -1,4 +1,5 @@
 #include <onut.h>
+#include "NodeContainer.h"
 
 static const Color g_panelBGColor = OColorHex(2d2d30);
 static const Color g_panelDarkenBGColor = Color::fromHexRGBA(0x00000066);
@@ -143,6 +144,23 @@ void createUIStyles(onut::UIContext* pContext)
         bool hasText = !text.empty();
         auto textPos = orect.Left(expandClickWidth + 24);
         auto textColor = g_fontColor;
+
+        // UI icon
+        auto pContainer = reinterpret_cast<NodeContainer*>(pItem->pUserData);
+        if (pContainer)
+        {
+            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+            if (pSprite)
+            {
+                auto pTexture = pSprite->GetTexture();
+                if (pTexture)
+                {
+                    float scale = std::max<>(pTexture->getSizef().x, pTexture->getSizef().y);
+                    scale = 20.f / scale;
+                    OSB->drawSprite(pTexture, orect.Left(expandClickWidth + 12), Color::White, 0, scale);
+                }
+            }
+        }
 
         // Label
         if (hasText)

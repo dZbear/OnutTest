@@ -22,6 +22,9 @@
       <Filter>seed</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\menu.cpp" />
+    <ClCompile Include="..\..\..\src\seed\Emitter.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -51,5 +54,9 @@
       <Filter>seed</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\menu.h" />
+    <ClInclude Include="..\..\..\src\seed\Emitter.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\NodeContainer.h" />
   </ItemGroup>
 </Project>
