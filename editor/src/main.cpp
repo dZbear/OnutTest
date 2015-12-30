@@ -442,17 +442,19 @@ std::string fileOpen(const char* szFilters)
     return ofn.lpstrFile;
 }
 
-void changeSpriteProperty(const std::function<void(NodeContainer*)>& logic)
+void changeSpriteProperty(const std::string& actionName, const std::function<void(NodeContainer*)>& logic)
 {
-    auto pActionGroup = new onut::ActionGroup("Move Sprite");
+    auto pActionGroup = new onut::ActionGroup(actionName);
     for (auto pContainer : selection)
     {
+        pContainer->retain();
         SpriteState spriteStateBefore(pContainer);
         logic(pContainer);
         SpriteState spriteStateAfter(pContainer);
         pActionGroup->addAction(new onut::Action("",
             [=]{spriteStateAfter.apply(); updateProperties(); },
-            [=]{spriteStateBefore.apply(); updateProperties(); }));
+            [=]{spriteStateBefore.apply(); updateProperties(); },
+            [=]{}, [=]{pContainer->release(); }));
     }
     actionManager.doAction(pActionGroup);
 }
@@ -498,6 +500,56 @@ void finalizeAction(const std::string& name, State actionState)
     }
 }
 
+void checkNudge(uintptr_t key)
+{
+    // Arrow nudge
+    float step = OPressed(OINPUT_LCONTROL) ? 10.f : 1.f;
+    if (key == VK_LEFT)
+    {
+        changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
+        {
+            SpriteState spriteState(pContainer);
+            auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
+            auto invTransform = spriteState.parentTransform.Invert();
+            worldPos.x -= step;
+            pContainer->pNode->SetPosition(Vector2::Transform(worldPos, invTransform));
+        });
+    }
+    else if (key == VK_RIGHT)
+    {
+        changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
+        {
+            SpriteState spriteState(pContainer);
+            auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
+            auto invTransform = spriteState.parentTransform.Invert();
+            worldPos.x += step;
+            pContainer->pNode->SetPosition(Vector2::Transform(worldPos, invTransform));
+        });
+    }
+    if (key == VK_UP)
+    {
+        changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
+        {
+            SpriteState spriteState(pContainer);
+            auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
+            auto invTransform = spriteState.parentTransform.Invert();
+            worldPos.y -= step;
+            pContainer->pNode->SetPosition(Vector2::Transform(worldPos, invTransform));
+        });
+    }
+    else if (key == VK_DOWN)
+    {
+        changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
+        {
+            SpriteState spriteState(pContainer);
+            auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
+            auto invTransform = spriteState.parentTransform.Invert();
+            worldPos.y += step;
+            pContainer->pNode->SetPosition(Vector2::Transform(worldPos, invTransform));
+        });
+    }
+}
+
 void init()
 {
     createUIStyles(OUIContext);
@@ -524,7 +576,7 @@ void init()
 
     pPropertyTexture->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](NodeContainer* pContainer)
+        changeSpriteProperty("Change Texture", [](NodeContainer* pContainer)
         {
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
             if (pSprite)
@@ -550,35 +602,35 @@ void init()
     };
     pPropertyX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](NodeContainer* pContainer)
+        changeSpriteProperty("Change Position X", [](NodeContainer* pContainer)
         {
             pContainer->pNode->SetPosition(Vector2(pPropertyX->getFloat(), pContainer->pNode->GetPosition().y));
         });
     };
     pPropertyY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](NodeContainer* pContainer)
+        changeSpriteProperty("Change Position Y", [](NodeContainer* pContainer)
         {
             pContainer->pNode->SetPosition(Vector2(pContainer->pNode->GetPosition().x, pPropertyY->getFloat()));
         });
     };
     pPropertyScaleX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](NodeContainer* pContainer)
+        changeSpriteProperty("Change Scale X", [](NodeContainer* pContainer)
         {
             pContainer->pNode->SetScale(Vector2(pPropertyScaleX->getFloat(), pContainer->pNode->GetScale().y));
         });
     };
     pPropertyScaleY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](NodeContainer* pContainer)
+        changeSpriteProperty("Change Scale Y", [](NodeContainer* pContainer)
         {
             pContainer->pNode->SetScale(Vector2(pContainer->pNode->GetScale().x, pPropertyScaleY->getFloat()));
         });
     };
     pPropertyAlignX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](NodeContainer* pContainer)
+        changeSpriteProperty("Change Align X", [](NodeContainer* pContainer)
         {
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
             if (pSprite)
@@ -589,7 +641,7 @@ void init()
     };
     pPropertyAlignY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](NodeContainer* pContainer)
+        changeSpriteProperty("Change Align Y", [](NodeContainer* pContainer)
         {
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
             if (pSprite)
@@ -600,7 +652,7 @@ void init()
     };
     pPropertyAngle->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](NodeContainer* pContainer)
+        changeSpriteProperty("Change Angle", [](NodeContainer* pContainer)
         {
             pContainer->pNode->SetAngle(pPropertyAngle->getFloat());
         });
@@ -625,7 +677,7 @@ void init()
             color.packed = ((rgbCurrent << 24) & 0xff000000) | ((rgbCurrent << 8) & 0x00ff0000) | ((rgbCurrent >> 8) & 0x0000ff00) | 0x000000ff;
             color.unpack();
             pPropertyColor->color = color;
-            changeSpriteProperty([color](NodeContainer* pContainer)
+            changeSpriteProperty("Change Color", [color](NodeContainer* pContainer)
             {
                 auto colorBefore = pContainer->pNode->GetColor();
                 pContainer->pNode->SetColor(Color(color.r, color.g, color.g, colorBefore.w));
@@ -634,7 +686,7 @@ void init()
     };
     pPropertyAlpha->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
-        changeSpriteProperty([](NodeContainer* pContainer)
+        changeSpriteProperty("Change Alpha", [](NodeContainer* pContainer)
         {
             auto alpha = pPropertyAlpha->getFloat() / 100.f;
             pContainer->pNode->SetColor(Color(pContainer->pNode->GetColor().x, pContainer->pNode->GetColor().y, pContainer->pNode->GetColor().z, alpha));
@@ -652,6 +704,7 @@ void init()
         OUIContext->keyDown(key);
         if (!dynamic_cast<onut::UITextBox*>(OUIContext->getFocusControl()))
         {
+            checkNudge(key);
             checkShortCut(key);
         }
     };
@@ -1007,6 +1060,17 @@ void init()
         checkAboutToAction(State::IsAboutToRotate, State::Rotate, mouseDiff);
         if (state == State::Moving)
         {
+            if (OPressed(OINPUT_LSHIFT))
+            {
+                if (std::abs(mouseDiff.x) > std::abs(mouseDiff.y))
+                {
+                    mouseDiff.y = 0;
+                }
+                else
+                {
+                    mouseDiff.x = 0;
+                }
+            }
             for (auto pContainer : selection)
             {
                 auto transform = pContainer->stateOnDown.parentTransform;
@@ -1048,6 +1112,10 @@ void init()
             auto angle1 = DirectX::XMConvertToDegrees(std::atan2f(diff1.y, diff1.x));
             auto angle2 = DirectX::XMConvertToDegrees(std::atan2f(diff2.y, diff2.x));
             auto angleDiff = angle2 - angle1;
+            if (OPressed(OINPUT_LSHIFT))
+            {
+                angleDiff = std::round(angleDiff / 5.f) * 5.f;
+            }
             if (isMultiSelection())
             {
                 auto viewTransform = getViewTransform();
@@ -1089,6 +1157,7 @@ void update()
 {
     if (state == State::Idle)
     {
+        // Zoom
         if (OUIContext->getHoverControl() == pMainView)
         {
             if (OInput->getStateValue(OINPUT_MOUSEZ) < 0)
