@@ -17,6 +17,31 @@ namespace seed
 
     }
 
+    Node* Sprite::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    {
+        Sprite* newNode = in_pool.alloc<Sprite>();
+        Copy(newNode);
+        in_pooledNodes.push_back(newNode);
+        return newNode;
+    }
+
+    void Sprite::Copy(Node* in_copy)
+    {
+        Node::Copy(in_copy);
+        Sprite* copy = (Sprite*)in_copy;
+        copy->SetAlign(GetAlign());
+        copy->SetTexture(GetTexture());
+        copy->SetSpriteAnim(GetSpriteAnim());
+        copy->SetFilter(GetFilter());
+        copy->SetBlend(GetBlend());
+        copy->SetFlipped(GetFlippedH(), GetFlippedV());
+    }
+
+    void Sprite::SetSpriteAnim(OSpriteAnim in_anim)
+    {
+        m_anim = in_anim;
+    }
+
     void Sprite::Render(Matrix* in_parentMatrix)
     {
         if (!m_visible)
@@ -26,7 +51,7 @@ namespace seed
 
         // generate our matrix
         Matrix transform = Matrix::Identity;
-        transform *= Matrix::CreateScale(m_scale.get().x * (m_flippedH ? -1.f : 1.f), m_scale.get().y * (m_flippedV ? -1.f : 1.f), 1.f);
+        transform *= Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
         transform *= Matrix::CreateRotationZ(DirectX::XMConvertToRadians(m_angle));
         transform *= Matrix::CreateTranslation(m_position.get().x, m_position.get().y, 0);
 
@@ -95,12 +120,12 @@ namespace seed
         return 0;
     }
 
-    void Sprite::SetAnimSource(const string& in_sourceName)
+    void Sprite::SetSpriteAnimSource(const string& in_sourceName)
     {
         m_anim = OSpriteAnim(in_sourceName);
     }
 
-    void Sprite::SetAnim(const string& in_animName)
+    void Sprite::SetSpriteAnim(const string& in_animName)
     {
         if (in_animName == m_lastAnim)
         {
@@ -110,7 +135,7 @@ namespace seed
         m_anim.start(in_animName);
     }
     
-    void Sprite::StopAnim()
+    void Sprite::StopSpriteAnim()
     {
         m_anim.stop();
     }
@@ -120,14 +145,34 @@ namespace seed
         m_filter = in_filter;
     }
 
+    onut::SpriteBatch::eFiltering Sprite::GetFilter()
+    {
+        return m_filter;
+    }
+
     void Sprite::SetBlend(onut::SpriteBatch::eBlendMode in_blend)
     {
         m_blend = in_blend;
+    }
+
+    onut::SpriteBatch::eBlendMode Sprite::GetBlend()
+    {
+        return m_blend;
     }
 
     void Sprite::SetFlipped(bool in_flipH, bool in_flipV)
     {
         m_flippedH = in_flipH;
         m_flippedV = in_flipV;
+    }
+
+    bool Sprite::GetFlippedH()
+    {
+        return m_flippedH;
+    }
+
+    bool Sprite::GetFlippedV()
+    {
+        return m_flippedV;
     }
 }

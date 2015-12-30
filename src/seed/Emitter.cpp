@@ -14,6 +14,28 @@ namespace seed
 
     }
 
+    Node* Emitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    {
+        Emitter* newNode = in_pool.alloc<Emitter>();
+        Copy(newNode);
+        in_pooledNodes.push_back(newNode);
+        return newNode;
+    }
+
+    void Emitter::Copy(Node* in_copy)
+    {
+        Node::Copy(in_copy);
+        Emitter* copy = (Emitter*)in_copy;
+        copy->SetFilter(GetFilter());
+        copy->SetBlend(GetBlend());
+        
+        copy->Init(GetFxName());
+        if (m_emitter.isPlaying())
+        {
+            copy->Start();
+        }
+    }
+
     void Emitter::Init(const string& in_fxName)
     {
         m_fxName = in_fxName;
@@ -71,8 +93,28 @@ namespace seed
         m_filter = in_filter;
     }
 
+    onut::SpriteBatch::eFiltering Emitter::GetFilter()
+    {
+        return m_filter;
+    }
+
     void Emitter::SetBlend(onut::SpriteBatch::eBlendMode in_blend)
     {
         m_blend = in_blend;
+    }
+
+    onut::SpriteBatch::eBlendMode Emitter::GetBlend()
+    {
+        return m_blend;
+    }
+
+    OEmitterInstance& Emitter::GetEmitterInstance()
+    {
+        return m_emitter;
+    }
+
+    string Emitter::GetFxName()
+    {
+        return m_fxName;
     }
 }

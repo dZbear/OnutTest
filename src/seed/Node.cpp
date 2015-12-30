@@ -16,6 +16,24 @@ namespace seed
 
     }
 
+    Node* Node::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    {
+        Node* newNode = in_pool.alloc<Node>();
+        Copy(newNode);
+        in_pooledNodes.push_back(newNode);
+        return newNode;
+    }
+
+    void Node::Copy(Node* in_copy)
+    {
+        in_copy->SetPosition(GetPosition());
+        in_copy->SetScale(GetScale());
+        in_copy->SetAngle(GetAngle());
+        in_copy->SetColor(GetColor());
+        in_copy->SetVisible(GetVisible());
+        in_copy->SetZindex(GetZindex());
+    }
+
     void Node::Update()
     {
         UpdateChildren(m_bgChildren);

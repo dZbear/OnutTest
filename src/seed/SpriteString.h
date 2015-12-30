@@ -12,6 +12,8 @@ namespace seed
         SpriteString();
         virtual ~SpriteString();
 
+        virtual Node*   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+
         void    SetFont(OFont* in_font);
         void    SetCaption(const string& in_caption);
 
@@ -22,6 +24,8 @@ namespace seed
         virtual float   GetHeight();
 
     private:
+
+        virtual void            Copy(Node* in_copy);
 
         string      m_caption;
         OFont*      m_font;

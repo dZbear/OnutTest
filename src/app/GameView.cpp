@@ -1,6 +1,7 @@
 #include "GameView.h"
 #include "Emitter.h"
 #include "Sprite.h"
+#include "SpriteString.h"
 
 GameView::GameView()
 {
@@ -14,15 +15,21 @@ GameView::~GameView()
 
 void GameView::OnShow()
 {
-    m_dude = AddSpriteWithAnim("baltAnims.xml", "idle_down");
+    m_dude = AddSpriteWithSpriteAnim("baltAnims.xml", "idle_down");
     m_idleAnim = "idle_down";
     m_dude->SetPosition(OScreenCenterXf, OScreenCenterYf);
     m_dude->SetScale(Vector2(5, 5));
     m_dude->SetFilter(onut::SpriteBatch::eFiltering::Nearest);
 
-    m_fireFX = AddEmitter("FireFX.pex");
-    m_fireFX->SetPosition(OScreenCenterXf,(float)OScreen.y);
-    //m_fireFX->Start();
+
+    m_testFX = AddEmitter("test2.pex", m_dude, -1);
+    m_testFX->Start();
+    m_testFX->SetPosition(0, -10);
+
+    seed::SpriteString* testString = AddSpriteString("cartoon.fnt", m_dude);
+    testString->SetCaption("BALT GUY");
+    testString->SetScale(Vector2(.05f, .05f));
+    testString->SetPosition(0, 4);
 }
 
 void GameView::OnHide()
@@ -69,16 +76,24 @@ void GameView::OnUpdate()
 
     if (newAnim.length())
     {
-        m_dude->SetAnim(newAnim);
+        m_dude->SetSpriteAnim(newAnim);
         m_dude->SetFlipped(flipped, false);
     }
     else
     {
-        m_dude->SetAnim(m_idleAnim);
+        m_dude->SetSpriteAnim(m_idleAnim);
     }
     
     const float speed = 5.f;
     Vector2 pos = m_dude->GetPosition();
     pos += vel * speed;
     m_dude->SetPosition(pos);
+
+    if (OJustPressed(OINPUT_SPACE))
+    {
+        // duplicate our dude
+        seed::Node* newDude = DuplicateNode(m_dude);
+        AddNode(newDude);
+
+    }
 }

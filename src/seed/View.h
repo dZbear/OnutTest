@@ -16,11 +16,12 @@ namespace seed
         virtual ~View();
 
         Sprite*         AddSprite(const string& in_textureName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
-        Sprite*         AddSpriteWithAnim(const string& in_animSource, const string& in_defaultAnim, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
+        Sprite*         AddSpriteWithSpriteAnim(const string& in_animSource, const string& in_defaultAnim, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         SpriteString*   AddSpriteString(const string& in_fontName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         Emitter*        AddEmitter(const string& in_fxName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         void            AddNode(Node* in_node, int in_zIndex = INT_MAX);
         void            DeleteNode(Node* in_node);
+        Node*           DuplicateNode(Node* in_node);
         Node*           GetRootNode() { return m_rootNode; }
 
         Button*         AddButton(Sprite* in_sprite, const string& in_cmd);
@@ -75,6 +76,7 @@ namespace seed
         void            DeleteNodes();
         void            DeleteChildNodes(NodeVect& in_childVect);
         bool            IsPooled(Node* in_node);
+        void            DuplicateChildren(Node* in_originalNode, Node* in_newParentNode);
 
         void            UpdateFocus();
         void            UpdateButtons();

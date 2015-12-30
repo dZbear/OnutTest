@@ -16,7 +16,7 @@ public:
 private:
 
     seed::Sprite*       m_dude;
-    seed::Emitter*      m_fireFX;
+    seed::Emitter*      m_testFX;
     string              m_idleAnim;
 
 

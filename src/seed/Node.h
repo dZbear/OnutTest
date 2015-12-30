@@ -14,6 +14,7 @@ namespace seed
 
         virtual void    Update();
         virtual void    Render(Matrix* in_parentMatrix = nullptr);
+        virtual Node*   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
 
         void            Attach(Node* in_newChild, int in_zIndex = INT_MAX);
         void            Detach(Node* in_child);
@@ -64,6 +65,8 @@ namespace seed
         OAnim<float>            m_angle;
         OAnim<Color>            m_color;
         bool                    m_visible;
+
+        virtual void            Copy(Node* in_copy);
 
         void        RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix = nullptr);
         void        UpdateChildren(NodeVect& in_children);

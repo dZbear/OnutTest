@@ -253,6 +253,12 @@ namespace seed
         if (m_rootNode->VisitBackgroundChildrenBackward(callback)) return;
     }
 
+
+    void View::AddNode(Node* in_node, int in_zIndex)
+    {
+        m_rootNode->Attach(in_node, in_zIndex);
+    }
+
     Sprite* View::AddSprite(const string& in_textureName, Node* in_parent, int in_zIndex)
     {
         OTexture* texture = OGetTexture(in_textureName.c_str());
@@ -272,12 +278,12 @@ namespace seed
         return newSprite;
     }
 
-    Sprite* View::AddSpriteWithAnim(const string& in_animSource, const string& in_defaultAnim, Node* in_parent, int in_zIndex)
+    Sprite* View::AddSpriteWithSpriteAnim(const string& in_animSource, const string& in_defaultAnim, Node* in_parent, int in_zIndex)
     {
         Sprite* newSprite = m_nodePool.alloc<Sprite>();
         newSprite->SetZindex(in_zIndex);
-        newSprite->SetAnimSource(in_animSource);
-        newSprite->SetAnim(in_defaultAnim);
+        newSprite->SetSpriteAnimSource(in_animSource);
+        newSprite->SetSpriteAnim(in_defaultAnim);
 
         Node* parentNode = in_parent ? in_parent : m_rootNode;
         parentNode->Attach(newSprite, in_zIndex);
@@ -322,6 +328,28 @@ namespace seed
         newButton->SetCmd(in_cmd);
         m_buttons.push_back(newButton);
         return newButton;
+    }
+
+    Node* View::DuplicateNode(Node* in_node)
+    {
+        Node* newNode = in_node->Duplicate(m_nodePool, m_pooledNodes);
+        DuplicateChildren(in_node, newNode);
+        return newNode;
+    }
+
+    void View::DuplicateChildren(Node* in_originalNode, Node* in_newParentNode)
+    {
+        for (Node* childNode : in_originalNode->GetBgChildren())
+        {
+            Node* newChildNode = DuplicateNode(childNode);
+            in_newParentNode->Attach(newChildNode, newChildNode->GetZindex());
+        }
+
+        for (Node* childNode : in_originalNode->GetFgChildren())
+        {
+            Node* newChildNode = DuplicateNode(childNode);
+            in_newParentNode->Attach(newChildNode, newChildNode->GetZindex());
+        }
     }
 
     void View::DeleteNode(Node* in_node)

@@ -11,18 +11,27 @@ namespace seed
         Emitter();
         virtual ~Emitter();
 
+        virtual Node*   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+
         void Init(const string& in_fxName);
         void Start();
         void Stop();
 
-        void SetFilter(onut::SpriteBatch::eFiltering in_filter);
-        void SetBlend(onut::SpriteBatch::eBlendMode in_blend);
+        OEmitterInstance&   GetEmitterInstance();
+        string              GetFxName();
+
+        void                            SetFilter(onut::SpriteBatch::eFiltering in_filter);
+        onut::SpriteBatch::eFiltering   GetFilter();
+        void                            SetBlend(onut::SpriteBatch::eBlendMode in_blend);
+        onut::SpriteBatch::eBlendMode   GetBlend();
 
         // only to be used by the seed sdk
         virtual void    Update();
         virtual void    Render(Matrix* in_parentMatrix=nullptr);
 
     protected:
+
+        virtual void            Copy(Node* in_copy);
 
         OEmitterInstance                m_emitter;
         string                          m_fxName;
