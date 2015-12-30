@@ -183,6 +183,14 @@ onut::UITextBox* pPropertyAlpha = nullptr;
 seed::View* pEditingView = nullptr;
 Vector2 viewSize = Vector2(640, 480);
 
+// Cursors
+static HCURSOR curARROW = nullptr;
+static HCURSOR curSIZENWSE = nullptr;
+static HCURSOR curSIZENESW = nullptr;
+static HCURSOR curSIZEWE = nullptr;
+static HCURSOR curSIZENS = nullptr;
+static HCURSOR curSIZEALL = nullptr;
+
 void updateTransformHandles();
 
 void updateProperties()
@@ -500,6 +508,51 @@ void finalizeAction(const std::string& name, State actionState)
     }
 }
 
+bool mouseInSprite(const Vector2& mousePos, seed::Node* pNode)
+{
+    auto viewTransform = getViewTransform();
+    auto transform = pNode->GetTransform() * viewTransform;
+    auto invTransform = transform.Invert();
+    auto mouseInSprite = Vector2::Transform(mousePos, invTransform);
+    auto pSprite = dynamic_cast<seed::Sprite*>(pNode);
+    if (pSprite)
+    {
+        if (mouseInSprite.x >= -pSprite->GetWidth() * pSprite->GetAlign().x &&
+            mouseInSprite.x <= pSprite->GetWidth() * (1.f - pSprite->GetAlign().x) &&
+            mouseInSprite.y >= -pSprite->GetHeight() * pSprite->GetAlign().y &&
+            mouseInSprite.y <= pSprite->GetHeight() * (1.f - pSprite->GetAlign().y))
+        {
+            return true;
+        }
+    }
+    else
+    {
+        if (mouseInSprite.x >= -16 &&
+            mouseInSprite.x <= 16 &&
+            mouseInSprite.y >= -16 &&
+            mouseInSprite.y <= 16)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool mouseInSprite(const onut::sUIVector2& mousePos, NodeContainer* pContainer)
+{
+    return mouseInSprite(onut::UI2Onut(mousePos), pContainer->pNode);
+}
+
+bool mouseInSprite(const Vector2& mousePos, NodeContainer* pContainer)
+{
+    return mouseInSprite(mousePos, pContainer->pNode);
+}
+
+bool mouseInSprite(const onut::sUIVector2& mousePos, seed::Node* pNode)
+{
+    return mouseInSprite(onut::UI2Onut(mousePos), pNode);
+}
+
 void checkNudge(uintptr_t key)
 {
     // Arrow nudge
@@ -550,8 +603,42 @@ void checkNudge(uintptr_t key)
     }
 }
 
+decltype(curARROW) directionCursor(decltype(curARROW) cursor, float angleDiff)
+{
+    auto angle = 0.f;
+    if (cursor == curSIZEWE) angle = 0.f;
+    if (cursor == curSIZENS) angle = -90.f;
+    if (cursor == curSIZENESW) angle = 45.f;
+    if (cursor == curSIZENWSE) angle = -45.f;
+    angle -= angleDiff;
+    while (angle < 0) angle += 360.f;
+    while (angle >= 360.f) angle -= 360.f;
+    if (angle < 22.5f || angle >= 337.5f) cursor = curSIZEWE;
+    else if (angle < 67.5f) cursor = curSIZENESW;
+    else if (angle < 112.5f) cursor = curSIZENS;
+    else if (angle < 157.5f) cursor = curSIZENWSE;
+    else if (angle < 202.5f) cursor = curSIZEWE;
+    else if (angle < 247.5f) cursor = curSIZENESW;
+    else if (angle < 292.5f) cursor = curSIZENS;
+    else if (angle < 337.5f) cursor = curSIZENWSE;
+    return cursor;
+}
+
+decltype(curARROW) directionCursor(decltype(curARROW) cursor, const Matrix& transform)
+{
+    auto right = transform.AxisX();
+    return directionCursor(cursor, DirectX::XMConvertToDegrees(std::atan2f(right.y, right.x)));
+}
+
 void init()
 {
+    curARROW = LoadCursor(nullptr, IDC_ARROW);
+    curSIZENWSE = LoadCursor(nullptr, IDC_SIZENWSE);
+    curSIZENESW = LoadCursor(nullptr, IDC_SIZENESW);
+    curSIZEWE = LoadCursor(nullptr, IDC_SIZEWE);
+    curSIZENS = LoadCursor(nullptr, IDC_SIZENS);
+    curSIZEALL = LoadCursor(nullptr, IDC_SIZEALL);
+
     createUIStyles(OUIContext);
     OUI->add(OLoadUI("editor.json"));
 
@@ -848,6 +935,14 @@ void init()
     });
 
     // Mouse down for select
+    pMainView->onMouseLeave = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) 
+    {
+        if (state == State::Idle)
+        {
+            OWindow->setCursor(curARROW);
+        }
+    };
+
     pMainView->onMouseDown = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
         mousePosOnDown = event.mousePos;
@@ -857,14 +952,12 @@ void init()
         {
             HandleIndex index = 0;
             HandleIndex closestIndex = 0;
-            auto& closest = gizmo.transformHandles.front();
-            float closestDis = Vector2::DistanceSquared(onut::UI2Onut(mousePosOnDown), closest.screenPos);
+            float closestDis = Vector2::DistanceSquared(onut::UI2Onut(mousePosOnDown), gizmo.transformHandles.front().screenPos);
             for (auto& handle : gizmo.transformHandles)
             {
                 float dis = Vector2::DistanceSquared(onut::UI2Onut(mousePosOnDown), handle.screenPos);
                 if (dis < closestDis)
                 {
-                    closest = handle;
                     closestDis = dis;
                     closestIndex = index;
                 }
@@ -878,6 +971,7 @@ void init()
             else if (closestDis < 32.f * 32.f)
             {
                 state = State::IsAboutToRotate;
+                handleIndexOnDown = closestIndex;
             }
         }
 
@@ -897,31 +991,10 @@ void init()
             // Find the topmost mouse hover sprite
             pEditingView->VisitNodesBackward([&](seed::Node* pNode) -> bool
             {
-                auto transform = pNode->GetTransform();
-                auto invTransform = transform.Invert();
-                auto mouseInSprite = Vector2::Transform(mousePosInView, invTransform);
-                auto pSprite = dynamic_cast<seed::Sprite*>(pNode);
-                if (pSprite)
+                if (mouseInSprite(event.mousePos, pNode))
                 {
-                    if (mouseInSprite.x >= -pSprite->GetWidth() * pSprite->GetAlign().x &&
-                        mouseInSprite.x <= pSprite->GetWidth() * (1.f - pSprite->GetAlign().x) &&
-                        mouseInSprite.y >= -pSprite->GetHeight() * pSprite->GetAlign().y &&
-                        mouseInSprite.y <= pSprite->GetHeight() * (1.f - pSprite->GetAlign().y))
-                    {
-                        pMouseHover = pSprite;
-                        return true;
-                    }
-                }
-                else
-                {
-                    if (mouseInSprite.x >= -16 &&
-                        mouseInSprite.x <= 16 &&
-                        mouseInSprite.y >= -16 &&
-                        mouseInSprite.y <= 16)
-                    {
-                        pMouseHover = pNode;
-                        return true;
-                    }
+                    pMouseHover = pNode;
+                    return true;
                 }
                 return false;
             });
@@ -1132,13 +1205,168 @@ void init()
                     pContainer->pNode->SetPosition(localPosition);
                     pContainer->pNode->SetAngle(pContainer->stateOnDown.angle + angleDiff);
                 }
+                switch (gizmo.transformHandles[handleIndexOnDown].handle)
+                {
+                    case Handle::TOP_LEFT:
+                    case Handle::BOTTOM_RIGHT:
+                        OWindow->setCursor(directionCursor(curSIZENESW, angleDiff));
+                        break;
+                    case Handle::LEFT:
+                    case Handle::RIGHT:
+                        OWindow->setCursor(directionCursor(curSIZENS, angleDiff));
+                        break;
+                    case Handle::BOTTOM_LEFT:
+                    case Handle::TOP_RIGHT:
+                        OWindow->setCursor(directionCursor(curSIZENWSE, angleDiff));
+                        break;
+                    case Handle::BOTTOM:
+                    case Handle::TOP:
+                        OWindow->setCursor(directionCursor(curSIZEWE, angleDiff));
+                        break;
+                }
             }
             else
             {
                 auto pContainer = selection.front();
                 pContainer->pNode->SetAngle(pContainer->stateOnDown.angle + angleDiff);
+                switch (gizmo.transformHandles[handleIndexOnDown].handle)
+                {
+                    case Handle::TOP_LEFT:
+                    case Handle::BOTTOM_RIGHT:
+                        OWindow->setCursor(directionCursor(curSIZENESW, pContainer->pNode->GetTransform()));
+                        break;
+                    case Handle::LEFT:
+                    case Handle::RIGHT:
+                        OWindow->setCursor(directionCursor(curSIZENS, pContainer->pNode->GetTransform()));
+                        break;
+                    case Handle::BOTTOM_LEFT:
+                    case Handle::TOP_RIGHT:
+                        OWindow->setCursor(directionCursor(curSIZENWSE, pContainer->pNode->GetTransform()));
+                        break;
+                    case Handle::BOTTOM:
+                    case Handle::TOP:
+                        OWindow->setCursor(directionCursor(curSIZEWE, pContainer->pNode->GetTransform()));
+                        break;
+                }
             }
             updateProperties();
+        }
+        else if (state == State::Idle)
+        {
+            // Change cursor on depending what we hover
+            auto cursor = curARROW;
+
+            // Check handles
+            if (!selection.empty() && !OPressed(OINPUT_LCONTROL))
+            {
+                HandleIndex index = 0;
+                HandleIndex closestIndex = 0;
+                float closestDis = Vector2::DistanceSquared(onut::UI2Onut(event.mousePos), gizmo.transformHandles.front().screenPos);
+                for (auto& handle : gizmo.transformHandles)
+                {
+                    float dis = Vector2::DistanceSquared(onut::UI2Onut(event.mousePos), handle.screenPos);
+                    if (dis < closestDis)
+                    {
+                        closestDis = dis;
+                        closestIndex = index;
+                    }
+                    ++index;
+                }
+                bool isHandle = false;
+                if (closestDis < 8.f * 8.f && !isMultiSelection())
+                {
+                    isHandle = true;
+                    switch (gizmo.transformHandles[closestIndex].handle)
+                    {
+                        case Handle::TOP_LEFT:
+                        case Handle::BOTTOM_RIGHT:
+                            cursor = directionCursor(curSIZENWSE, selection.front()->pNode->GetTransform());
+                            break;
+                        case Handle::LEFT:
+                        case Handle::RIGHT:
+                            cursor = directionCursor(curSIZEWE, selection.front()->pNode->GetTransform());
+                            break;
+                        case Handle::BOTTOM_LEFT:
+                        case Handle::TOP_RIGHT:
+                            cursor = directionCursor(curSIZENESW, selection.front()->pNode->GetTransform());
+                            break;
+                        case Handle::BOTTOM:
+                        case Handle::TOP:
+                            cursor = directionCursor(curSIZENS, selection.front()->pNode->GetTransform());
+                            break;
+                    }
+                }
+                else if (closestDis < 32.f * 32.f)
+                {
+                    if (!isMultiSelection())
+                    {
+                        switch (gizmo.transformHandles[closestIndex].handle)
+                        {
+                            case Handle::TOP_LEFT:
+                            case Handle::BOTTOM_RIGHT:
+                                cursor = directionCursor(curSIZENESW, selection.front()->pNode->GetTransform());
+                                break;
+                            case Handle::LEFT:
+                            case Handle::RIGHT:
+                                cursor = directionCursor(curSIZENS, selection.front()->pNode->GetTransform());
+                                break;
+                            case Handle::BOTTOM_LEFT:
+                            case Handle::TOP_RIGHT:
+                                cursor = directionCursor(curSIZENWSE, selection.front()->pNode->GetTransform());
+                                break;
+                            case Handle::BOTTOM:
+                            case Handle::TOP:
+                                cursor = directionCursor(curSIZEWE, selection.front()->pNode->GetTransform());
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        switch (gizmo.transformHandles[closestIndex].handle)
+                        {
+                            case Handle::TOP_LEFT:
+                            case Handle::BOTTOM_RIGHT:
+                                cursor = curSIZENESW;
+                                break;
+                            case Handle::LEFT:
+                            case Handle::RIGHT:
+                                cursor = curSIZENS;
+                                break;
+                            case Handle::BOTTOM_LEFT:
+                            case Handle::TOP_RIGHT:
+                                cursor = curSIZENWSE;
+                                break;
+                            case Handle::BOTTOM:
+                            case Handle::TOP:
+                                cursor = curSIZEWE;
+                                break;
+                        }
+                    }
+                }
+                if (!isHandle)
+                {
+                    if (isMultiSelection())
+                    {
+                        auto aabb = getSelectionAABB();
+                        if (event.mousePos.x >= aabb[0].x &&
+                            event.mousePos.y >= aabb[0].y &&
+                            event.mousePos.x <= aabb[1].x &&
+                            event.mousePos.y <= aabb[1].y)
+                        {
+                            cursor = curSIZEALL;
+                        }
+                    }
+                    else
+                    {
+                        if (mouseInSprite(event.mousePos, selection.front()))
+                        {
+                            cursor = curSIZEALL;
+                        }
+                    }
+                }
+            }
+
+            OWindow->setCursor(cursor);
         }
     };
 
@@ -1148,6 +1376,7 @@ void init()
         finalizeAction("Scale", State::MovingHandle);
         finalizeAction("Rotate", State::Rotate);
         state = State::Idle;
+        OWindow->setCursor(curARROW);
     };
 
     updateProperties();
