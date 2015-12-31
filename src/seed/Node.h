@@ -17,6 +17,8 @@ namespace seed
         virtual Node*   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
 
         void            Attach(Node* in_newChild, int in_zIndex = INT_MAX);
+        void            AttachBefore(Node* in_newChild, Node* in_beforeChild);
+        void            AttachAfter(Node* in_newChild, Node* in_afterChild);
         void            Detach(Node* in_child);
         Node*           GetParent() const;
         void            SetParent(Node* in_parent);
@@ -74,6 +76,8 @@ namespace seed
     private:
 
         void        InsertNode(NodeVect& in_vect, Node* in_node, int in_zIndex);
+        void        InsertBefore(NodeVect& in_vect, Node* in_newChild, Node* in_beforeChild);
+        void        InsertAfter(NodeVect& in_vect, Node* in_newChild, Node* in_afterChild);
         void        DetachChild(NodeVect& in_vect, Node* in_node);
     };
 }

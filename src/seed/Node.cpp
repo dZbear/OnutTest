@@ -89,6 +89,30 @@ namespace seed
         in_newChild->SetZindex(in_zIndex);
     }
 
+    void Node::AttachBefore(Node* in_newChild, Node* in_beforeChild)
+    {
+        if (in_beforeChild->GetZindex() < 0)
+        {
+            InsertBefore(m_bgChildren, in_newChild, in_beforeChild);
+        }
+        else
+        {
+            InsertBefore(m_fgChildren, in_newChild, in_beforeChild);
+        }
+    }
+
+    void Node::AttachAfter(Node* in_newChild, Node* in_afterChild)
+    {
+        if (in_afterChild->GetZindex() < 0)
+        {
+            InsertAfter(m_bgChildren, in_newChild, in_afterChild);
+        }
+        else
+        {
+            InsertAfter(m_fgChildren, in_newChild, in_afterChild);
+        }
+    }
+
     void Node::Detach(Node* in_child)
     {
         if (in_child->GetZindex() < 0)
@@ -132,6 +156,36 @@ namespace seed
         }
         // if we're here it means we didnt find any suitable place for it, just insert at the end
         in_vect.push_back(in_node);
+    }
+
+    void Node::InsertBefore(NodeVect& in_vect, Node* in_newChild, Node* in_beforeChild)
+    {
+        for (size_t i = 0, size = in_vect.size(); i < size; ++i)
+        {
+            Node* child = in_vect[i];
+            if (child == in_beforeChild)
+            {
+                in_vect.insert(in_vect.begin() + i, in_newChild);
+                in_newChild->SetParent(this);
+                in_newChild->SetZindex(child->GetZindex());
+                return;
+            }
+        }
+    }
+
+    void Node::InsertAfter(NodeVect& in_vect, Node* in_newChild, Node* in_afterChild)
+    {
+        for (size_t i = 0, size = in_vect.size(); i < size; ++i)
+        {
+            Node* child = in_vect[i];
+            if (child == in_afterChild)
+            {
+                in_vect.insert(in_vect.begin() + i + 1, in_newChild);
+                in_newChild->SetParent(this);
+                in_newChild->SetZindex(child->GetZindex());
+                return;
+            }
+        }
     }
 
     void Node::DetachChild(NodeVect& in_vect, Node* in_node)

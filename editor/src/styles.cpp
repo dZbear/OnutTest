@@ -113,6 +113,11 @@ void createUIStyles(onut::UIContext* pContext)
         OSB->drawRect(nullptr, orect, g_deepViewFill);
     });
 
+    pContext->drawInsert = [pContext](const onut::sUIRect& rect)
+    {
+        OSB->drawRect(nullptr, onut::UI2Onut(rect), g_treeItemSelectedBGColor);
+    };
+
     pContext->addStyle<onut::UITreeViewItem>("", [pContext](const onut::UITreeViewItem* pItem, const onut::sUIRect& rect)
     {
         auto pTreeView = pItem->getTreeView();
@@ -132,11 +137,11 @@ void createUIStyles(onut::UIContext* pContext)
         {
             if (pItem->isExpanded)
             {
-                OSB->drawSprite(g_pTexTreeOpen, orect.Left(expandClickWidth * .5f + 4));
+                OSB->drawSprite(g_pTexTreeOpen, orect.Left(expandClickWidth * .5f + 4), Color(pItem->opacity));
             }
             else
             {
-                OSB->drawSprite(g_pTexTreeClose, orect.Left(expandClickWidth * .5f + 4));
+                OSB->drawSprite(g_pTexTreeClose, orect.Left(expandClickWidth * .5f + 4), Color(pItem->opacity));
             }
         }
 
@@ -157,7 +162,7 @@ void createUIStyles(onut::UIContext* pContext)
                 {
                     float scale = std::max<>(pTexture->getSizef().x, pTexture->getSizef().y);
                     scale = 20.f / scale;
-                    OSB->drawSprite(pTexture, orect.Left(expandClickWidth + 12), Color::White, 0, scale);
+                    OSB->drawSprite(pTexture, orect.Left(expandClickWidth + 12), Color(pItem->opacity), 0, scale);
                 }
             }
         }
@@ -165,7 +170,7 @@ void createUIStyles(onut::UIContext* pContext)
         // Label
         if (hasText)
         {
-            g_pFont->draw<OLeft>(pItem->text, textPos, g_fontColor);
+            g_pFont->draw<OLeft>(pItem->text, textPos, g_fontColor * pItem->opacity);
         }
     });
 
