@@ -13,6 +13,8 @@ const UINT MENU_EDIT_CUT = 203;
 const UINT MENU_EDIT_COPY = 204;
 const UINT MENU_EDIT_PASTE = 205;
 const UINT MENU_EDIT_DELETE = 206;
+const UINT MENU_EDIT_SELECT_ALL = 207;
+const UINT MENU_EDIT_DESELECT = 208;
 
 void buildMenu();
 void onMenu(UINT index);

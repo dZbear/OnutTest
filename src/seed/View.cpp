@@ -4,6 +4,7 @@
 #include "Emitter.h"
 #include "Button.h"
 #include "onut.h"
+#include "tinyxml2.h"
 
 #define VIEW_DEFAULT_NODE_COUNT 64
 #define VIEW_DEFAULT_NODE_MAX_SIZE 640
@@ -14,6 +15,7 @@ namespace seed
         : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)
         , m_currentButton(nullptr)
         , m_rootNode(nullptr)
+        , m_size(640, 480)
     {
         memset(m_focusedButtons, 0, 4);
         memset(m_defaultFocusedButton, 0, 4);
@@ -253,10 +255,18 @@ namespace seed
         if (m_rootNode->VisitBackgroundChildrenBackward(callback)) return;
     }
 
-
-    void View::AddNode(Node* in_node, int in_zIndex)
+    void View::AddNode(Node* in_node, Node* in_parent, int in_zIndex)
     {
-        m_rootNode->Attach(in_node, in_zIndex);
+        Node* parentNode = in_parent ? in_parent : m_rootNode;
+        parentNode->Attach(in_node, in_zIndex);
+    }
+
+    Node* View::AddNewNode(Node* in_parent, int in_zIndex)
+    {
+        Node* newNode = m_nodePool.alloc<Node>();
+        Node* parentNode = in_parent ? in_parent : m_rootNode;
+        parentNode->Attach(newNode, in_zIndex);
+        return newNode;
     }
 
     Sprite* View::AddSprite(const string& in_textureName, Node* in_parent, int in_zIndex)
@@ -294,10 +304,10 @@ namespace seed
     SpriteString* View::AddSpriteString(const string& in_fontName, Node* in_parent, int in_zIndex)
     {
         OFont* font = OGetBMFont(in_fontName.c_str());
-        if (!font)
+        if (!font)  
         {
             OLogE("Invalid font name specified to View::AddSpriteString : " + in_fontName);
-            return nullptr;
+            //return nullptr; // We want to be able to put bad names without crashing all the things in the editor. Text should just not appear
         }
 
         SpriteString* newSpriteString = m_nodePool.alloc<SpriteString>();
@@ -407,6 +417,11 @@ namespace seed
 
         cmd.m_command = in_command;
         cmd.m_params = onut::splitString(in_params, ',');
+    }
+
+    void View::SetSize(const Vector2& in_size)
+    {
+        m_size = in_size;
     }
 
     Vector2 View::GetDirectionFromInputDevices(int in_playerIndex)
@@ -562,6 +577,44 @@ namespace seed
             }
         }
         return result;
+    }
+
+    void View::Save(const string& filename)
+    {
+        tinyxml2::XMLDocument doc;
+        tinyxml2::XMLElement* pXMLView = doc.NewElement("View");
+        pXMLView->SetAttribute("width", (int)m_size.x);
+        pXMLView->SetAttribute("height", (int)m_size.y);
+        doc.InsertFirstChild(pXMLView);
+
+        const NodeVect& rootBGChildren = GetRootNode()->GetBgChildren();
+        const NodeVect& rootFGChildren = GetRootNode()->GetFgChildren();
+
+        for (auto pChild : rootBGChildren)
+        {
+            pXMLView->InsertEndChild(pChild->Serialize(&doc));
+        }
+
+        for (auto pChild : rootFGChildren)
+        {
+            pXMLView->InsertEndChild(pChild->Serialize(&doc));
+        }
+
+        doc.SaveFile(filename.c_str());
+    }
+
+    void View::Load(const string& filename)
+    {
+        tinyxml2::XMLDocument doc;
+        doc.LoadFile(filename.c_str());
+
+        tinyxml2::XMLElement* pXMLView = doc.FirstChildElement("View");
+        assert(pXMLView);
+
+        pXMLView->QueryFloatAttribute("width", &m_size.x);
+        pXMLView->QueryFloatAttribute("height", &m_size.y);
+
+        GetRootNode()->Deserialize(this, pXMLView);
     }
 
     bool View::AlreadyInVector(Button* in_button, ButtonVect& in_vector)

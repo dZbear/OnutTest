@@ -11,7 +11,9 @@ namespace seed
         Sprite();
         virtual ~Sprite();
 
-        virtual Node*   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        virtual Node*           Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const override;
+        void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode) override;
 
         void            SetSpriteAnimSource( const string& in_sourceName );
         void            SetSpriteAnim(const string& in_animName);
@@ -22,22 +24,22 @@ namespace seed
         void            SetTexture(OTexture* in_texture);
         OTexture*       GetTexture() const;
         void            SetAlign(const Vector2& in_align);
-        const Vector2&  GetAlign();
+        const Vector2&  GetAlign() const;
         void            SetFlipped(bool in_flipH, bool in_flipV);
-        bool            GetFlippedH();
-        bool            GetFlippedV();
+        bool            GetFlippedH() const;
+        bool            GetFlippedV() const;
         
-        virtual float   GetWidth();
-        virtual float   GetHeight();
+        virtual float   GetWidth() const override;
+        virtual float   GetHeight() const override;
 
         void                            SetFilter(onut::SpriteBatch::eFiltering in_filter);
-        onut::SpriteBatch::eFiltering   GetFilter();
+        onut::SpriteBatch::eFiltering   GetFilter() const;
         void                            SetBlend(onut::SpriteBatch::eBlendMode in_blend);
-        onut::SpriteBatch::eBlendMode   GetBlend();
+        onut::SpriteBatch::eBlendMode   GetBlend() const;
 
 
         // only to be used by the seed sdk
-        virtual void    Render(Matrix* in_parentMatrix=nullptr);
+        virtual void    Render(Matrix* in_parentMatrix=nullptr) override;
 
 
 

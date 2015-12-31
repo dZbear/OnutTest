@@ -1,4 +1,6 @@
 #include "Sprite.h"
+#include "tinyxml2.h"
+#include "View.h"
 
 namespace seed
 {
@@ -23,6 +25,62 @@ namespace seed
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
         return newNode;
+    }
+
+    static std::unordered_map<onut::SpriteBatch::eFiltering, string> filteringMap = {
+        {onut::SpriteBatch::eFiltering::Linear, "Linear"},
+        {onut::SpriteBatch::eFiltering::Nearest, "Nearest"}
+    };
+
+    static std::unordered_map<onut::SpriteBatch::eBlendMode, string> blendMap = {
+        {onut::SpriteBatch::eBlendMode::Add, "Add"},
+        {onut::SpriteBatch::eBlendMode::Alpha, "Alpha"},
+        {onut::SpriteBatch::eBlendMode::ForceWrite, "ForceWrite"},
+        {onut::SpriteBatch::eBlendMode::Multiplied, "Multiplied"},
+        {onut::SpriteBatch::eBlendMode::Opaque, "Opaque"},
+        {onut::SpriteBatch::eBlendMode::PreMultiplied, "PreMultiplied"},
+    };
+
+    tinyxml2::XMLElement* Sprite::Serialize(tinyxml2::XMLDocument* in_xmlDoc) const
+    {
+        tinyxml2::XMLElement* xmlNode = Node::Serialize(in_xmlDoc);
+
+        xmlNode->SetName("Sprite");
+
+        xmlNode->SetAttribute("alignX", GetAlign().x);
+        xmlNode->SetAttribute("alignY", GetAlign().y);
+        if (GetTexture())
+        {
+            xmlNode->SetAttribute("texture", GetTexture()->getName().c_str());
+        }
+        xmlNode->SetAttribute("filter", filteringMap[GetFilter()].c_str());
+        xmlNode->SetAttribute("blend", blendMap[GetBlend()].c_str());
+        xmlNode->SetAttribute("flippedH", GetFlippedH());
+        xmlNode->SetAttribute("flippedV", GetFlippedV());
+
+        return xmlNode;
+    }
+
+    void Sprite::Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode)
+    {
+        Node::Deserialize(view, in_xmlNode);
+
+        Vector2 align = GetAlign();
+        in_xmlNode->QueryAttribute("alignX", &align.x);
+        in_xmlNode->QueryAttribute("alignY", &align.y);
+        SetAlign(align);
+
+        const char* filter = in_xmlNode->Attribute("filter");
+        for (auto &kv : filteringMap) if (kv.second == filter) SetFilter(kv.first);
+
+        const char* blend = in_xmlNode->Attribute("blend");
+        for (auto &kv : blendMap) if (kv.second == blend) SetBlend(kv.first);
+
+        bool flippedH = GetFlippedH();
+        in_xmlNode->QueryAttribute("flippedH", &flippedH);
+        bool flippedV = GetFlippedV();
+        in_xmlNode->QueryAttribute("flippedV", &flippedV);
+        SetFlipped(flippedH, flippedV);
     }
 
     void Sprite::Copy(Node* in_copy)
@@ -121,12 +179,12 @@ namespace seed
         m_align = in_align;
     }
 
-    const Vector2& Sprite::GetAlign()
+    const Vector2& Sprite::GetAlign() const
     {
         return m_align;
     }
 
-    float Sprite::GetWidth()
+    float Sprite::GetWidth() const
     {
         if (m_texture)
         {
@@ -134,7 +192,7 @@ namespace seed
         }
         return 0;
     }
-    float Sprite::GetHeight()
+    float Sprite::GetHeight() const
     {
         if (m_texture)
         {
@@ -168,7 +226,7 @@ namespace seed
         m_filter = in_filter;
     }
 
-    onut::SpriteBatch::eFiltering Sprite::GetFilter()
+    onut::SpriteBatch::eFiltering Sprite::GetFilter() const
     {
         return m_filter;
     }
@@ -178,7 +236,7 @@ namespace seed
         m_blend = in_blend;
     }
 
-    onut::SpriteBatch::eBlendMode Sprite::GetBlend()
+    onut::SpriteBatch::eBlendMode Sprite::GetBlend() const
     {
         return m_blend;
     }
@@ -189,12 +247,12 @@ namespace seed
         m_flippedV = in_flipV;
     }
 
-    bool Sprite::GetFlippedH()
+    bool Sprite::GetFlippedH() const
     {
         return m_flippedH;
     }
 
-    bool Sprite::GetFlippedV()
+    bool Sprite::GetFlippedV() const
     {
         return m_flippedV;
     }

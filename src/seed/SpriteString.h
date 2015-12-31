@@ -12,24 +12,28 @@ namespace seed
         SpriteString();
         virtual ~SpriteString();
 
-        virtual Node*   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        virtual Node*           Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const override;
+        void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode) override;
 
-        void    SetFont(OFont* in_font);
-        void    SetCaption(const string& in_caption);
+        void            SetFont(OFont* in_font);
+        OFont*          GetFont() const { return m_font; }
+        void            SetCaption(const string& in_caption);
+        const string&   GetCaption() const { return m_caption; }
 
         // only to be used by the seed sdk
         void    Render(Matrix* in_parentMatrix=nullptr);
 
-        virtual float    GetWidth();
-        virtual float   GetHeight();
+        virtual float   GetWidth() const override;
+        virtual float   GetHeight() const override;
 
     private:
 
-        virtual void            Copy(Node* in_copy);
+        virtual void        Copy(Node* in_copy);
 
         string      m_caption;
         OFont*      m_font;
 
-        const onut::Align     GetFontAlignFromSpriteAlign();
+        const onut::Align   GetFontAlignFromSpriteAlign();
     };
 }

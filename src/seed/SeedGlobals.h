@@ -39,3 +39,9 @@ namespace seed
     typedef vector<SCommand>                CommandVect;
 
 }
+
+namespace tinyxml2
+{
+    class XMLDocument;
+    class XMLElement;
+}
