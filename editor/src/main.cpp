@@ -9,6 +9,7 @@
 #include "menu.h"
 #include "NodeContainer.h"
 
+#include <unordered_set>
 #include <unordered_map>
 
 void createUIStyles(onut::UIContext* pContext);
@@ -82,6 +83,7 @@ Vector2 cameraPosOnDown;
 onut::sUIVector2 mousePosOnDown;
 Vector2 selectionCenter;
 HandleIndex handleIndexOnDown;
+bool isSpinning = false;
 
 // Controls
 onut::UIControl* pMainView = nullptr;
@@ -365,13 +367,22 @@ std::string fileOpen(const char* szFilters)
 
 void changeSpriteProperty(const std::string& actionName, const std::function<void(NodeContainer*)>& logic)
 {
+    if (isSpinning)
+    {
+        for (auto pContainer : selection)
+        {
+            logic(pContainer);
+        }
+        updateProperties();
+        return;
+    }
     auto pActionGroup = new onut::ActionGroup(actionName);
     for (auto pContainer : selection)
     {
         pContainer->retain();
-        SpriteState spriteStateBefore(pContainer);
+        NodeState spriteStateBefore(pContainer);
         logic(pContainer);
-        SpriteState spriteStateAfter(pContainer);
+        NodeState spriteStateAfter(pContainer);
         pActionGroup->addAction(new onut::Action("",
             [=]{spriteStateAfter.apply(); updateProperties(); },
             [=]{spriteStateBefore.apply(); updateProperties(); },
@@ -389,7 +400,7 @@ void checkAboutToAction(State aboutState, State targetState, const Vector2& mous
             state = targetState;
             for (auto pContainer : selection)
             {
-                pContainer->stateOnDown = SpriteState(pContainer);
+                pContainer->stateOnDown = NodeState(pContainer);
             }
         }
     }
@@ -404,7 +415,7 @@ void finalizeAction(const std::string& name, State actionState)
         {
             pContainer->retain();
             auto stateBefore = pContainer->stateOnDown;
-            auto stateAfter = SpriteState(pContainer);
+            auto stateAfter = NodeState(pContainer);
             pGroup->addAction(new onut::Action("",
                 [=]{
                 stateAfter.apply();
@@ -474,7 +485,7 @@ void checkNudge(uintptr_t key)
     {
         changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
         {
-            SpriteState spriteState(pContainer);
+            NodeState spriteState(pContainer);
             auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
             auto invTransform = spriteState.parentTransform.Invert();
             worldPos.x -= step;
@@ -485,7 +496,7 @@ void checkNudge(uintptr_t key)
     {
         changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
         {
-            SpriteState spriteState(pContainer);
+            NodeState spriteState(pContainer);
             auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
             auto invTransform = spriteState.parentTransform.Invert();
             worldPos.x += step;
@@ -496,7 +507,7 @@ void checkNudge(uintptr_t key)
     {
         changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
         {
-            SpriteState spriteState(pContainer);
+            NodeState spriteState(pContainer);
             auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
             auto invTransform = spriteState.parentTransform.Invert();
             worldPos.y -= step;
@@ -507,7 +518,7 @@ void checkNudge(uintptr_t key)
     {
         changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
         {
-            SpriteState spriteState(pContainer);
+            NodeState spriteState(pContainer);
             auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
             auto invTransform = spriteState.parentTransform.Invert();
             worldPos.y += step;
@@ -565,6 +576,131 @@ void transformToParent(seed::Node* pParent, seed::Node* pNode)
     }
 }
 
+void deepSaveState(NodeContainer* pContainer, std::unordered_set<NodeContainer*>& containerSet)
+{
+    containerSet.insert(pContainer);
+    auto& bgChildren = pContainer->pNode->GetBgChildren();
+    auto& fgChildren = pContainer->pNode->GetFgChildren();
+    for (auto pChild : bgChildren)
+    {
+        auto pContainerChild = nodesToContainers[pChild];
+        deepSaveState(pContainerChild, containerSet);
+    }
+    for (auto pChild : fgChildren)
+    {
+        auto pContainerChild = nodesToContainers[pChild];
+        deepSaveState(pContainerChild, containerSet);
+    }
+}
+
+void onDelete()
+{
+    if (state != State::Idle) return;
+
+    auto oldSelection = selection;
+    Selection toDeleteSelection;
+
+    // Create a copy of all deleted item + substree
+    std::unordered_set<NodeContainer*> stateSavedContainers;
+    for (auto pContainer : selection)
+    {
+        if (stateSavedContainers.find(pContainer) != stateSavedContainers.end()) continue; // Already in there as a child
+        deepSaveState(pContainer, stateSavedContainers);
+        toDeleteSelection.push_back(pContainer);
+    }
+
+    // Do the action
+    auto pGroup = new onut::ActionGroup("Delete");
+
+    pGroup->addAction(
+        new onut::Action("",
+        [=]{ // OnRedo
+        selection.clear();
+        updateProperties();
+    },
+        [=]{ // OnUndo
+        selection = oldSelection;
+        updateProperties();
+    }));
+
+    for (auto pContainer : toDeleteSelection)
+    {
+        auto pParentContainer = nodesToContainers[pContainer->pNode->GetParent()];
+        NodeContainer* pAfterSibbling = nullptr;
+        auto& bgChildren = pParentContainer->pNode->GetBgChildren();
+        auto& fgChildren = pParentContainer->pNode->GetFgChildren();
+        for (decltype(bgChildren.size()) i = 0; i < bgChildren.size(); ++i)
+        {
+            if (bgChildren[i] == pContainer->pNode)
+            {
+                if (i < bgChildren.size() - 1)
+                {
+                    pAfterSibbling = nodesToContainers[bgChildren[i + 1]];
+                    break;
+                }
+            }
+        }
+        if (!pAfterSibbling)
+        {
+            for (decltype(fgChildren.size()) i = 0; i < fgChildren.size(); ++i)
+            {
+                if (fgChildren[i] == pContainer->pNode)
+                {
+                    if (i < fgChildren.size() - 1)
+                    {
+                        pAfterSibbling = nodesToContainers[fgChildren[i + 1]];
+                        break;
+                    }
+                }
+            }
+        }
+
+        pContainer->retain();
+        pParentContainer->retain();
+        if (pAfterSibbling) pAfterSibbling->retain();
+
+        auto pStateBefore = new NodeState(pContainer, true);
+
+        pGroup->addAction(new onut::Action("",
+            [=]{ // OnRedo
+            pEditingView->DeleteNode(pContainer->pNode);
+            pParentContainer->pTreeViewItem->removeItem(pContainer->pTreeViewItem);
+            pStateBefore->visit([](NodeState* pNodeState)
+            {
+                pNodeState->pContainer->pNode = nullptr;
+                pNodeState->pContainer->pTreeViewItem = nullptr;
+            });
+            pContainer->pTreeViewItem = nullptr;
+            pContainer->pNode = nullptr;
+        },
+            [=]{ // OnUndo
+            pStateBefore->apply(pParentContainer);
+            pContainer->pTreeViewItem->setTreeView(pTreeView);
+            pParentContainer->pNode->Detach(pContainer->pNode);
+            if (pAfterSibbling)
+            {
+                pParentContainer->pNode->AttachBefore(pContainer->pNode, pAfterSibbling->pNode);
+                pParentContainer->pTreeViewItem->addItemBefore(pContainer->pTreeViewItem, pAfterSibbling->pTreeViewItem);
+            }
+            else
+            {
+                pParentContainer->pNode->Attach(pContainer->pNode);
+                pParentContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
+            }
+        },
+            [=]{ // Init
+        },
+            [=]{ // Destroy
+            delete pStateBefore;
+            pContainer->release();
+            pParentContainer->release();
+            if (pAfterSibbling) pAfterSibbling->release();
+        }));
+    }
+    actionManager.doAction(pGroup);
+
+}
+
 void init()
 {
     curARROW = LoadCursor(nullptr, IDC_ARROW);
@@ -608,11 +744,18 @@ void init()
     pPropertyY = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteY"));
     pPropertyScaleX = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteScaleX"));
     pPropertyScaleY = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteScaleY"));
+    pPropertyScaleX->step = 0.01f;
+    pPropertyScaleY->step = 0.01f;
     pPropertyAlignX = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlignX"));
     pPropertyAlignY = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlignY"));
+    pPropertyAlignX->step = 0.01f;
+    pPropertyAlignY->step = 0.01f;
     pPropertyAngle = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAngle"));
+    pPropertyAngle->step = 1.f;
     pPropertyColor = dynamic_cast<onut::UIPanel*>(OFindUI("colSpriteColor"));
     pPropertyAlpha = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlpha"));
+    pPropertyAlpha->min = 0.f;
+    pPropertyAlpha->max = 100.f;
 
     pTreeView->onMoveItemInto = [](onut::UITreeView* in_pTreeView, const onut::UITreeViewMoveEvent& event)
     {
@@ -658,9 +801,9 @@ void init()
                 pTargetContainer->retain();
                 if (pAfterSibbling) pAfterSibbling->retain();
 
-                SpriteState stateBefore(pContainer);
+                NodeState stateBefore(pContainer);
                 transformToParent(pTargetContainer->pNode, pContainer->pNode);
-                SpriteState stateAfter(pContainer);
+                NodeState stateAfter(pContainer);
 
                 pGroup->addAction(new onut::Action("",
                     [=]
@@ -747,9 +890,9 @@ void init()
                 pTargetParentContainer->retain();
                 if (pAfterSibbling) pAfterSibbling->retain();
 
-                SpriteState stateBefore(pContainer);
+                NodeState stateBefore(pContainer);
                 transformToParent(pTargetParent, pContainer->pNode);
-                SpriteState stateAfter(pContainer);
+                NodeState stateAfter(pContainer);
 
                 pGroup->addAction(new onut::Action("",
                     [=]
@@ -838,9 +981,9 @@ void init()
                 pTargetParentContainer->retain();
                 if (pAfterSibbling) pAfterSibbling->retain();
 
-                SpriteState stateBefore(pContainer);
+                NodeState stateBefore(pContainer);
                 transformToParent(pTargetParent, pContainer->pNode);
-                SpriteState stateAfter(pContainer);
+                NodeState stateAfter(pContainer);
 
                 pGroup->addAction(new onut::Action("",
                     [=]
@@ -881,10 +1024,55 @@ void init()
         }
     };
 
+    auto onStartSpinning = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        isSpinning = true;
+        for (auto pContainer : selection)
+        {
+            pContainer->stateOnDown = NodeState(pContainer);
+        }
+    };
+    auto onStopSpinning = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        isSpinning = false;
+        for (auto pContainer : selection)
+        {
+            pContainer->stateOnDown.apply();
+        }
+        pControl->onTextChanged(pControl, event);
+    };
+
+    pPropertyViewWidth->onNumberSpinStart = onStartSpinning;
+    pPropertyViewHeight->onNumberSpinStart = onStartSpinning;
+    pPropertyX->onNumberSpinStart = onStartSpinning;
+    pPropertyY->onNumberSpinStart = onStartSpinning;
+    pPropertyScaleX->onNumberSpinStart = onStartSpinning;
+    pPropertyScaleY->onNumberSpinStart = onStartSpinning;
+    pPropertyAlignX->onNumberSpinStart = onStartSpinning;
+    pPropertyAlignY->onNumberSpinStart = onStartSpinning;
+    pPropertyAngle->onNumberSpinStart = onStartSpinning;
+    pPropertyAlpha->onNumberSpinStart = onStartSpinning;
+
+    pPropertyViewWidth->onNumberSpinEnd = onStopSpinning;
+    pPropertyViewHeight->onNumberSpinEnd = onStopSpinning;
+    pPropertyX->onNumberSpinEnd = onStopSpinning;
+    pPropertyY->onNumberSpinEnd = onStopSpinning;
+    pPropertyScaleX->onNumberSpinEnd = onStopSpinning;
+    pPropertyScaleY->onNumberSpinEnd = onStopSpinning;
+    pPropertyAlignX->onNumberSpinEnd = onStopSpinning;
+    pPropertyAlignY->onNumberSpinEnd = onStopSpinning;
+    pPropertyAngle->onNumberSpinEnd = onStopSpinning;
+    pPropertyAlpha->onNumberSpinEnd = onStopSpinning;
+
     pPropertyViewWidth->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
         auto oldSize = viewSize;
         auto newSize = Vector2((float)pPropertyViewWidth->getInt(), viewSize.y);
+        if (isSpinning)
+        {
+            viewSize = newSize;
+            return;
+        }
         actionManager.doAction(new onut::Action("Change View Width",
             [=]
         {
@@ -899,6 +1087,11 @@ void init()
     {
         auto oldSize = viewSize;
         auto newSize = Vector2(viewSize.x, (float)pPropertyViewHeight->getInt());
+        if (isSpinning)
+        {
+            viewSize = newSize;
+            return;
+        }
         actionManager.doAction(new onut::Action("Change View Height",
             [=]
         {
