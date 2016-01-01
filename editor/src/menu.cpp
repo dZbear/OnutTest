@@ -59,6 +59,9 @@ std::string fileOpen()
 }
 
 void onDelete();
+void onCopy();
+void onPaste();
+void onCut();
 
 extern onut::ActionManager  g_actionManager;
 
@@ -100,13 +103,13 @@ void onMenu(UINT menuId)
             actionManager.redo();
             break;
         case MENU_EDIT_CUT:
-            //g_pDocument->cut();
+            onCut();
             break;
         case MENU_EDIT_COPY:
-            //g_pDocument->copy();
+            onCopy();
             break;
         case MENU_EDIT_PASTE:
-            //g_pDocument->paste();
+            onPaste();
             break;
         case MENU_EDIT_DELETE:
             onDelete();

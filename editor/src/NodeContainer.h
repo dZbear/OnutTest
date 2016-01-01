@@ -23,14 +23,16 @@ struct NodeState
     Matrix transform;
     Matrix parentTransform;
     NodeContainer* pContainer = nullptr;
+    NodeContainer* pParentContainer = nullptr;
     NodeType nodeType = NodeType::Node;
     std::vector<NodeState> bg;
     std::vector<NodeState> fg;
 
     NodeState() {}
+    ~NodeState();
     NodeState(const NodeState& copy);
     NodeState(NodeContainer* in_pContainer, bool saveDeep = false);
-    void apply(NodeContainer* pParent = nullptr) const;
+    void apply(NodeContainer* pParent = nullptr);
     void visit(const std::function<void(NodeState* pNodeState)>& callback);
 };
 
@@ -54,6 +56,9 @@ inline NodeState::NodeState(const NodeState& copy)
     transform = copy.transform;
     parentTransform = copy.parentTransform;
     pContainer = copy.pContainer;
+    if (pContainer) pContainer->retain();
+    pParentContainer = copy.pParentContainer;
+    if (pParentContainer) pParentContainer->retain();
     nodeType = copy.nodeType;
     bg = copy.bg;
     fg = copy.fg;
@@ -63,8 +68,9 @@ extern std::unordered_map<seed::Node*, NodeContainer*> nodesToContainers;
 
 inline NodeState::NodeState(NodeContainer* in_pContainer, bool saveDeep)
 {
+    assert(in_pContainer);
     pContainer = in_pContainer;
-    assert(pContainer);
+    pContainer->retain();
     nodeType = NodeType::Node;
     auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
     if (pSprite)
@@ -91,14 +97,20 @@ inline NodeState::NodeState(NodeContainer* in_pContainer, bool saveDeep)
         for (auto pChild : bgChildren)
         {
             auto pChildContainer = nodesToContainers[pChild];
-            bg.push_back(NodeState(pChildContainer, true));
+            bg.push_back(NodeState(pChildContainer, saveDeep));
         }
         for (auto pChild : fgChildren)
         {
             auto pChildContainer = nodesToContainers[pChild];
-            fg.push_back(NodeState(pChildContainer, true));
+            fg.push_back(NodeState(pChildContainer, saveDeep));
         }
     }
+}
+
+inline NodeState::~NodeState()
+{
+    if (pContainer) pContainer->release();
+    if (pParentContainer) pParentContainer->release();
 }
 
 inline void NodeState::visit(const std::function<void(NodeState* pNodeState)>& callback)
@@ -116,9 +128,15 @@ inline void NodeState::visit(const std::function<void(NodeState* pNodeState)>& c
 
 extern seed::View* pEditingView;
 
-inline void NodeState::apply(NodeContainer* pParent) const
+inline void NodeState::apply(NodeContainer* pParent)
 {
-    assert(pContainer);
+    if (!pContainer)
+    {
+        pContainer = new NodeContainer();
+        pContainer->retain();
+        pContainer->retain();
+    }
+    bool forceAddTreeView = false;
     if (!pContainer->pNode)
     {
         assert(pParent);
@@ -137,6 +155,7 @@ inline void NodeState::apply(NodeContainer* pParent) const
         nodesToContainers[pContainer->pNode] = pContainer;
         pContainer->pTreeViewItem = new onut::UITreeViewItem();
         pContainer->pTreeViewItem->pUserData = pContainer;
+        forceAddTreeView = true;
     }
     switch (nodeType)
     {
@@ -155,13 +174,13 @@ inline void NodeState::apply(NodeContainer* pParent) const
     pContainer->pNode->SetColor(color);
     for (auto& childState : bg)
     {
-        auto addTreeViewItem = childState.pContainer->pNode ? false : true;
+        auto addTreeViewItem = (childState.pContainer && childState.pContainer->pNode && !forceAddTreeView) ? false : true;
         childState.apply(pContainer);
         if (addTreeViewItem) pContainer->pTreeViewItem->addItem(childState.pContainer->pTreeViewItem);
     }
     for (auto& childState : fg)
     {
-        auto addTreeViewItem = childState.pContainer->pNode ? false : true;
+        auto addTreeViewItem = (childState.pContainer && childState.pContainer->pNode && !forceAddTreeView) ? false : true;
         childState.apply(pContainer);
         if (addTreeViewItem) pContainer->pTreeViewItem->addItem(childState.pContainer->pTreeViewItem);
     }

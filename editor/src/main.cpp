@@ -84,6 +84,8 @@ onut::sUIVector2 mousePosOnDown;
 Vector2 selectionCenter;
 HandleIndex handleIndexOnDown;
 bool isSpinning = false;
+using Clipboard = std::vector<NodeState>;
+Clipboard clipboard;
 
 // Controls
 onut::UIControl* pMainView = nullptr;
@@ -380,13 +382,28 @@ void changeSpriteProperty(const std::string& actionName, const std::function<voi
     for (auto pContainer : selection)
     {
         pContainer->retain();
-        NodeState spriteStateBefore(pContainer);
+        NodeState* spriteStateBefore = new NodeState(pContainer);
         logic(pContainer);
-        NodeState spriteStateAfter(pContainer);
+        NodeState* spriteStateAfter = new NodeState(pContainer);
         pActionGroup->addAction(new onut::Action("",
-            [=]{spriteStateAfter.apply(); updateProperties(); },
-            [=]{spriteStateBefore.apply(); updateProperties(); },
-            [=]{}, [=]{pContainer->release(); }));
+            [=]
+        {
+            spriteStateAfter->apply(); 
+            updateProperties(); 
+        },
+            [=]
+        {
+            spriteStateBefore->apply(); 
+            updateProperties(); 
+        },
+            [=]
+        {
+        }, [=]
+        {
+            delete spriteStateBefore;
+            delete spriteStateAfter;
+            pContainer->release();
+        }));
     }
     actionManager.doAction(pActionGroup);
 }
@@ -414,17 +431,19 @@ void finalizeAction(const std::string& name, State actionState)
         for (auto pContainer : selection)
         {
             pContainer->retain();
-            auto stateBefore = pContainer->stateOnDown;
-            auto stateAfter = NodeState(pContainer);
+            auto stateBefore = new NodeState(pContainer->stateOnDown);
+            auto stateAfter = new NodeState(pContainer);
             pGroup->addAction(new onut::Action("",
                 [=]{
-                stateAfter.apply();
+                stateAfter->apply();
                 updateProperties();
             }, [=] {
-                stateBefore.apply();
+                stateBefore->apply();
                 updateProperties();
             }, [=] {
             }, [=] {
+                delete stateBefore;
+                delete stateAfter;
                 pContainer->release();
             }));
         }
@@ -698,7 +717,100 @@ void onDelete()
         }));
     }
     actionManager.doAction(pGroup);
+}
 
+void onCopy()
+{
+    Selection toCopySelection;
+    std::unordered_set<NodeContainer*> stateSavedContainers;
+    for (auto pContainer : selection)
+    {
+        if (stateSavedContainers.find(pContainer) != stateSavedContainers.end()) continue; // Already in there as a child
+        deepSaveState(pContainer, stateSavedContainers);
+        toCopySelection.push_back(pContainer);
+    }
+
+    clipboard.clear();
+    for (auto pContainer : toCopySelection)
+    {
+        NodeState nodeState(pContainer, true);
+        NodeContainer* pParentContainer = nodesToContainers[pEditingView->GetRootNode()];
+        if (nodeState.pContainer->pNode)
+        {
+            auto pNodeParent = nodeState.pContainer->pNode->GetParent();
+            if (pNodeParent)
+            {
+                pParentContainer = nodesToContainers[pNodeParent];
+            }
+        }
+        nodeState.pParentContainer = pParentContainer;
+        nodeState.pParentContainer->retain();
+        nodeState.visit([](NodeState* pNodeState)
+        {
+            pNodeState->pContainer->release();
+            pNodeState->pContainer = nullptr;
+        });
+        clipboard.push_back(nodeState);
+    }
+}
+
+void onPaste()
+{
+    auto pGroup = new onut::ActionGroup("Paste");
+    
+    auto oldSelection = selection;
+    auto copy = new Clipboard(clipboard);
+
+    pGroup->addAction(new onut::Action("",
+        [=]
+    {
+        for (auto& state : *copy)
+        {
+            state.apply(state.pParentContainer);
+            state.pContainer->pTreeViewItem->setTreeView(pTreeView);
+            state.pParentContainer->pTreeViewItem->addItem(state.pContainer->pTreeViewItem);
+        }
+    }, [=]
+    {
+        for (auto& state : *copy)
+        {
+            auto pParentContainer = nodesToContainers[state.pContainer->pNode->GetParent()];
+            pEditingView->DeleteNode(state.pContainer->pNode);
+            pParentContainer->pTreeViewItem->removeItem(state.pContainer->pTreeViewItem);
+            state.visit([](NodeState *pNodeState)
+            {
+                pNodeState->pContainer->pTreeViewItem = nullptr;
+                pNodeState->pContainer->pNode = nullptr;
+            });
+        }
+    }, [=]
+    {
+    }, [=]
+    {
+        delete copy;
+    }));
+    pGroup->addAction(new onut::Action("",
+        [=]
+    {
+        selection.clear();
+        for (auto& state : *copy)
+        {
+            selection.push_back(state.pContainer);
+        }
+        updateProperties();
+    }, [=]
+    {
+        selection = oldSelection;
+        updateProperties();
+    }));
+
+    actionManager.doAction(pGroup);
+}
+
+void onCut()
+{
+    onCopy();
+    onDelete();
 }
 
 void init()
@@ -801,16 +913,16 @@ void init()
                 pTargetContainer->retain();
                 if (pAfterSibbling) pAfterSibbling->retain();
 
-                NodeState stateBefore(pContainer);
+                NodeState* stateBefore = new NodeState(pContainer);
                 transformToParent(pTargetContainer->pNode, pContainer->pNode);
-                NodeState stateAfter(pContainer);
+                NodeState* stateAfter = new NodeState(pContainer);
 
                 pGroup->addAction(new onut::Action("",
                     [=]
                 {
                     pContainer->pNode->GetParent()->Detach(pContainer->pNode);
                     pTargetContainer->pNode->Attach(pContainer->pNode);
-                    stateAfter.apply();
+                    stateAfter->apply();
                     updateProperties();
                     pTargetContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
                 }, [=]
@@ -826,12 +938,14 @@ void init()
                         pParentContainer->pNode->Attach(pContainer->pNode);
                         pParentContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
                     }
-                    stateBefore.apply();
+                    stateBefore->apply();
                     updateProperties();
                 }, [=]
                 {
                 }, [=]
                 {
+                    delete stateAfter;
+                    delete stateBefore;
                     pContainer->release();
                     pTargetContainer->release();
                     pParentContainer->release();
@@ -890,16 +1004,16 @@ void init()
                 pTargetParentContainer->retain();
                 if (pAfterSibbling) pAfterSibbling->retain();
 
-                NodeState stateBefore(pContainer);
+                auto stateBefore = new NodeState(pContainer);
                 transformToParent(pTargetParent, pContainer->pNode);
-                NodeState stateAfter(pContainer);
+                auto stateAfter = new NodeState(pContainer);
 
                 pGroup->addAction(new onut::Action("",
                     [=]
                 {
                     pContainer->pNode->GetParent()->Detach(pContainer->pNode);
                     pTargetParentContainer->pNode->AttachBefore(pContainer->pNode, pTargetContainer->pNode);
-                    stateAfter.apply();
+                    stateAfter->apply();
                     updateProperties();
                     pTargetParentContainer->pTreeViewItem->addItemBefore(pContainer->pTreeViewItem, pTargetContainer->pTreeViewItem);
                 }, [=]
@@ -915,12 +1029,14 @@ void init()
                         pParentContainer->pNode->Attach(pContainer->pNode);
                         pParentContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
                     }
-                    stateBefore.apply();
+                    stateBefore->apply();
                     updateProperties();
                 }, [=]
                 {
                 }, [=]
                 {
+                    delete stateBefore;
+                    delete stateAfter;
                     pContainer->release();
                     pTargetContainer->release();
                     pParentContainer->release();
@@ -981,16 +1097,16 @@ void init()
                 pTargetParentContainer->retain();
                 if (pAfterSibbling) pAfterSibbling->retain();
 
-                NodeState stateBefore(pContainer);
+                auto stateBefore = new NodeState(pContainer);
                 transformToParent(pTargetParent, pContainer->pNode);
-                NodeState stateAfter(pContainer);
+                auto stateAfter = new NodeState(pContainer);
 
                 pGroup->addAction(new onut::Action("",
                     [=]
                 {
                     pContainer->pNode->GetParent()->Detach(pContainer->pNode);
                     pTargetParentContainer->pNode->AttachAfter(pContainer->pNode, pTargetContainer->pNode);
-                    stateAfter.apply();
+                    stateAfter->apply();
                     updateProperties();
                     pTargetParentContainer->pTreeViewItem->addItemAfter(pContainer->pTreeViewItem, pTargetContainer->pTreeViewItem);
                 }, [=]
@@ -1006,12 +1122,14 @@ void init()
                         pParentContainer->pNode->Attach(pContainer->pNode);
                         pParentContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
                     }
-                    stateBefore.apply();
+                    stateBefore->apply();
                     updateProperties();
                 }, [=]
                 {
                 }, [=]
                 {
+                    delete stateBefore;
+                    delete stateAfter;
                     pContainer->release();
                     pTargetContainer->release();
                     pParentContainer->release();
