@@ -58,6 +58,8 @@ std::string fileOpen()
     return ofn.lpstrFile;
 }
 
+void onDelete();
+
 extern onut::ActionManager  g_actionManager;
 
 void onMenu(UINT menuId)
@@ -107,7 +109,7 @@ void onMenu(UINT menuId)
             //g_pDocument->paste();
             break;
         case MENU_EDIT_DELETE:
-            //g_pDocument->del();
+            onDelete();
             break;
     }
 }

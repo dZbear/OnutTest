@@ -146,7 +146,6 @@ void createUIStyles(onut::UIContext* pContext)
         }
 
         const auto& text = pItem->text;
-        bool hasText = !text.empty();
         auto textPos = orect.Left(expandClickWidth + 24);
         auto textColor = g_fontColor;
 
@@ -154,6 +153,7 @@ void createUIStyles(onut::UIContext* pContext)
         auto pContainer = reinterpret_cast<NodeContainer*>(pItem->pUserData);
         if (pContainer)
         {
+            auto pNode = pContainer->pNode;
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
             if (pSprite)
             {
@@ -163,12 +163,19 @@ void createUIStyles(onut::UIContext* pContext)
                     float scale = std::max<>(pTexture->getSizef().x, pTexture->getSizef().y);
                     scale = 20.f / scale;
                     OSB->drawSprite(pTexture, orect.Left(expandClickWidth + 12), Color(pItem->opacity), 0, scale);
+                    g_pFont->draw<OLeft>(pTexture->getName(), textPos, g_fontColor * pItem->opacity);
+                }
+                else
+                {
+                    g_pFont->draw<OLeft>("Sprite", textPos, g_fontColor * pItem->opacity);
                 }
             }
+            else if (pNode)
+            {
+                g_pFont->draw<OLeft>("Node", textPos, g_fontColor * pItem->opacity);
+            }
         }
-
-        // Label
-        if (hasText)
+        else
         {
             g_pFont->draw<OLeft>(pItem->text, textPos, g_fontColor * pItem->opacity);
         }

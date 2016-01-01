@@ -9,6 +9,7 @@
 #include "menu.h"
 #include "NodeContainer.h"
 
+#include <unordered_set>
 #include <unordered_map>
 
 void createUIStyles(onut::UIContext* pContext);
@@ -379,9 +380,9 @@ void changeSpriteProperty(const std::string& actionName, const std::function<voi
     for (auto pContainer : selection)
     {
         pContainer->retain();
-        SpriteState spriteStateBefore(pContainer);
+        NodeState spriteStateBefore(pContainer);
         logic(pContainer);
-        SpriteState spriteStateAfter(pContainer);
+        NodeState spriteStateAfter(pContainer);
         pActionGroup->addAction(new onut::Action("",
             [=]{spriteStateAfter.apply(); updateProperties(); },
             [=]{spriteStateBefore.apply(); updateProperties(); },
@@ -399,7 +400,7 @@ void checkAboutToAction(State aboutState, State targetState, const Vector2& mous
             state = targetState;
             for (auto pContainer : selection)
             {
-                pContainer->stateOnDown = SpriteState(pContainer);
+                pContainer->stateOnDown = NodeState(pContainer);
             }
         }
     }
@@ -414,7 +415,7 @@ void finalizeAction(const std::string& name, State actionState)
         {
             pContainer->retain();
             auto stateBefore = pContainer->stateOnDown;
-            auto stateAfter = SpriteState(pContainer);
+            auto stateAfter = NodeState(pContainer);
             pGroup->addAction(new onut::Action("",
                 [=]{
                 stateAfter.apply();
@@ -484,7 +485,7 @@ void checkNudge(uintptr_t key)
     {
         changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
         {
-            SpriteState spriteState(pContainer);
+            NodeState spriteState(pContainer);
             auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
             auto invTransform = spriteState.parentTransform.Invert();
             worldPos.x -= step;
@@ -495,7 +496,7 @@ void checkNudge(uintptr_t key)
     {
         changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
         {
-            SpriteState spriteState(pContainer);
+            NodeState spriteState(pContainer);
             auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
             auto invTransform = spriteState.parentTransform.Invert();
             worldPos.x += step;
@@ -506,7 +507,7 @@ void checkNudge(uintptr_t key)
     {
         changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
         {
-            SpriteState spriteState(pContainer);
+            NodeState spriteState(pContainer);
             auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
             auto invTransform = spriteState.parentTransform.Invert();
             worldPos.y -= step;
@@ -517,7 +518,7 @@ void checkNudge(uintptr_t key)
     {
         changeSpriteProperty("Nudge", [=](NodeContainer* pContainer)
         {
-            SpriteState spriteState(pContainer);
+            NodeState spriteState(pContainer);
             auto worldPos = Vector2::Transform(spriteState.position, spriteState.parentTransform);
             auto invTransform = spriteState.parentTransform.Invert();
             worldPos.y += step;
@@ -573,6 +574,131 @@ void transformToParent(seed::Node* pParent, seed::Node* pNode)
     {
         pNode->SetScale(worldScale / parentWorldScale);
     }
+}
+
+void deepSaveState(NodeContainer* pContainer, std::unordered_set<NodeContainer*>& containerSet)
+{
+    containerSet.insert(pContainer);
+    auto& bgChildren = pContainer->pNode->GetBgChildren();
+    auto& fgChildren = pContainer->pNode->GetFgChildren();
+    for (auto pChild : bgChildren)
+    {
+        auto pContainerChild = nodesToContainers[pChild];
+        deepSaveState(pContainerChild, containerSet);
+    }
+    for (auto pChild : fgChildren)
+    {
+        auto pContainerChild = nodesToContainers[pChild];
+        deepSaveState(pContainerChild, containerSet);
+    }
+}
+
+void onDelete()
+{
+    if (state != State::Idle) return;
+
+    auto oldSelection = selection;
+    Selection toDeleteSelection;
+
+    // Create a copy of all deleted item + substree
+    std::unordered_set<NodeContainer*> stateSavedContainers;
+    for (auto pContainer : selection)
+    {
+        if (stateSavedContainers.find(pContainer) != stateSavedContainers.end()) continue; // Already in there as a child
+        deepSaveState(pContainer, stateSavedContainers);
+        toDeleteSelection.push_back(pContainer);
+    }
+
+    // Do the action
+    auto pGroup = new onut::ActionGroup("Delete");
+
+    pGroup->addAction(
+        new onut::Action("",
+        [=]{ // OnRedo
+        selection.clear();
+        updateProperties();
+    },
+        [=]{ // OnUndo
+        selection = oldSelection;
+        updateProperties();
+    }));
+
+    for (auto pContainer : toDeleteSelection)
+    {
+        auto pParentContainer = nodesToContainers[pContainer->pNode->GetParent()];
+        NodeContainer* pAfterSibbling = nullptr;
+        auto& bgChildren = pParentContainer->pNode->GetBgChildren();
+        auto& fgChildren = pParentContainer->pNode->GetFgChildren();
+        for (decltype(bgChildren.size()) i = 0; i < bgChildren.size(); ++i)
+        {
+            if (bgChildren[i] == pContainer->pNode)
+            {
+                if (i < bgChildren.size() - 1)
+                {
+                    pAfterSibbling = nodesToContainers[bgChildren[i + 1]];
+                    break;
+                }
+            }
+        }
+        if (!pAfterSibbling)
+        {
+            for (decltype(fgChildren.size()) i = 0; i < fgChildren.size(); ++i)
+            {
+                if (fgChildren[i] == pContainer->pNode)
+                {
+                    if (i < fgChildren.size() - 1)
+                    {
+                        pAfterSibbling = nodesToContainers[fgChildren[i + 1]];
+                        break;
+                    }
+                }
+            }
+        }
+
+        pContainer->retain();
+        pParentContainer->retain();
+        if (pAfterSibbling) pAfterSibbling->retain();
+
+        auto pStateBefore = new NodeState(pContainer, true);
+
+        pGroup->addAction(new onut::Action("",
+            [=]{ // OnRedo
+            pEditingView->DeleteNode(pContainer->pNode);
+            pParentContainer->pTreeViewItem->removeItem(pContainer->pTreeViewItem);
+            pStateBefore->visit([](NodeState* pNodeState)
+            {
+                pNodeState->pContainer->pNode = nullptr;
+                pNodeState->pContainer->pTreeViewItem = nullptr;
+            });
+            pContainer->pTreeViewItem = nullptr;
+            pContainer->pNode = nullptr;
+        },
+            [=]{ // OnUndo
+            pStateBefore->apply(pParentContainer);
+            pContainer->pTreeViewItem->setTreeView(pTreeView);
+            pParentContainer->pNode->Detach(pContainer->pNode);
+            if (pAfterSibbling)
+            {
+                pParentContainer->pNode->AttachBefore(pContainer->pNode, pAfterSibbling->pNode);
+                pParentContainer->pTreeViewItem->addItemBefore(pContainer->pTreeViewItem, pAfterSibbling->pTreeViewItem);
+            }
+            else
+            {
+                pParentContainer->pNode->Attach(pContainer->pNode);
+                pParentContainer->pTreeViewItem->addItem(pContainer->pTreeViewItem);
+            }
+        },
+            [=]{ // Init
+        },
+            [=]{ // Destroy
+            delete pStateBefore;
+            pContainer->release();
+            pParentContainer->release();
+            if (pAfterSibbling) pAfterSibbling->release();
+        }));
+    }
+    actionManager.doAction(pGroup);
+
 }
 
 void init()
@@ -675,9 +801,9 @@ void init()
                 pTargetContainer->retain();
                 if (pAfterSibbling) pAfterSibbling->retain();
 
-                SpriteState stateBefore(pContainer);
+                NodeState stateBefore(pContainer);
                 transformToParent(pTargetContainer->pNode, pContainer->pNode);
-                SpriteState stateAfter(pContainer);
+                NodeState stateAfter(pContainer);
 
                 pGroup->addAction(new onut::Action("",
                     [=]
@@ -764,9 +890,9 @@ void init()
                 pTargetParentContainer->retain();
                 if (pAfterSibbling) pAfterSibbling->retain();
 
-                SpriteState stateBefore(pContainer);
+                NodeState stateBefore(pContainer);
                 transformToParent(pTargetParent, pContainer->pNode);
-                SpriteState stateAfter(pContainer);
+                NodeState stateAfter(pContainer);
 
                 pGroup->addAction(new onut::Action("",
                     [=]
@@ -855,9 +981,9 @@ void init()
                 pTargetParentContainer->retain();
                 if (pAfterSibbling) pAfterSibbling->retain();
 
-                SpriteState stateBefore(pContainer);
+                NodeState stateBefore(pContainer);
                 transformToParent(pTargetParent, pContainer->pNode);
-                SpriteState stateAfter(pContainer);
+                NodeState stateAfter(pContainer);
 
                 pGroup->addAction(new onut::Action("",
                     [=]
@@ -903,7 +1029,7 @@ void init()
         isSpinning = true;
         for (auto pContainer : selection)
         {
-            pContainer->stateOnDown = SpriteState(pContainer);
+            pContainer->stateOnDown = NodeState(pContainer);
         }
     };
     auto onStopSpinning = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
