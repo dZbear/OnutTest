@@ -82,6 +82,7 @@ Vector2 cameraPosOnDown;
 onut::sUIVector2 mousePosOnDown;
 Vector2 selectionCenter;
 HandleIndex handleIndexOnDown;
+bool isSpinning = false;
 
 // Controls
 onut::UIControl* pMainView = nullptr;
@@ -365,6 +366,15 @@ std::string fileOpen(const char* szFilters)
 
 void changeSpriteProperty(const std::string& actionName, const std::function<void(NodeContainer*)>& logic)
 {
+    if (isSpinning)
+    {
+        for (auto pContainer : selection)
+        {
+            logic(pContainer);
+        }
+        updateProperties();
+        return;
+    }
     auto pActionGroup = new onut::ActionGroup(actionName);
     for (auto pContainer : selection)
     {
@@ -608,11 +618,18 @@ void init()
     pPropertyY = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteY"));
     pPropertyScaleX = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteScaleX"));
     pPropertyScaleY = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteScaleY"));
+    pPropertyScaleX->step = 0.01f;
+    pPropertyScaleY->step = 0.01f;
     pPropertyAlignX = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlignX"));
     pPropertyAlignY = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlignY"));
+    pPropertyAlignX->step = 0.01f;
+    pPropertyAlignY->step = 0.01f;
     pPropertyAngle = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAngle"));
+    pPropertyAngle->step = 1.f;
     pPropertyColor = dynamic_cast<onut::UIPanel*>(OFindUI("colSpriteColor"));
     pPropertyAlpha = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlpha"));
+    pPropertyAlpha->min = 0.f;
+    pPropertyAlpha->max = 100.f;
 
     pTreeView->onMoveItemInto = [](onut::UITreeView* in_pTreeView, const onut::UITreeViewMoveEvent& event)
     {
@@ -881,10 +898,55 @@ void init()
         }
     };
 
+    auto onStartSpinning = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        isSpinning = true;
+        for (auto pContainer : selection)
+        {
+            pContainer->stateOnDown = SpriteState(pContainer);
+        }
+    };
+    auto onStopSpinning = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        isSpinning = false;
+        for (auto pContainer : selection)
+        {
+            pContainer->stateOnDown.apply();
+        }
+        pControl->onTextChanged(pControl, event);
+    };
+
+    pPropertyViewWidth->onNumberSpinStart = onStartSpinning;
+    pPropertyViewHeight->onNumberSpinStart = onStartSpinning;
+    pPropertyX->onNumberSpinStart = onStartSpinning;
+    pPropertyY->onNumberSpinStart = onStartSpinning;
+    pPropertyScaleX->onNumberSpinStart = onStartSpinning;
+    pPropertyScaleY->onNumberSpinStart = onStartSpinning;
+    pPropertyAlignX->onNumberSpinStart = onStartSpinning;
+    pPropertyAlignY->onNumberSpinStart = onStartSpinning;
+    pPropertyAngle->onNumberSpinStart = onStartSpinning;
+    pPropertyAlpha->onNumberSpinStart = onStartSpinning;
+
+    pPropertyViewWidth->onNumberSpinEnd = onStopSpinning;
+    pPropertyViewHeight->onNumberSpinEnd = onStopSpinning;
+    pPropertyX->onNumberSpinEnd = onStopSpinning;
+    pPropertyY->onNumberSpinEnd = onStopSpinning;
+    pPropertyScaleX->onNumberSpinEnd = onStopSpinning;
+    pPropertyScaleY->onNumberSpinEnd = onStopSpinning;
+    pPropertyAlignX->onNumberSpinEnd = onStopSpinning;
+    pPropertyAlignY->onNumberSpinEnd = onStopSpinning;
+    pPropertyAngle->onNumberSpinEnd = onStopSpinning;
+    pPropertyAlpha->onNumberSpinEnd = onStopSpinning;
+
     pPropertyViewWidth->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
         auto oldSize = viewSize;
         auto newSize = Vector2((float)pPropertyViewWidth->getInt(), viewSize.y);
+        if (isSpinning)
+        {
+            viewSize = newSize;
+            return;
+        }
         actionManager.doAction(new onut::Action("Change View Width",
             [=]
         {
@@ -899,6 +961,11 @@ void init()
     {
         auto oldSize = viewSize;
         auto newSize = Vector2(viewSize.x, (float)pPropertyViewHeight->getInt());
+        if (isSpinning)
+        {
+            viewSize = newSize;
+            return;
+        }
         actionManager.doAction(new onut::Action("Change View Height",
             [=]
         {
