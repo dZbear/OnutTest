@@ -253,10 +253,18 @@ namespace seed
         if (m_rootNode->VisitBackgroundChildrenBackward(callback)) return;
     }
 
-
-    void View::AddNode(Node* in_node, int in_zIndex)
+    void View::AddNode(Node* in_node, Node* in_parent, int in_zIndex)
     {
-        m_rootNode->Attach(in_node, in_zIndex);
+        Node* parentNode = in_parent ? in_parent : m_rootNode;
+        parentNode->Attach(in_node, in_zIndex);
+    }
+
+    Node* View::AddNewNode(Node* in_parent, int in_zIndex)
+    {
+        Node* newNode = m_nodePool.alloc<Node>();
+        Node* parentNode = in_parent ? in_parent : m_rootNode;
+        parentNode->Attach(newNode, in_zIndex);
+        return newNode;
     }
 
     Sprite* View::AddSprite(const string& in_textureName, Node* in_parent, int in_zIndex)
