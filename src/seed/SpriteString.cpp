@@ -1,4 +1,5 @@
 #include "SpriteString.h"
+#include "tinyxml2.h"
 
 namespace seed
 {
@@ -32,8 +33,7 @@ namespace seed
     void SpriteString::Render(Matrix* in_parentMatrix)
     {
         // generate our matrix
-        Matrix transform = Matrix::Identity;
-        transform *= Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
+        Matrix transform = Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
         transform *= Matrix::CreateRotationZ(DirectX::XMConvertToRadians(m_angle));
         transform *= Matrix::CreateTranslation(m_position.get().x, m_position.get().y, 0);
 
@@ -49,14 +49,15 @@ namespace seed
         if (m_font && m_caption.length() > 0)
         {
             OSpriteBatch->end();
-            OSpriteBatch->begin(transform);
-
+            Matrix spriteBatchTransform = OSpriteBatch->getTransform();
+            OSpriteBatch->begin(transform * spriteBatchTransform);
+            
             OSpriteBatch->changeBlendMode(m_blend);
             OSpriteBatch->changeFiltering(m_filter);
 
-            m_font->draw(m_caption, { 0, 0 }, m_color, OSpriteBatch, GetFontAlignFromSpriteAlign());
+            m_font->draw(m_caption, Vector2::Zero, m_color, OSpriteBatch, GetAlign());
             OSpriteBatch->end();
-            OSpriteBatch->begin();
+            OSpriteBatch->begin(spriteBatchTransform);
         }
 
         // render fg children
@@ -73,7 +74,36 @@ namespace seed
         m_caption = in_caption;
     }
 
-    float SpriteString::GetWidth()
+    tinyxml2::XMLElement* SpriteString::Serialize(tinyxml2::XMLDocument* in_xmlDoc) const
+    {
+        tinyxml2::XMLElement* xmlNode = Sprite::Serialize(in_xmlDoc);
+
+        xmlNode->SetName("SpriteString");
+
+        if (GetFont())
+        {
+            xmlNode->SetAttribute("font", GetFont()->getName().c_str());
+        }
+        xmlNode->SetAttribute("caption", GetCaption().c_str());
+
+        return xmlNode;
+    }
+
+    void SpriteString::Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode)
+    {
+        Sprite::Deserialize(view, in_xmlNode);
+
+        const char* szFont = in_xmlNode->Attribute("font");
+        const char* szCaption = in_xmlNode->Attribute("caption");
+
+        if (szFont) SetFont(OGetBMFont(szFont));
+        else SetFont(nullptr);
+
+        if (szCaption) SetCaption(szCaption);
+        else SetCaption("");
+    }
+
+    float SpriteString::GetWidth() const
     {
         if (m_font)
         {
@@ -82,7 +112,7 @@ namespace seed
         return 0;
     }
 
-    float SpriteString::GetHeight()
+    float SpriteString::GetHeight() const
     {
         if (m_font)
         {

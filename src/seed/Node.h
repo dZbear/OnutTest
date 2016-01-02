@@ -12,9 +12,11 @@ namespace seed
         Node();
         virtual ~Node();
 
-        virtual void    Update();
-        virtual void    Render(Matrix* in_parentMatrix = nullptr);
-        virtual Node*   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        virtual void                    Update();
+        virtual void                    Render(Matrix* in_parentMatrix = nullptr);
+        virtual Node*                   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        virtual tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const;
+        virtual void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode);
 
         void            Attach(Node* in_newChild, int in_zIndex = INT_MAX);
         void            AttachBefore(Node* in_newChild, Node* in_beforeChild);
@@ -24,28 +26,31 @@ namespace seed
         void            SetParent(Node* in_parent);
         NodeVect&       GetFgChildren();
         NodeVect&       GetBgChildren();
+        const NodeVect& GetFgChildren() const;
+        const NodeVect& GetBgChildren() const;
         void            SetZindex(int in_zIndex);
-        int             GetZindex();
+        int             GetZindex() const;
         void            SetPosition(const Vector2& in_position);
         void            SetPosition(float in_x, float in_y);
-        Vector2         GetPosition();
+        const Vector2&  GetPosition() const;
         OAnim<Vector2>& GetPositionAnim();
-        Vector2         GetAbsolutePosition();
+        Vector2         GetAbsolutePosition() const;
         void            SetScale(const Vector2& in_scale);
-        Vector2         GetScale();
+        const Vector2&  GetScale() const;
         OAnim<Vector2>& GetScaleAnim();
         void            SetAngle(float in_angle);
-        float           GetAngle();
+        float           GetAngle() const;
         OAnim<float>&   GetAngleAnim();
         void            SetColor(const Color& in_color);
-        Color           GetColor();
+        const Color&    GetColor() const;
         OAnim<Color>&   GetColorAnim();
         Matrix          GetTransform() const;
         void            SetVisible(bool in_visible);
-        bool            GetVisible();
+        bool            GetVisible() const;
+        bool            GetReallyVisible() const;
 
-        virtual float   GetWidth() { return 0; }
-        virtual float   GetHeight() { return 0; }
+        virtual float   GetWidth() const { return 0; }
+        virtual float   GetHeight() const { return 0; }
 
         // Visit all children in order.
         // Return true from the callback to interrupt searching.

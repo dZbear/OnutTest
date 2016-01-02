@@ -1,4 +1,8 @@
 #include "Node.h"
+#include "Sprite.h"
+#include "SpriteString.h"
+#include "tinyxml2.h"
+#include "View.h"
 
 namespace seed
 {
@@ -32,6 +36,105 @@ namespace seed
         in_copy->SetColor(GetColor());
         in_copy->SetVisible(GetVisible());
         in_copy->SetZindex(GetZindex());
+    }
+
+    tinyxml2::XMLElement* Node::Serialize(tinyxml2::XMLDocument* in_xmlDoc) const
+    {
+        tinyxml2::XMLElement* xmlNode = in_xmlDoc->NewElement("Node");
+
+        xmlNode->SetAttribute("zIndex", GetZindex());
+        xmlNode->SetAttribute("x", GetPosition().x);
+        xmlNode->SetAttribute("y", GetPosition().y);
+        xmlNode->SetAttribute("scaleX", GetScale().x);
+        xmlNode->SetAttribute("scaleY", GetScale().y);
+        xmlNode->SetAttribute("angle", GetAngle());
+        xmlNode->SetAttribute("r", GetColor().x);
+        xmlNode->SetAttribute("g", GetColor().y);
+        xmlNode->SetAttribute("b", GetColor().z);
+        xmlNode->SetAttribute("a", GetColor().w);
+        xmlNode->SetAttribute("visible", GetVisible());
+
+        for (auto pChild : m_bgChildren)
+        {
+            xmlNode->InsertEndChild(pChild->Serialize(in_xmlDoc));
+        }
+        for (auto pChild : m_fgChildren)
+        {
+            xmlNode->InsertEndChild(pChild->Serialize(in_xmlDoc));
+        }
+
+        return xmlNode;
+    }
+
+    void Node::Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode)
+    {
+        Vector2 position = GetPosition();
+        in_xmlNode->QueryAttribute("x", &position.x);
+        in_xmlNode->QueryAttribute("y", &position.y);
+        SetPosition(position);
+
+        Vector2 scale = GetScale();
+        in_xmlNode->QueryAttribute("scaleX", &scale.x);
+        in_xmlNode->QueryAttribute("scaleY", &scale.y);
+        SetScale(scale);
+
+        float angle = GetAngle();
+        in_xmlNode->QueryAttribute("angle", &angle);
+        SetAngle(angle);
+
+        Color color = GetColor();
+        in_xmlNode->QueryAttribute("r", &color.x);
+        in_xmlNode->QueryAttribute("g", &color.y);
+        in_xmlNode->QueryAttribute("b", &color.z);
+        in_xmlNode->QueryAttribute("a", &color.w);
+        SetColor(color);
+
+        bool visible = GetVisible();
+        in_xmlNode->QueryAttribute("visible", &visible);
+        SetVisible(visible);
+
+        for (tinyxml2::XMLElement* xmlChild = in_xmlNode->FirstChildElement(); xmlChild; xmlChild = xmlChild->NextSiblingElement())
+        {
+            Node* pChild = nullptr;
+            int childZIndex = GetZindex();
+
+            string childType = xmlChild->Name();
+            xmlChild->QueryAttribute("zIndex", &childZIndex);
+
+            if (childType == "Node")
+            {
+                pChild = view->AddNewNode(this, childZIndex);
+            }
+            else if (childType == "Sprite")
+            {
+                const char* szTextureName = xmlChild->Attribute("texture");
+                string textureName;
+                if (szTextureName)
+                {
+                    textureName = szTextureName;
+                }
+                pChild = view->AddSprite(textureName, this, childZIndex);
+            }
+            else if (childType == "SpriteString")
+            {
+                const char* szFontName = xmlChild->Attribute("font");
+                string fontName;
+                if (szFontName)
+                {
+                    fontName = szFontName;
+                }
+                pChild = view->AddSpriteString(fontName, this, childZIndex);
+            }
+
+            if (pChild)
+            {
+                pChild->Deserialize(view, xmlChild);
+            }
+            else
+            {
+                OLogE("Unrecognized Node Type: " + childType);
+            }
+        }
     }
 
     void Node::Update()
@@ -70,7 +173,7 @@ namespace seed
         m_zIndex = in_zIndex;
     }
 
-    int Node::GetZindex()
+    int Node::GetZindex() const
     {
         return m_zIndex;
     }
@@ -238,7 +341,7 @@ namespace seed
         SetPosition(Vector2(in_x, in_y));
     }
 
-    Vector2 Node::GetPosition()
+    const Vector2& Node::GetPosition() const
     {
         return m_position.get();
     }
@@ -248,7 +351,7 @@ namespace seed
         return m_position;
     }
 
-    Vector2 Node::GetAbsolutePosition()
+    Vector2 Node::GetAbsolutePosition() const
     {
         Vector2 pos = GetPosition();
         Node* parent = GetParent();
@@ -265,7 +368,7 @@ namespace seed
         m_scale = in_scale;
     }
 
-    Vector2 Node::GetScale()
+    const Vector2& Node::GetScale() const
     {
         return m_scale.get();
     }
@@ -280,7 +383,7 @@ namespace seed
         m_angle = in_angle;
     }
 
-    float Node::GetAngle()
+    float Node::GetAngle() const
     {
         return m_angle.get();
     }
@@ -295,7 +398,7 @@ namespace seed
         m_color = in_color;
     }
 
-    Color Node::GetColor()
+    const Color& Node::GetColor() const
     {
         return m_color.get();
     }
@@ -325,8 +428,20 @@ namespace seed
         m_visible = in_visible;
     }
 
-    bool Node::GetVisible()
+    bool Node::GetVisible() const
     {
+        return m_visible;
+    }
+
+    bool Node::GetReallyVisible() const
+    {
+        if (!m_visible) return false;
+
+        if (GetParent())
+        {
+            return m_visible && GetParent()->GetReallyVisible();
+        }
+
         return m_visible;
     }
 
@@ -336,6 +451,16 @@ namespace seed
     }
 
     NodeVect& Node::GetBgChildren()
+    {
+        return m_bgChildren;
+    }
+
+    const NodeVect& Node::GetFgChildren() const
+    {
+        return m_fgChildren;
+    }
+
+    const NodeVect& Node::GetBgChildren() const
     {
         return m_bgChildren;
     }

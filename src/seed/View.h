@@ -19,7 +19,8 @@ namespace seed
         Sprite*         AddSpriteWithSpriteAnim(const string& in_animSource, const string& in_defaultAnim, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         SpriteString*   AddSpriteString(const string& in_fontName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         Emitter*        AddEmitter(const string& in_fxName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
-        void            AddNode(Node* in_node, int in_zIndex = INT_MAX);
+        void            AddNode(Node* in_node, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
+        Node*           AddNewNode(Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         void            DeleteNode(Node* in_node);
         Node*           DuplicateNode(Node* in_node);
         Node*           GetRootNode() { return m_rootNode; }
@@ -31,7 +32,11 @@ namespace seed
 
         void            SendCommand(eAppCommand in_command, const string& in_params = "");
 
+        Vector2         GetSize() const { return m_size; }
+        void            SetSize(const Vector2& in_size);
 
+        void            Save(const string& filename);
+        void            Load(const string& filename);
 
         // to be overriden by your "Game Specific" View
         virtual void OnUpdate() {};
@@ -72,6 +77,9 @@ namespace seed
 
         // sprites with UI interractions
         ButtonVect          m_buttons;
+
+        // A view has a size that is used to scale to fit/fill
+        Vector2             m_size;
 
         void            DeleteNodes();
         void            DeleteChildNodes(NodeVect& in_childVect);
