@@ -1,3 +1,4 @@
+#include "Emitter.h"
 #include "Node.h"
 #include "Sprite.h"
 #include "SpriteString.h"
@@ -133,6 +134,16 @@ namespace seed
                     fontName = szFontName;
                 }
                 pChild = view->AddSpriteString(fontName, this, childZIndex);
+            }
+            else if (childType == "Emitter")
+            {
+                const char* szFxName = xmlChild->Attribute("fx");
+                string fxName;
+                if (szFxName)
+                {
+                    fxName = szFxName;
+                }
+                pChild = view->AddEmitter(fxName, this, childZIndex);
             }
 
             if (pChild)

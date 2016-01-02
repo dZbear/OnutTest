@@ -1,5 +1,6 @@
 #include "Emitter.h"
 #include "onut.h"
+#include "tinyxml2.h"
 
 namespace seed
 {
@@ -7,6 +8,7 @@ namespace seed
     {
         m_blend = onut::SpriteBatch::eBlendMode::Add;
         m_filter = onut::SpriteBatch::eFiltering::Linear;
+        m_emitWorld = true;
     }
 
     Emitter::~Emitter()
@@ -44,6 +46,11 @@ namespace seed
     void Emitter::Update()
     {
         Node::Update();
+
+        if (m_emitWorld)
+        {
+            m_emitter.setTransform(GetTransform().Translation());
+        }
     }
 
     void Emitter::Render(Matrix* in_parentMatrix)
@@ -68,10 +75,26 @@ namespace seed
         RenderChildren(m_bgChildren, &transform);
 
         // render ourself
-        OSpriteBatch->changeBlendMode(m_blend);
-        OSpriteBatch->changeFiltering(m_filter);
-        m_emitter.setTransform(transform.Translation());
-        m_emitter.render();
+        if (m_emitWorld)
+        {
+            OSpriteBatch->changeBlendMode(m_blend);
+            OSpriteBatch->changeFiltering(m_filter);
+            m_emitter.render();
+        }
+        else
+        {
+            OSpriteBatch->end();
+            Matrix spriteBatchTransform = OSpriteBatch->getTransform();
+            OSpriteBatch->begin(transform * spriteBatchTransform);
+
+            OSpriteBatch->changeBlendMode(m_blend);
+            OSpriteBatch->changeFiltering(m_filter);
+            m_emitter.setTransform(Vector3::Zero);
+            m_emitter.render();
+
+            OSpriteBatch->end();
+            OSpriteBatch->begin(spriteBatchTransform);
+        }
 
         // render fg children
         RenderChildren(m_fgChildren, &transform);
@@ -79,7 +102,14 @@ namespace seed
 
     void Emitter::Start()
     {
-        m_emitter = OEmitPFX(m_fxName.c_str(), Vector3());
+        if (m_emitWorld)
+        {
+            m_emitter = OEmitPFX(m_fxName.c_str(), GetTransform().Translation());
+        }
+        else
+        {
+            m_emitter = OEmitPFX(m_fxName.c_str(), Vector3::Zero);
+        }
         m_emitter.setRenderEnabled(false);
     }
 
@@ -93,7 +123,7 @@ namespace seed
         m_filter = in_filter;
     }
 
-    onut::SpriteBatch::eFiltering Emitter::GetFilter()
+    onut::SpriteBatch::eFiltering Emitter::GetFilter() const
     {
         return m_filter;
     }
@@ -103,9 +133,19 @@ namespace seed
         m_blend = in_blend;
     }
 
-    onut::SpriteBatch::eBlendMode Emitter::GetBlend()
+    onut::SpriteBatch::eBlendMode Emitter::GetBlend() const
     {
         return m_blend;
+    }
+
+    bool Emitter::GetEmitWorld() const
+    {
+        return m_emitWorld;
+    }
+
+    void Emitter::SetEmitWorld(bool in_emitWorld)
+    {
+        m_emitWorld = in_emitWorld;
     }
 
     OEmitterInstance& Emitter::GetEmitterInstance()
@@ -113,8 +153,37 @@ namespace seed
         return m_emitter;
     }
 
-    string Emitter::GetFxName()
+    const string& Emitter::GetFxName() const
     {
         return m_fxName;
+    }
+
+    extern std::unordered_map<onut::SpriteBatch::eFiltering, string> filteringMap;
+    extern std::unordered_map<onut::SpriteBatch::eBlendMode, string> blendMap;
+
+    tinyxml2::XMLElement* Emitter::Serialize(tinyxml2::XMLDocument* in_xmlDoc) const
+    {
+        tinyxml2::XMLElement *xmlNode = Node::Serialize(in_xmlDoc);
+
+        xmlNode->SetName("Emitter");
+        xmlNode->SetAttribute("fx", GetFxName().c_str());
+        xmlNode->SetAttribute("filter", filteringMap[GetFilter()].c_str());
+        xmlNode->SetAttribute("blend", blendMap[GetBlend()].c_str());
+        xmlNode->SetAttribute("emitWorld", m_emitWorld);
+
+        return xmlNode;
+    }
+
+    void Emitter::Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode)
+    {
+        Node::Deserialize(view, in_xmlNode);
+
+        const char* filter = in_xmlNode->Attribute("filter");
+        for (auto &kv : filteringMap) if (kv.second == filter) SetFilter(kv.first);
+
+        const char* blend = in_xmlNode->Attribute("blend");
+        for (auto &kv : blendMap) if (kv.second == blend) SetBlend(kv.first);
+
+        in_xmlNode->QueryBoolAttribute("emitWorld", &m_emitWorld);
     }
 }

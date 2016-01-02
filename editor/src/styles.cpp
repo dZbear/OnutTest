@@ -156,9 +156,11 @@ void createUIStyles(onut::UIContext* pContext)
             auto pNode = pContainer->pNode;
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
             auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
             static const std::string strSpriteString = "SpriteString";
             static const std::string strSprite = "Sprite";
             static const std::string strNode = "Node";
+            static const std::string strEmitter = "Emitter";
             auto nodeName = pNode->GetName();
             if (pSpriteString)
             {
@@ -195,6 +197,19 @@ void createUIStyles(onut::UIContext* pContext)
                     {
                         nodeName = strSprite;
                     }
+                }
+                g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
+            }
+            else if (pEmitter)
+            {
+                OSB->drawSprite(OGetTexture("icoEmitter.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
+                if (!pEmitter->GetFxName().empty())
+                {
+                    nodeName = pEmitter->GetFxName();
+                }
+                else
+                {
+                    nodeName = strEmitter;
                 }
                 g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
             }

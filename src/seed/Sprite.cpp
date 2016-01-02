@@ -27,12 +27,12 @@ namespace seed
         return newNode;
     }
 
-    static std::unordered_map<onut::SpriteBatch::eFiltering, string> filteringMap = {
+    std::unordered_map<onut::SpriteBatch::eFiltering, string> filteringMap = {
         {onut::SpriteBatch::eFiltering::Linear, "Linear"},
         {onut::SpriteBatch::eFiltering::Nearest, "Nearest"}
     };
 
-    static std::unordered_map<onut::SpriteBatch::eBlendMode, string> blendMap = {
+    std::unordered_map<onut::SpriteBatch::eBlendMode, string> blendMap = {
         {onut::SpriteBatch::eBlendMode::Add, "Add"},
         {onut::SpriteBatch::eBlendMode::Alpha, "Alpha"},
         {onut::SpriteBatch::eBlendMode::ForceWrite, "ForceWrite"},

@@ -1,5 +1,6 @@
 #pragma once
 #include <onut.h>
+#include "seed/Emitter.h"
 #include "seed/Sprite.h"
 #include "seed/SpriteString.h"
 #include "seed/View.h"
@@ -36,6 +37,9 @@ struct NodeState
     OFont* pFont = nullptr;
     std::string caption;
     std::string name;
+    onut::SpriteBatch::eBlendMode blend;
+    onut::SpriteBatch::eFiltering filtering;
+    bool emitWorld = true;
 
     NodeState() { }
     NodeState(const NodeState& copy);
@@ -73,6 +77,9 @@ inline NodeState::NodeState(const NodeState& copy)
     pFont = copy.pFont;
     caption = copy.caption;
     name = copy.name;
+    blend = copy.blend;
+    filtering = copy.filtering;
+    emitWorld = copy.emitWorld;
 }
 
 extern std::unordered_map<seed::Node*, std::shared_ptr<NodeContainer>> nodesToContainers;
@@ -83,6 +90,7 @@ inline NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool s
     nodeType = NodeType::Node;
     auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
     auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
+    auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
     if (pSprite)
     {
         texture = "";
@@ -94,12 +102,22 @@ inline NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool s
         nodeType = NodeType::Sprite;
         flippedH = pSprite->GetFlippedH();
         flippedV = pSprite->GetFlippedV();
+        blend = pSprite->GetBlend();
+        filtering = pSprite->GetFilter();
         if (pSpriteString)
         {
             caption = pSpriteString->GetCaption();
             pFont = pSpriteString->GetFont();
             nodeType = NodeType::SpriteString;
         }
+    }
+    else if (pEmitter)
+    {
+        texture = pEmitter->GetFxName();
+        blend = pEmitter->GetBlend();
+        filtering = pEmitter->GetFilter();
+        emitWorld = pEmitter->GetEmitWorld();
+        nodeType = NodeType::Emitter;
     }
     name = pContainer->pNode->GetName();
     position = pContainer->pNode->GetPosition();
@@ -171,6 +189,9 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
                 pContainer->pNode = pEditingView->AddSpriteString(fontName, pParent->pNode);
                 break;
             }
+            case NodeType::Emitter:
+                pContainer->pNode = pEditingView->AddEmitter(texture, pParent->pNode);
+                break;
             default:
                 assert(false);
         }
@@ -188,6 +209,8 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
             pSprite->SetTexture(OGetTexture(texture.c_str()));
             pSprite->SetAlign(align);
             pSprite->SetFlipped(flippedH, flippedV);
+            pSprite->SetBlend(blend);
+            pSprite->SetFilter(filtering);
             break;
         }
         case NodeType::SpriteString:
@@ -199,6 +222,18 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
             pSpriteString->SetFlipped(flippedH, flippedV);
             pSpriteString->SetFont(pFont);
             pSpriteString->SetCaption(caption);
+            pSpriteString->SetBlend(blend);
+            pSpriteString->SetFilter(filtering);
+            break;
+        }
+        case NodeType::Emitter:
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            assert(pEmitter);
+            pEmitter->Init(texture);
+            pEmitter->SetBlend(blend);
+            pEmitter->SetFilter(filtering);
+            pEmitter->SetEmitWorld(emitWorld);
             break;
         }
     }

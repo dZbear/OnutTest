@@ -97,11 +97,13 @@ onut::UITreeViewItem* pTreeViewRoot = nullptr;
 onut::UIButton* pCreateNodeBtn = nullptr;
 onut::UIButton* pCreateSpriteBtn = nullptr;
 onut::UIButton* pCreateSpriteStringBtn = nullptr;
+onut::UIButton* pCreateEmitterBtn = nullptr;
 
 onut::UIControl* pPropertiesView = nullptr;
 onut::UIControl* pPropertiesNode = nullptr;
 onut::UIControl* pPropertiesSprite = nullptr;
 onut::UIControl* pPropertiesSpriteString = nullptr;
+onut::UIControl* pPropertiesEmitter = nullptr;
 
 onut::UITextBox* pPropertyViewWidth = nullptr;
 onut::UITextBox* pPropertyViewHeight = nullptr;
@@ -109,6 +111,8 @@ onut::UITextBox* pPropertyName = nullptr;
 onut::UITextBox* pPropertyClass = nullptr;
 onut::UITextBox* pPropertyTexture = nullptr;
 onut::UIButton* pPropertyTextureBrowse = nullptr;
+onut::UITextBox* pPropertyFx = nullptr;
+onut::UIButton* pPropertyFxBrowse = nullptr;
 onut::UITextBox* pPropertyX = nullptr;
 onut::UITextBox* pPropertyY = nullptr;
 onut::UITextBox* pPropertyScaleX = nullptr;
@@ -126,6 +130,9 @@ onut::UICheckBox* pPropertyVisible = nullptr;
 onut::UITextBox* pPropertyFont = nullptr;
 onut::UIButton* pPropertyFontBrowse = nullptr;
 onut::UITextBox* pPropertyCaption = nullptr;
+onut::UICheckBox* pPropertyBlendFx[4] = {nullptr};
+onut::UICheckBox* pPropertyFilterFx[2] = {nullptr};
+onut::UICheckBox* pPropertyEmitWorld = nullptr;
 
 // Seed
 seed::View* pEditingView = nullptr;
@@ -164,15 +171,18 @@ void updateProperties()
     pPropertiesNode->isVisible = false;
     pPropertiesSprite->isVisible = false;
     pPropertiesSpriteString->isVisible = false;
+    pPropertiesEmitter->isVisible = false;
 
     pCreateSpriteStringBtn->isEnabled = false;
     pCreateSpriteBtn->isEnabled = false;
     pCreateNodeBtn->isEnabled = false;
+    pCreateEmitterBtn->isEnabled = false;
     pMainView->isEnabled = false;
     if (!pEditingView) return;
     pCreateSpriteStringBtn->isEnabled = true;
     pCreateSpriteBtn->isEnabled = true;
     pCreateNodeBtn->isEnabled = true;
+    pCreateEmitterBtn->isEnabled = true;
     pMainView->isEnabled = true;
 
     if (selection.empty())
@@ -187,6 +197,7 @@ void updateProperties()
         auto pNode = pContainer->pNode;
         auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
         auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
+        auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
 
         if (pNode)
         {
@@ -257,6 +268,36 @@ void updateProperties()
                 }
                 pPropertyCaption->textComponent.text = pSpriteString->GetCaption();
             }
+        }
+        else if (pEmitter)
+        {
+            pPropertiesEmitter->isVisible = true;
+            pPropertyFx->textComponent.text = pEmitter->GetFxName();
+            switch (pEmitter->GetBlend())
+            {
+                case onut::SpriteBatch::eBlendMode::Add:
+                    pPropertyBlendFx[0]->setIsChecked(true);
+                    break;
+                case onut::SpriteBatch::eBlendMode::Alpha:
+                    pPropertyBlendFx[1]->setIsChecked(true);
+                    break;
+                case onut::SpriteBatch::eBlendMode::PreMultiplied:
+                    pPropertyBlendFx[2]->setIsChecked(true);
+                    break;
+                case onut::SpriteBatch::eBlendMode::Multiplied:
+                    pPropertyBlendFx[3]->setIsChecked(true);
+                    break;
+            }
+            switch (pEmitter->GetFilter())
+            {
+                case onut::SpriteBatch::eFiltering::Nearest:
+                    pPropertyFilterFx[0]->setIsChecked(true);
+                    break;
+                case onut::SpriteBatch::eFiltering::Linear:
+                    pPropertyFilterFx[1]->setIsChecked(true);
+                    break;
+            }
+            pPropertyEmitWorld->setIsChecked(pEmitter->GetEmitWorld());
         }
 
         pTreeView->expandTo(pContainer->pTreeViewItem);
@@ -1139,10 +1180,12 @@ void init()
     pPropertiesNode = OFindUI("propertiesNode");
     pPropertiesSprite = OFindUI("propertiesSprite");
     pPropertiesSpriteString = OFindUI("propertiesSpriteString");
+    pPropertiesEmitter = OFindUI("propertiesEmitter");
 
     pCreateNodeBtn = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateNode"));
     pCreateSpriteBtn = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateSprite"));
     pCreateSpriteStringBtn = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateSpriteString"));
+    pCreateEmitterBtn = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateEmitter"));
 
     pPropertyViewWidth = dynamic_cast<onut::UITextBox*>(OFindUI("txtViewWidth"));
     pPropertyViewHeight = dynamic_cast<onut::UITextBox*>(OFindUI("txtViewHeight"));
@@ -1151,6 +1194,8 @@ void init()
     pPropertyClass = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteClass"));
     pPropertyTexture = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteTexture"));
     pPropertyTextureBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnSpriteTextureBrowse"));
+    pPropertyFx = dynamic_cast<onut::UITextBox*>(OFindUI("txtEmitterFx"));
+    pPropertyFxBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnEmitterFxBrowse"));
     pPropertyFont = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteStringFont"));
     pPropertyFontBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnSpriteStringFontBrowse"));
     pPropertyCaption = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteStringCaption"));
@@ -1170,6 +1215,7 @@ void init()
     pPropertyAlpha = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlpha"));
     pPropertyAlpha->min = 0.f;
     pPropertyAlpha->max = 100.f;
+    pPropertyEmitWorld = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterEmitWorld"));
     pPropertyVisible = dynamic_cast<onut::UICheckBox*>(OFindUI("chkNodeVisible"));
     pPropertyFlippedH = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSpriteFlippedH"));
     pPropertyFlippedV = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSpriteFlippedV"));
@@ -1184,6 +1230,20 @@ void init()
     pPropertyFilter[0] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSpriteFilterNearest"));
     pPropertyFilter[1] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSpriteFilterLinear"));
     for (auto pRadio : pPropertyFilter)
+    {
+        pRadio->behavior = onut::eUICheckBehavior::EXCLUSIVE;
+    }
+    pPropertyBlendFx[0] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterBlendAdd"));
+    pPropertyBlendFx[1] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterBlendAlpha"));
+    pPropertyBlendFx[2] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterBlendPreMult"));
+    pPropertyBlendFx[3] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterBlendMult"));
+    for (auto pRadio : pPropertyBlendFx)
+    {
+        pRadio->behavior = onut::eUICheckBehavior::EXCLUSIVE;
+    }
+    pPropertyFilterFx[0] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterFilterNearest"));
+    pPropertyFilterFx[1] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterFilterLinear"));
+    for (auto pRadio : pPropertyFilterFx)
     {
         pRadio->behavior = onut::eUICheckBehavior::EXCLUSIVE;
     }
@@ -1524,6 +1584,38 @@ void init()
             pContainer->pNode->SetName(pPropertyName->textComponent.text);
         });
     };
+    pPropertyFx->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change Fx", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                bool restart = pEmitter->GetEmitterInstance().isPlaying();
+                pEmitter->Init(pPropertyFx->textComponent.text);
+                if (restart)
+                {
+                    pEmitter->Stop();
+                    pEmitter->Start();
+                }
+            }
+        });
+    };
+    pPropertyFxBrowse->onClick = [=](onut::UIControl* pControl, const onut::UIMouseEvent& mouseEvent)
+    {
+        std::string file = fileOpen("Onut Fx (*.pfx)\0*.pfx\0Designer (*.pex)\0*.pex\0All Files (*.*)\0*.*\0");
+        if (!file.empty())
+        {
+            // Make it relative to our filename
+            pPropertyFx->textComponent.text = onut::getFilename(file);
+            if (pPropertyFx->onTextChanged)
+            {
+                onut::UITextBoxEvent evt;
+                evt.pContext = OUIContext;
+                pPropertyFx->onTextChanged(pPropertyFx, evt);
+            }
+        }
+    };
     pPropertyTexture->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
         changeSpriteProperty("Change Texture", [](std::shared_ptr<NodeContainer> pContainer)
@@ -1651,6 +1743,17 @@ void init()
             pContainer->pNode->SetVisible(pPropertyVisible->getIsChecked());
         });
     };
+    pPropertyEmitWorld->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
+    {
+        changeSpriteProperty("Change Emit World", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                pEmitter->SetEmitWorld(pPropertyEmitWorld->getIsChecked());
+            }
+        });
+    };
     pPropertyFlippedH->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
     {
         changeSpriteProperty("Change Flip H", [](std::shared_ptr<NodeContainer> pContainer)
@@ -1745,6 +1848,78 @@ void init()
             }
         });
     };
+    pPropertyBlendFx[0]->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
+    {
+        if (!pControl->getIsChecked()) return;
+        changeSpriteProperty("Change Blend", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                pEmitter->SetBlend(onut::SpriteBatch::eBlendMode::Add);
+            }
+        });
+    };
+    pPropertyBlendFx[1]->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
+    {
+        if (!pControl->getIsChecked()) return;
+        changeSpriteProperty("Change Blend", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                pEmitter->SetBlend(onut::SpriteBatch::eBlendMode::Alpha);
+            }
+        });
+    };
+    pPropertyBlendFx[2]->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
+    {
+        if (!pControl->getIsChecked()) return;
+        changeSpriteProperty("Change Blend", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                pEmitter->SetBlend(onut::SpriteBatch::eBlendMode::PreMultiplied);
+            }
+        });
+    };
+    pPropertyBlendFx[3]->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
+    {
+        if (!pControl->getIsChecked()) return;
+        changeSpriteProperty("Change Blend", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                pEmitter->SetBlend(onut::SpriteBatch::eBlendMode::Multiplied);
+            }
+        });
+    };
+    pPropertyFilterFx[0]->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
+    {
+        if (!pControl->getIsChecked()) return;
+        changeSpriteProperty("Change Filter", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                pEmitter->SetFilter(onut::SpriteBatch::eFiltering::Nearest);
+            }
+        });
+    };
+    pPropertyFilterFx[1]->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
+    {
+        if (!pControl->getIsChecked()) return;
+        changeSpriteProperty("Change Filter", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                pEmitter->SetFilter(onut::SpriteBatch::eFiltering::Linear);
+            }
+        });
+    };
     pPropertyColor->onClick = [=](onut::UIControl* pControl, const onut::UIMouseEvent& evt)
     {
         static COLORREF g_acrCustClr[16]; // array of custom colors
@@ -1823,6 +1998,55 @@ void init()
                 pContainer->pNode = pSprite;
                 pContainer->pTreeViewItem = pTreeItem;
                 nodesToContainers[pSprite] = pContainer;
+                markModified();
+            },
+                [=]{ // OnUndo
+                auto it = nodesToContainers.find(pContainer->pNode);
+                if (it != nodesToContainers.end()) nodesToContainers.erase(it);
+                pEditingView->DeleteNode(pContainer->pNode);
+                pTreeViewRoot->removeItem(pContainer->pTreeViewItem);
+                pContainer->pTreeViewItem = nullptr;
+                pContainer->pNode = nullptr;
+                markModified();
+            },
+                [=]{ // Init
+            },
+                [=]{ // Destroy
+            }),
+            new onut::Action("",
+                [=]{ // OnRedo
+                selection.clear();
+                selection.push_back(pContainer);
+                updateProperties();
+            },
+                [=]{ // OnUndo
+                selection = oldSelection;
+                updateProperties();
+            }),
+        }));
+    };
+
+    pCreateEmitterBtn->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
+    {
+        if (state != State::Idle) return;
+
+        // Undo/redo
+        std::shared_ptr<NodeContainer> pContainer = std::make_shared<NodeContainer>();
+        auto oldSelection = selection;
+        actionManager.doAction(new onut::ActionGroup("Create Emitter",
+        {
+            new onut::Action("",
+                [=]{ // OnRedo
+                auto pEmitter = pEditingView->AddEmitter("");
+                pEmitter->SetPosition(viewSize * .5f);
+
+                auto pTreeItem = new onut::UITreeViewItem();
+                pTreeItem->pSharedUserData = pContainer;
+                pTreeViewRoot->addItem(pTreeItem);
+
+                pContainer->pNode = pEmitter;
+                pContainer->pTreeViewItem = pTreeItem;
+                nodesToContainers[pEmitter] = pContainer;
                 markModified();
             },
                 [=]{ // OnUndo
@@ -2510,6 +2734,30 @@ void init()
         OWindow->setCursor(curARROW);
     };
 
+    OFindUI("btnStartEmitter")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
+    {
+        for (auto pContainer : selection)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                pEmitter->Start();
+            }
+        }
+    };
+
+    OFindUI("btnStopEmitter")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
+    {
+        for (auto pContainer : selection)
+        {
+            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            if (pEmitter)
+            {
+                pEmitter->Stop();
+            }
+        }
+    };
+
     updateProperties();
 
     auto lastFile = OSettings->getUserSetting("lastFile");
@@ -2524,6 +2772,11 @@ void init()
 
 void update()
 {
+    if (pEditingView)
+    {
+        pEditingView->Update();
+    }
+
     if (state == State::Idle)
     {
         // Zoom
