@@ -35,6 +35,7 @@ struct NodeState
     std::vector<NodeState> fg;
     OFont* pFont = nullptr;
     std::string caption;
+    std::string name;
 
     NodeState() { }
     NodeState(const NodeState& copy);
@@ -71,6 +72,7 @@ inline NodeState::NodeState(const NodeState& copy)
     fg = copy.fg;
     pFont = copy.pFont;
     caption = copy.caption;
+    name = copy.name;
 }
 
 extern std::unordered_map<seed::Node*, std::shared_ptr<NodeContainer>> nodesToContainers;
@@ -99,6 +101,7 @@ inline NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool s
             nodeType = NodeType::SpriteString;
         }
     }
+    name = pContainer->pNode->GetName();
     position = pContainer->pNode->GetPosition();
     scale = pContainer->pNode->GetScale();
     angle = pContainer->pNode->GetAngle();
@@ -199,6 +202,7 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
             break;
         }
     }
+    pContainer->pNode->SetName(name);
     pContainer->pNode->SetPosition(position);
     pContainer->pNode->SetScale(scale);
     pContainer->pNode->SetAngle(angle);

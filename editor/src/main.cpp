@@ -191,7 +191,7 @@ void updateProperties()
         if (pNode)
         {
             pPropertiesNode->isVisible = true;
-            pPropertyName->textComponent.text = "";
+            pPropertyName->textComponent.text = pContainer->pNode->GetName();
             pPropertyClass->textComponent.text = "";
             pPropertyX->setFloat(pContainer->pNode->GetPosition().x);
             pPropertyY->setFloat(pContainer->pNode->GetPosition().y);
@@ -1517,7 +1517,13 @@ void init()
         }));
         updateProperties();
     };
-
+    pPropertyName->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change Name", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            pContainer->pNode->SetName(pPropertyName->textComponent.text);
+        });
+    };
     pPropertyTexture->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
         changeSpriteProperty("Change Texture", [](std::shared_ptr<NodeContainer> pContainer)

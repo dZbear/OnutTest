@@ -155,41 +155,54 @@ void createUIStyles(onut::UIContext* pContext)
         {
             auto pNode = pContainer->pNode;
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-            if (pSprite)
+            auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
+            static const std::string strSpriteString = "SpriteString";
+            static const std::string strSprite = "Sprite";
+            static const std::string strNode = "Node";
+            auto nodeName = pNode->GetName();
+            if (pSpriteString)
             {
-                auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
-                if (pSpriteString)
+                OSB->drawSprite(OGetTexture("icoLabel.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
+                if (nodeName.empty())
                 {
-                    OSB->drawSprite(OGetTexture("icoLabel.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
                     if (!pSpriteString->GetCaption().empty())
                     {
-                        g_pFont->draw<OLeft>(pSpriteString->GetCaption(), textPos, g_fontColor * pItem->opacity);
+                        nodeName = pSpriteString->GetCaption();
                     }
                     else
                     {
-                        g_pFont->draw<OLeft>("SpriteString", textPos, g_fontColor * pItem->opacity);
+                        nodeName = strSpriteString;
+                    }
+                }
+                g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
+            }
+            else if (pSprite)
+            {
+                auto pTexture = pSprite->GetTexture();
+                if (pTexture)
+                {
+                    float scale = std::max<>(pTexture->getSizef().x, pTexture->getSizef().y);
+                    scale = 20.f / scale;
+                    OSB->drawSprite(pTexture, orect.Left(expandClickWidth + 12), Color(pItem->opacity), 0, scale);
+                    if (nodeName.empty())
+                    {
+                        nodeName = pTexture->getName();
                     }
                 }
                 else
                 {
-                    auto pTexture = pSprite->GetTexture();
-                    if (pTexture)
+                    if (nodeName.empty())
                     {
-                        float scale = std::max<>(pTexture->getSizef().x, pTexture->getSizef().y);
-                        scale = 20.f / scale;
-                        OSB->drawSprite(pTexture, orect.Left(expandClickWidth + 12), Color(pItem->opacity), 0, scale);
-                        g_pFont->draw<OLeft>(pTexture->getName(), textPos, g_fontColor * pItem->opacity);
-                    }
-                    else
-                    {
-                        g_pFont->draw<OLeft>("Sprite", textPos, g_fontColor * pItem->opacity);
+                        nodeName = strSprite;
                     }
                 }
+                g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
             }
             else if (pNode)
             {
                 OSB->drawSprite(OGetTexture("icoNode.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
-                g_pFont->draw<OLeft>("Node", textPos, g_fontColor * pItem->opacity);
+                if (nodeName.empty()) nodeName = strNode;
+                g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
             }
         }
         else

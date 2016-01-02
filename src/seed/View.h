@@ -24,6 +24,7 @@ namespace seed
         void            DeleteNode(Node* in_node);
         Node*           DuplicateNode(Node* in_node);
         Node*           GetRootNode() { return m_rootNode; }
+        Node*           FindNode(const string& in_name);
 
         Button*         AddButton(Sprite* in_sprite, const string& in_cmd);
         void            FocusButton(Button* in_button, int in_playerIndex = 1);
