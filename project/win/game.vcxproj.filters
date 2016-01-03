@@ -32,6 +32,9 @@
     <ClCompile Include="..\..\src\app\GameView.cpp">
       <Filter>app\Views</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\app\SplashView.cpp">
+      <Filter>app\Views</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -76,6 +79,9 @@
       <Filter>seed</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\app\GameView.h">
+      <Filter>app\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\app\SplashView.h">
       <Filter>app\Views</Filter>
     </ClInclude>
   </ItemGroup>
