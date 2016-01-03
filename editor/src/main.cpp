@@ -2835,6 +2835,18 @@ void init()
     {
         updateTransformHandles();
     };
+
+    OFindUI("btnToolNew")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_FILE_NEW); };
+    OFindUI("btnToolOpen")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_FILE_OPEN); };
+    OFindUI("btnToolSave")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_FILE_SAVE); };
+
+    OFindUI("btnToolCut")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_CUT); };
+    OFindUI("btnToolCopy")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_COPY); };
+    OFindUI("btnToolPaste")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_PASTE); };
+    OFindUI("btnToolDelete")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_DELETE); };
+
+    OFindUI("btnToolUndo")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_UNDO); };
+    OFindUI("btnToolRedo")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_REDO); };
 }
 
 void update()
