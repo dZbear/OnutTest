@@ -15,12 +15,13 @@ namespace seed
         View();
         virtual ~View();
 
-        Sprite*         AddSprite(const string& in_textureName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
-        Sprite*         AddSpriteWithSpriteAnim(const string& in_animSource, const string& in_defaultAnim, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
-        SpriteString*   AddSpriteString(const string& in_fontName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
-        Emitter*        AddEmitter(const string& in_fxName, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
+        Sprite*         CreateSprite(const string& in_textureName);
+        Sprite*         CreateSpriteWithSpriteAnim(const string& in_animSource, const string& in_defaultAnim);
+        SpriteString*   CreateSpriteString(const string& in_fontName);
+        Emitter*        CreateEmitter(const string& in_fxName);
+        Node*           CreateNode();
+
         void            AddNode(Node* in_node, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
-        Node*           AddNewNode(Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         void            DeleteNode(Node* in_node);
         Node*           DuplicateNode(Node* in_node);
         Node*           GetRootNode() { return m_rootNode; }

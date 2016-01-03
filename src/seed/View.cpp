@@ -262,47 +262,40 @@ namespace seed
         parentNode->Attach(in_node, in_zIndex);
     }
 
-    Node* View::AddNewNode(Node* in_parent, int in_zIndex)
+    Node* View::CreateNode()
     {
         Node* newNode = m_nodePool.alloc<Node>();
-        Node* parentNode = in_parent ? in_parent : m_rootNode;
-        parentNode->Attach(newNode, in_zIndex);
+        m_pooledNodes.push_back(newNode);
         return newNode;
     }
 
-    Sprite* View::AddSprite(const string& in_textureName, Node* in_parent, int in_zIndex)
+    Sprite* View::CreateSprite(const string& in_textureName)
     {
         OTexture* texture = OGetTexture(in_textureName.c_str());
         if (!texture)
         {
-            OLogE("Invalid texture name specified to View::AddSprite : " + in_textureName);
+            OLogE("Invalid texture name specified to View::CreateSprite : " + in_textureName);
             return nullptr;
         }
 
         Sprite* newSprite = m_nodePool.alloc<Sprite>();
-        newSprite->SetZindex(in_zIndex);
         newSprite->SetTexture(texture);
 
-        Node* parentNode = in_parent ? in_parent : m_rootNode;
-        parentNode->Attach(newSprite, in_zIndex);
         m_pooledNodes.push_back(newSprite);
         return newSprite;
     }
 
-    Sprite* View::AddSpriteWithSpriteAnim(const string& in_animSource, const string& in_defaultAnim, Node* in_parent, int in_zIndex)
+    Sprite* View::CreateSpriteWithSpriteAnim(const string& in_animSource, const string& in_defaultAnim)
     {
         Sprite* newSprite = m_nodePool.alloc<Sprite>();
-        newSprite->SetZindex(in_zIndex);
         newSprite->SetSpriteAnimSource(in_animSource);
         newSprite->SetSpriteAnim(in_defaultAnim);
 
-        Node* parentNode = in_parent ? in_parent : m_rootNode;
-        parentNode->Attach(newSprite, in_zIndex);
         m_pooledNodes.push_back(newSprite);
         return newSprite;
     }
 
-    SpriteString* View::AddSpriteString(const string& in_fontName, Node* in_parent, int in_zIndex)
+    SpriteString* View::CreateSpriteString(const string& in_fontName)
     {
         OFont* font = OGetBMFont(in_fontName.c_str());
         if (!font)  
@@ -312,23 +305,18 @@ namespace seed
         }
 
         SpriteString* newSpriteString = m_nodePool.alloc<SpriteString>();
-        newSpriteString->SetZindex(in_zIndex);
         newSpriteString->SetFont(font);
         m_pooledNodes.push_back(newSpriteString);
 
-        Node* parentNode = in_parent ? in_parent : m_rootNode;
-        parentNode->Attach(newSpriteString, in_zIndex);
         return newSpriteString;
     }
 
-    Emitter* View::AddEmitter(const string& in_fxName, Node* in_parent, int in_zIndex)
+    Emitter* View::CreateEmitter(const string& in_fxName)
     {
         Emitter* newEmitter = m_nodePool.alloc<Emitter>();
         newEmitter->Init(in_fxName);
         m_pooledNodes.push_back(newEmitter);
 
-        Node* parentNode = in_parent ? in_parent : m_rootNode;
-        parentNode->Attach(newEmitter, in_zIndex);
         return newEmitter;
     }
 

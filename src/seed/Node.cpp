@@ -113,7 +113,8 @@ namespace seed
 
             if (childType == "Node")
             {
-                pChild = view->AddNewNode(this, childZIndex);
+                pChild = view->CreateNode();
+                Attach(pChild, childZIndex);
             }
             else if (childType == "Sprite")
             {
@@ -123,7 +124,8 @@ namespace seed
                 {
                     textureName = szTextureName;
                 }
-                pChild = view->AddSprite(textureName, this, childZIndex);
+                pChild = view->CreateSprite(textureName);
+                Attach(pChild, childZIndex);
             }
             else if (childType == "SpriteString")
             {
@@ -133,7 +135,8 @@ namespace seed
                 {
                     fontName = szFontName;
                 }
-                pChild = view->AddSpriteString(fontName, this, childZIndex);
+                pChild = view->CreateSpriteString(fontName);
+                Attach(pChild, childZIndex);
             }
             else if (childType == "Emitter")
             {
@@ -143,7 +146,8 @@ namespace seed
                 {
                     fxName = szFxName;
                 }
-                pChild = view->AddEmitter(fxName, this, childZIndex);
+                pChild = view->CreateEmitter(fxName);
+                Attach(pChild, childZIndex);
             }
 
             if (pChild)

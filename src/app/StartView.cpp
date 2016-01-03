@@ -17,23 +17,27 @@ void StartView::OnShow()
 {
     SetSize(Vector2(OScreenWf, OScreenHf));
 
-    seed::Sprite* spriteButton = AddSprite("button.png");
+    seed::Sprite* spriteButton = CreateSprite("button.png");
     spriteButton->SetPosition(OScreenCenterXf, OScreenCenterYf - 70.f);
+    AddNode(spriteButton);
 
-    seed::SpriteString* label = AddSpriteString("cartoon.fnt", spriteButton);
+    seed::SpriteString* label = CreateSpriteString("cartoon.fnt");
+    AddNode(label, spriteButton);
     label->SetCaption("START GAME");
     label->SetColor(Color(1.f,.5f,0.f));
     label->SetScale( Vector2(.5f, .5f) );
 
     seed::Button* startButton = AddButton(spriteButton, "start");
     
-    spriteButton = AddSprite("button.png");
+    spriteButton = CreateSprite("button.png");
     spriteButton->SetPosition(OScreenCenterXf, OScreenCenterYf + 70.f);
-
-    label = AddSpriteString("cartoon.fnt", spriteButton);
+    AddNode(spriteButton);
+    
+    label = CreateSpriteString("cartoon.fnt");
     label->SetCaption("QUIT");
     label->SetColor(Color(1.f, .5f, 0.f));
     label->SetScale(Vector2(.5f, .5f));
+    AddNode(label, spriteButton);
 
     AddButton(spriteButton, "quit");
 

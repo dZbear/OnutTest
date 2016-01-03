@@ -16,21 +16,24 @@ void GameView::OnShow()
 {
     SetSize(Vector2(OScreenWf, OScreenHf));
 
-    m_dude = AddSpriteWithSpriteAnim("baltAnims.xml", "idle_down");
+    m_dude = CreateSpriteWithSpriteAnim("baltAnims.xml", "idle_down");
+    AddNode(m_dude);
     m_idleAnim = "idle_down";
     m_dude->SetPosition(OScreenCenterXf, OScreenCenterYf);
     m_dude->SetScale(Vector2(5, 5));
     m_dude->SetFilter(onut::SpriteBatch::eFiltering::Nearest);
 
 
-    m_testFX = AddEmitter("test2.pex", m_dude, -1);
+    m_testFX = CreateEmitter("test2.pex");
     m_testFX->Start();
     m_testFX->SetPosition(0, -10);
+    AddNode(m_testFX,m_dude, -1);
 
-    seed::SpriteString* testString = AddSpriteString("cartoon.fnt", m_dude);
+    seed::SpriteString* testString = CreateSpriteString("cartoon.fnt");
     testString->SetCaption("BALT GUY");
     testString->SetScale(Vector2(.05f, .05f));
     testString->SetPosition(0, 4);
+    AddNode(testString, m_dude);
 }
 
 void GameView::OnHide()
