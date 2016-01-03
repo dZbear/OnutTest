@@ -2818,16 +2818,19 @@ void init()
         if (extension == "PNG")
         {
             createSprite(filename);
+            onMenu(MENU_EDIT_FOCUS_SELECTION);
         }
         else if (extension == "PEX" ||
                  extension == "PFX")
         {
             createEmitter(filename);
             startSelectedEmitters();
+            onMenu(MENU_EDIT_FOCUS_SELECTION);
         }
         else if (extension == "FNT")
         {
             createSpriteString(filename);
+            onMenu(MENU_EDIT_FOCUS_SELECTION);
         }
     };
 
