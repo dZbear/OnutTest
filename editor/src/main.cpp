@@ -314,6 +314,7 @@ int CALLBACK WinMain(HINSTANCE appInstance, HINSTANCE prevInstance, LPSTR cmdLin
     OSettings->setGameName("Seed Editor");
     OSettings->setIsResizableWindow(true);
     OSettings->setResolution({1280, 720});
+    OSettings->setIsEditorMode(true);
 
     // Run
     ORun(init, update, render);
@@ -1316,6 +1317,7 @@ void startSelectedEmitters()
         if (pEmitter)
         {
             pEmitter->Start();
+            OSettings->setIsEditorMode(false);
         }
     }
 }
@@ -2865,4 +2867,16 @@ void update()
 
 void render()
 {
+    static const std::string spinner[] = {"/", "-", "\\", "|"};
+    static int spinnerIndex = 0;
+    spinnerIndex = (spinnerIndex + 1) % 4;
+    ((onut::UILabel*)OFindUI("renderSpinner"))->textComponent.text = spinner[spinnerIndex];
+
+    if (!OSettings->getIsEditorMode())
+    {
+        if (!OParticles->hasAliveParticles())
+        {
+            OSettings->setIsEditorMode(true);
+        }
+    }
 }
