@@ -311,9 +311,8 @@ void updateProperties()
 int CALLBACK WinMain(HINSTANCE appInstance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdCount)
 {
     // Set default settings
-    OSettings->setBorderlessFullscreen(false);
     OSettings->setGameName("Seed Editor");
-    OSettings->setIsResizableWindow(false);
+    OSettings->setIsResizableWindow(true);
     OSettings->setResolution({1280, 720});
 
     // Run
