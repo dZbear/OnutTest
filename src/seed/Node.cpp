@@ -1,3 +1,4 @@
+#include "Emitter.h"
 #include "Node.h"
 #include "Sprite.h"
 #include "SpriteString.h"
@@ -42,6 +43,7 @@ namespace seed
     {
         tinyxml2::XMLElement* xmlNode = in_xmlDoc->NewElement("Node");
 
+        xmlNode->SetAttribute("name", GetName().c_str());
         xmlNode->SetAttribute("zIndex", GetZindex());
         xmlNode->SetAttribute("x", GetPosition().x);
         xmlNode->SetAttribute("y", GetPosition().y);
@@ -68,6 +70,14 @@ namespace seed
 
     void Node::Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode)
     {
+        const char* szName = in_xmlNode->Attribute("name");
+        string name = GetName();
+        if (szName)
+        {
+            name = szName;
+        }
+        SetName(name);
+
         Vector2 position = GetPosition();
         in_xmlNode->QueryAttribute("x", &position.x);
         in_xmlNode->QueryAttribute("y", &position.y);
@@ -124,6 +134,16 @@ namespace seed
                     fontName = szFontName;
                 }
                 pChild = view->AddSpriteString(fontName, this, childZIndex);
+            }
+            else if (childType == "Emitter")
+            {
+                const char* szFxName = xmlChild->Attribute("fx");
+                string fxName;
+                if (szFxName)
+                {
+                    fxName = szFxName;
+                }
+                pChild = view->AddEmitter(fxName, this, childZIndex);
             }
 
             if (pChild)
@@ -507,6 +527,47 @@ namespace seed
             if (callback(node)) return true;
         }
         return false;
+    }
+
+    const string& Node::GetName() const
+    {
+        return m_name;
+    }
+
+    void Node::SetName(const string& in_name)
+    {
+        m_name = in_name;
+    }
+
+    Node* Node::FindNode(const string& in_name)
+    {
+        if (in_name == m_name) return this;
+        Node* foundChild = nullptr;
+
+        if (VisitBackgroundChildren([&in_name, &foundChild](Node* child)
+            {
+                if (child->GetName() == in_name)
+                {
+                    foundChild = child;
+                    return true;
+                }
+                return false;
+            }))
+        {
+            return foundChild;
+        }
+
+        VisitForegroundChildren([&in_name, &foundChild](Node* child)
+        {
+            if (child->GetName() == in_name)
+            {
+                foundChild = child;
+                return true;
+            }
+            return false;
+        });
+
+        return foundChild;
     }
 }
 

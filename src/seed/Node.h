@@ -48,6 +48,8 @@ namespace seed
         void            SetVisible(bool in_visible);
         bool            GetVisible() const;
         bool            GetReallyVisible() const;
+        const string&   GetName() const;
+        void            SetName(const string& in_name);
 
         virtual float   GetWidth() const { return 0; }
         virtual float   GetHeight() const { return 0; }
@@ -61,6 +63,8 @@ namespace seed
         bool VisitForegroundChildren(const VisitCallback& callback);
         bool VisitForegroundChildrenBackward(const VisitCallback& callback);
 
+        Node*           FindNode(const string& in_name);
+
     protected:
 
         int                     m_zIndex;
@@ -72,6 +76,7 @@ namespace seed
         OAnim<float>            m_angle;
         OAnim<Color>            m_color;
         bool                    m_visible;
+        string                  m_name;
 
         virtual void            Copy(Node* in_copy);
 

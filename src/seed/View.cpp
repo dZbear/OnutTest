@@ -7,10 +7,11 @@
 #include "tinyxml2.h"
 
 #define VIEW_DEFAULT_NODE_COUNT 64
-#define VIEW_DEFAULT_NODE_MAX_SIZE 640
 
 namespace seed
 {
+    static const uintptr_t VIEW_DEFAULT_NODE_MAX_SIZE = onut::max(sizeof(Node), sizeof(Sprite), sizeof(SpriteString), sizeof(Emitter));
+
     View::View()
         : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)
         , m_currentButton(nullptr)
@@ -345,6 +346,11 @@ namespace seed
         Node* newNode = in_node->Duplicate(m_nodePool, m_pooledNodes);
         DuplicateChildren(in_node, newNode);
         return newNode;
+    }
+
+    Node* View::FindNode(const string& in_name)
+    {
+        return GetRootNode()->FindNode(in_name);
     }
 
     void View::DuplicateChildren(Node* in_originalNode, Node* in_newParentNode)

@@ -55,7 +55,9 @@ namespace seed
             OSpriteBatch->changeBlendMode(m_blend);
             OSpriteBatch->changeFiltering(m_filter);
 
-            m_font->draw(m_caption, Vector2::Zero, m_color, OSpriteBatch, GetAlign());
+            Color color = m_color;
+            if (m_blend == onut::SpriteBatch::eBlendMode::PreMultiplied) color.Premultiply();
+            m_font->draw(m_caption, Vector2::Zero, color, OSpriteBatch, GetAlign());
             OSpriteBatch->end();
             OSpriteBatch->begin(spriteBatchTransform);
         }
