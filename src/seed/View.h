@@ -8,6 +8,7 @@ namespace seed
     class Sprite;
     class SpriteString;
     class Emitter;
+    class SoundEmitter;
     class View
     {
     public:
@@ -19,6 +20,8 @@ namespace seed
         Sprite*         CreateSpriteWithSpriteAnim(const string& in_animSource, const string& in_defaultAnim);
         SpriteString*   CreateSpriteString(const string& in_fontName);
         Emitter*        CreateEmitter(const string& in_fxName);
+        SoundEmitter*   CreateSoundEmitter(const string& in_file);
+        SoundEmitter*   CreateRandomSoundEmitter(const vector<string>& in_files);
         Node*           CreateNode();
 
         void            AddNode(Node* in_node, Node* in_parent = nullptr, int in_zIndex = INT_MAX);

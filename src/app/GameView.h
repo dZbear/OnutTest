@@ -1,6 +1,7 @@
 #pragma once
 #include "View.h"
 
+class SoundEmitter;
 class Emitter;
 class GameView : public seed::View
 {
@@ -18,6 +19,8 @@ private:
     seed::Sprite*       m_dude;
     seed::Emitter*      m_testFX;
     string              m_idleAnim;
+
+    seed::SoundEmitter* m_sndEmitter;
 
 
 };

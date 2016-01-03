@@ -47,3 +47,12 @@ void SplashView::OnShow()
         SendCommand(seed::eAppCommand::SWITCH_VIEW, "StartView");
     });
 }
+
+void SplashView::OnUpdate()
+{
+    if (OJustPressed(OINPUT_MOUSEB1))
+    {
+        m_timer.stop();
+        SendCommand(seed::eAppCommand::SWITCH_VIEW, "StartView");
+    }
+}

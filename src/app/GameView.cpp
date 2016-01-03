@@ -2,6 +2,7 @@
 #include "Emitter.h"
 #include "Sprite.h"
 #include "SpriteString.h"
+#include "SoundEmitter.h"
 
 GameView::GameView()
 {
@@ -23,6 +24,10 @@ void GameView::OnShow()
     m_dude->SetScale(Vector2(5, 5));
     m_dude->SetFilter(onut::SpriteBatch::eFiltering::Nearest);
 
+    m_sndEmitter = CreateRandomSoundEmitter({ "sound1.wav", "sound2.wav", "sound3.wav", "sound4.wav", "sound5.wav" });
+    m_sndEmitter->SetPositionBasedBalance(true);
+    m_sndEmitter->SetPositionBasedVolume(true);
+    m_dude->Attach(m_sndEmitter);
 
     m_testFX = CreateEmitter("test2.pex");
     m_testFX->Start();
@@ -98,6 +103,10 @@ void GameView::OnUpdate()
         // duplicate our dude
         seed::Node* newDude = DuplicateNode(m_dude);
         AddNode(newDude);
+    }
 
+    if (OJustPressed(OINPUT_0))
+    {
+        m_sndEmitter->Play(false);
     }
 }

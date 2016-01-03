@@ -35,6 +35,9 @@
     <ClCompile Include="..\..\src\app\SplashView.cpp">
       <Filter>app\Views</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\seed\SoundEmitter.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -83,6 +86,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\app\SplashView.h">
       <Filter>app\Views</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\SoundEmitter.h">
+      <Filter>seed</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
