@@ -5,7 +5,6 @@
 
 GameView::GameView()
 {
-
 }
 
 GameView::~GameView()
@@ -15,6 +14,8 @@ GameView::~GameView()
 
 void GameView::OnShow()
 {
+    SetSize(Vector2(OScreenWf, OScreenHf));
+
     m_dude = AddSpriteWithSpriteAnim("baltAnims.xml", "idle_down");
     m_idleAnim = "idle_down";
     m_dude->SetPosition(OScreenCenterXf, OScreenCenterYf);

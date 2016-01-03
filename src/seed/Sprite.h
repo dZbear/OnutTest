@@ -39,7 +39,7 @@ namespace seed
 
 
         // only to be used by the seed sdk
-        virtual void    Render(Matrix* in_parentMatrix=nullptr) override;
+        virtual void    Render(Matrix* in_parentMatrix = nullptr, float in_parentAlpha = 1.f) override;
 
 
 

@@ -30,8 +30,8 @@ namespace seed
         void                            SetEmitWorld(bool in_emitWorld);
 
         // only to be used by the seed sdk
-        virtual void    Update();
-        virtual void    Render(Matrix* in_parentMatrix=nullptr);
+        virtual void    Update() override;
+        virtual void    Render(Matrix* in_parentMatrix = nullptr, float in_parentAlpha = 1.f) override;
 
     protected:
 

@@ -105,7 +105,7 @@ namespace seed
         m_anim = in_anim;
     }
 
-    void Sprite::Render(Matrix* in_parentMatrix)
+    void Sprite::Render(Matrix* in_parentMatrix, float in_parentAlpha)
     {
         if (!m_visible)
         {
@@ -124,11 +124,12 @@ namespace seed
         }
 
         // render bg children
-        RenderChildren(m_bgChildren, &transform);
+        RenderChildren(m_bgChildren, &transform, m_color.get().w * in_parentAlpha);
 
         // render ourself
-        static Color color;
-        m_color.get().Premultiply(color);
+        Color color = m_color.get();
+        color.w *= in_parentAlpha;
+        color.Premultiply();
         OSpriteBatch->changeBlendMode(m_blend);
         OSpriteBatch->changeFiltering(m_filter);
         if (!m_texture)
@@ -159,7 +160,7 @@ namespace seed
         }
 
         // render fg children
-        RenderChildren(m_fgChildren, &transform);
+        RenderChildren(m_fgChildren, &transform, m_color.get().w * in_parentAlpha);
     }
 
     void Sprite::SetTexture(OTexture* in_texture)

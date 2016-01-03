@@ -22,7 +22,7 @@ namespace seed
         const string&   GetCaption() const { return m_caption; }
 
         // only to be used by the seed sdk
-        void    Render(Matrix* in_parentMatrix=nullptr);
+        void    Render(Matrix* in_parentMatrix = nullptr, float in_parentAlpha = 1.f) override;
 
         virtual float   GetWidth() const override;
         virtual float   GetHeight() const override;

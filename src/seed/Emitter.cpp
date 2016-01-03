@@ -53,7 +53,7 @@ namespace seed
         }
     }
 
-    void Emitter::Render(Matrix* in_parentMatrix)
+    void Emitter::Render(Matrix* in_parentMatrix, float in_parentAlpha)
     {
         if (!m_visible)
         {
@@ -72,7 +72,7 @@ namespace seed
         }
 
         // render bg children
-        RenderChildren(m_bgChildren, &transform);
+        RenderChildren(m_bgChildren, &transform, m_color.get().w * in_parentAlpha);
 
         // render ourself
         if (m_emitWorld)
@@ -97,7 +97,7 @@ namespace seed
         }
 
         // render fg children
-        RenderChildren(m_fgChildren, &transform);
+        RenderChildren(m_fgChildren, &transform, m_color.get().w * in_parentAlpha);
     }
 
     void Emitter::Start()

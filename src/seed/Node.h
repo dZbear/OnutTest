@@ -13,7 +13,7 @@ namespace seed
         virtual ~Node();
 
         virtual void                    Update();
-        virtual void                    Render(Matrix* in_parentMatrix = nullptr);
+        virtual void                    Render(Matrix* in_parentMatrix = nullptr, float in_parentAlpha = 1.f);
         virtual Node*                   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
         virtual tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const;
         virtual void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode);
@@ -80,7 +80,7 @@ namespace seed
 
         virtual void            Copy(Node* in_copy);
 
-        void        RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix = nullptr);
+        void        RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix = nullptr, float in_parentAlpha = 1.f);
         void        UpdateChildren(NodeVect& in_children);
 
     private:
