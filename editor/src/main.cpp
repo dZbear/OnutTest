@@ -2434,6 +2434,7 @@ void init()
                     auto selectionAfter = selection;
                     selectionAfter.clear();
                     selectionAfter.push_back(pContainer);
+                    cleanedUpSelection = selectionAfter;
                     actionManager.doAction(new onut::Action("Select",
                         [=]
                     {

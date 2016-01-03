@@ -203,13 +203,16 @@ void createUIStyles(onut::UIContext* pContext)
             else if (pEmitter)
             {
                 OSB->drawSprite(OGetTexture("icoEmitter.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
-                if (!pEmitter->GetFxName().empty())
+                if (nodeName.empty())
                 {
-                    nodeName = pEmitter->GetFxName();
-                }
-                else
-                {
-                    nodeName = strEmitter;
+                    if (!pEmitter->GetFxName().empty())
+                    {
+                        nodeName = pEmitter->GetFxName();
+                    }
+                    else
+                    {
+                        nodeName = strEmitter;
+                    }
                 }
                 g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
             }
