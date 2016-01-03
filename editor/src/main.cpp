@@ -534,6 +534,18 @@ void updateTransformHandles()
     }
 }
 
+void onFocusSelection()
+{
+    if (!selection.empty() &&
+        state == State::Idle)
+    {
+        auto invViewTransform = getViewTransform().Invert();
+        auto worldRect = pMainView->getWorldRect(*OUIContext);
+        cameraPos = Vector2::Transform(selectionCenter, invViewTransform);
+        updateTransformHandles();
+    }
+}
+
 std::string fileOpen(const char* szFilters)
 {
     auto window = OWindow->getHandle();
@@ -2817,6 +2829,11 @@ void init()
         {
             createSpriteString(filename);
         }
+    };
+
+    OWindow->onResize = [](const POINT& newSize)
+    {
+        updateTransformHandles();
     };
 }
 

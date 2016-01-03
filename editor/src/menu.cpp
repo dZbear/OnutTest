@@ -32,6 +32,8 @@ void buildMenu()
         InsertMenu(subMenu, 7, MF_BYPOSITION | MF_SEPARATOR, 0, nullptr);
         InsertMenu(subMenu, 8, MF_BYPOSITION | MF_STRING, MENU_EDIT_SELECT_ALL, TEXT("Select &All\tCtrl+A"));
         InsertMenu(subMenu, 9, MF_BYPOSITION | MF_STRING, MENU_EDIT_DESELECT, TEXT("D&eselect\tEsc"));
+        InsertMenu(subMenu, 10, MF_BYPOSITION | MF_SEPARATOR, 0, nullptr);
+        InsertMenu(subMenu, 11, MF_BYPOSITION | MF_STRING, MENU_EDIT_FOCUS_SELECTION, TEXT("&Focus on Selection\tF"));
         InsertMenu(menu, 1, MF_BYPOSITION | MF_POPUP, (UINT)subMenu, TEXT("&Edit"));
     }
 
@@ -118,6 +120,7 @@ void onCut();
 void onSave();
 void onSelectAll();
 void onDeselect();
+void onFocusSelection();
 
 extern bool isModified;
 
@@ -198,6 +201,9 @@ void onMenu(UINT menuId)
         case MENU_EDIT_DESELECT:
             onDeselect();
             break;
+        case MENU_EDIT_FOCUS_SELECTION:
+            onFocusSelection();
+            break;
     }
 }
 
@@ -259,5 +265,9 @@ void checkShortCut(uintptr_t key)
     else if (key == VK_ESCAPE)
     {
         onMenu(MENU_EDIT_DESELECT);
+    }
+    else if (key == static_cast<uintptr_t>('F'))
+    {
+        onMenu(MENU_EDIT_FOCUS_SELECTION);
     }
 }
