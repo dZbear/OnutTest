@@ -2553,11 +2553,18 @@ void init()
 
             auto localMouseDiff = Vector2::Transform(mouseDiff, invTransform);
             auto localScaleDiff = handle.transformDirection * localMouseDiff;
+            Vector2 newScale;
             if (OPressed(OINPUT_LSHIFT))
             {
                 localScaleDiff.x = localScaleDiff.y = std::max<>(localScaleDiff.x, localScaleDiff.y);
+                newScale = pContainer->stateOnDown.scale + localScaleDiff / size * 2.f * pContainer->stateOnDown.scale;
+                auto ratioOnDown = pContainer->stateOnDown.scale.x / pContainer->stateOnDown.scale.y;
+                newScale.y = newScale.x / ratioOnDown;
             }
-            auto newScale = pContainer->stateOnDown.scale + localScaleDiff / size * 2.f * pContainer->stateOnDown.scale;
+            else
+            {
+                newScale = pContainer->stateOnDown.scale + localScaleDiff / size * 2.f * pContainer->stateOnDown.scale;
+            }
 
             pContainer->pNode->SetScale(newScale);
             updateProperties();
