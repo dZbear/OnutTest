@@ -1160,6 +1160,167 @@ void onOpen(const std::string& filename)
     markSaved();
 }
 
+// Bind toolbox actions
+void createSprite(const std::string& name)
+{
+    if (state != State::Idle) return;
+
+    // Undo/redo
+    std::shared_ptr<NodeContainer> pContainer = std::make_shared<NodeContainer>();
+    auto oldSelection = selection;
+    actionManager.doAction(new onut::ActionGroup("Create Sprite",
+    {
+        new onut::Action("",
+        [=]{ // OnRedo
+            auto pSprite = pEditingView->AddSprite(name);
+            pSprite->SetPosition(viewSize * .5f);
+
+            auto pTreeItem = new onut::UITreeViewItem();
+            pTreeItem->pSharedUserData = pContainer;
+            pTreeViewRoot->addItem(pTreeItem);
+
+            pContainer->pNode = pSprite;
+            pContainer->pTreeViewItem = pTreeItem;
+            nodesToContainers[pSprite] = pContainer;
+            markModified();
+        },
+            [=]{ // OnUndo
+            auto it = nodesToContainers.find(pContainer->pNode);
+            if (it != nodesToContainers.end()) nodesToContainers.erase(it);
+            pEditingView->DeleteNode(pContainer->pNode);
+            pTreeViewRoot->removeItem(pContainer->pTreeViewItem);
+            pContainer->pTreeViewItem = nullptr;
+            pContainer->pNode = nullptr;
+            markModified();
+        },
+            [=]{ // Init
+        },
+            [=]{ // Destroy
+        }),
+            new onut::Action("",
+            [=]{ // OnRedo
+            selection.clear();
+            selection.push_back(pContainer);
+            updateProperties();
+        },
+            [=]{ // OnUndo
+            selection = oldSelection;
+            updateProperties();
+        }),
+    }));
+}
+
+void createEmitter(const std::string& name)
+{
+    if (state != State::Idle) return;
+
+    // Undo/redo
+    std::shared_ptr<NodeContainer> pContainer = std::make_shared<NodeContainer>();
+    auto oldSelection = selection;
+    actionManager.doAction(new onut::ActionGroup("Create Emitter",
+    {
+        new onut::Action("",
+        [=]{ // OnRedo
+            auto pEmitter = pEditingView->AddEmitter(name);
+            pEmitter->SetPosition(viewSize * .5f);
+
+            auto pTreeItem = new onut::UITreeViewItem();
+            pTreeItem->pSharedUserData = pContainer;
+            pTreeViewRoot->addItem(pTreeItem);
+
+            pContainer->pNode = pEmitter;
+            pContainer->pTreeViewItem = pTreeItem;
+            nodesToContainers[pEmitter] = pContainer;
+            markModified();
+        },
+            [=]{ // OnUndo
+            auto it = nodesToContainers.find(pContainer->pNode);
+            if (it != nodesToContainers.end()) nodesToContainers.erase(it);
+            pEditingView->DeleteNode(pContainer->pNode);
+            pTreeViewRoot->removeItem(pContainer->pTreeViewItem);
+            pContainer->pTreeViewItem = nullptr;
+            pContainer->pNode = nullptr;
+            markModified();
+        },
+            [=]{ // Init
+        },
+            [=]{ // Destroy
+        }),
+            new onut::Action("",
+            [=]{ // OnRedo
+            selection.clear();
+            selection.push_back(pContainer);
+            updateProperties();
+        },
+            [=]{ // OnUndo
+            selection = oldSelection;
+            updateProperties();
+        }),
+    }));
+}
+
+void createSpriteString(const std::string& name)
+{
+    if (state != State::Idle) return;
+
+    // Undo/redo
+    std::shared_ptr<NodeContainer> pContainer = std::make_shared<NodeContainer>();
+    auto oldSelection = selection;
+    actionManager.doAction(new onut::ActionGroup("Create SpriteString",
+    {
+        new onut::Action("",
+        [=]{ // OnRedo
+            auto pSpriteString = pEditingView->AddSpriteString(name);
+            pSpriteString->SetPosition(viewSize * .5f);
+            pSpriteString->SetCaption("Text");
+
+            auto pTreeItem = new onut::UITreeViewItem();
+            pTreeItem->pSharedUserData = pContainer;
+            pTreeViewRoot->addItem(pTreeItem);
+
+            pContainer->pNode = pSpriteString;
+            pContainer->pTreeViewItem = pTreeItem;
+            nodesToContainers[pSpriteString] = pContainer;
+            markModified();
+        },
+            [=]{ // OnUndo
+            auto it = nodesToContainers.find(pContainer->pNode);
+            if (it != nodesToContainers.end()) nodesToContainers.erase(it);
+            pEditingView->DeleteNode(pContainer->pNode);
+            pTreeViewRoot->removeItem(pContainer->pTreeViewItem);
+            pContainer->pTreeViewItem = nullptr;
+            pContainer->pNode = nullptr;
+            markModified();
+        },
+            [=]{ // Init
+        },
+            [=]{ // Destroy
+        }),
+            new onut::Action("",
+            [=]{ // OnRedo
+            selection.clear();
+            selection.push_back(pContainer);
+            updateProperties();
+        },
+            [=]{ // OnUndo
+            selection = oldSelection;
+            updateProperties();
+        }),
+    }));
+}
+
+void startSelectedEmitters()
+{
+    for (auto pContainer : selection)
+    {
+        auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+        if (pEmitter)
+        {
+            pEmitter->Start();
+        }
+    }
+}
+
 void init()
 {
     curARROW = LoadCursor(nullptr, IDC_ARROW);
@@ -1979,150 +2140,17 @@ void init()
     // Bind toolbox actions
     pCreateSpriteBtn->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
-        if (state != State::Idle) return;
-
-        // Undo/redo
-        std::shared_ptr<NodeContainer> pContainer = std::make_shared<NodeContainer>();
-        auto oldSelection = selection;
-        actionManager.doAction(new onut::ActionGroup("Create Sprite",
-        {
-            new onut::Action("",
-                [=]{ // OnRedo
-                auto pSprite = pEditingView->AddSprite("default.png");
-                pSprite->SetPosition(viewSize * .5f);
-
-                auto pTreeItem = new onut::UITreeViewItem();
-                pTreeItem->pSharedUserData = pContainer;
-                pTreeViewRoot->addItem(pTreeItem);
-
-                pContainer->pNode = pSprite;
-                pContainer->pTreeViewItem = pTreeItem;
-                nodesToContainers[pSprite] = pContainer;
-                markModified();
-            },
-                [=]{ // OnUndo
-                auto it = nodesToContainers.find(pContainer->pNode);
-                if (it != nodesToContainers.end()) nodesToContainers.erase(it);
-                pEditingView->DeleteNode(pContainer->pNode);
-                pTreeViewRoot->removeItem(pContainer->pTreeViewItem);
-                pContainer->pTreeViewItem = nullptr;
-                pContainer->pNode = nullptr;
-                markModified();
-            },
-                [=]{ // Init
-            },
-                [=]{ // Destroy
-            }),
-            new onut::Action("",
-                [=]{ // OnRedo
-                selection.clear();
-                selection.push_back(pContainer);
-                updateProperties();
-            },
-                [=]{ // OnUndo
-                selection = oldSelection;
-                updateProperties();
-            }),
-        }));
+        createSprite("default.png");
     };
 
     pCreateEmitterBtn->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
-        if (state != State::Idle) return;
-
-        // Undo/redo
-        std::shared_ptr<NodeContainer> pContainer = std::make_shared<NodeContainer>();
-        auto oldSelection = selection;
-        actionManager.doAction(new onut::ActionGroup("Create Emitter",
-        {
-            new onut::Action("",
-                [=]{ // OnRedo
-                auto pEmitter = pEditingView->AddEmitter("");
-                pEmitter->SetPosition(viewSize * .5f);
-
-                auto pTreeItem = new onut::UITreeViewItem();
-                pTreeItem->pSharedUserData = pContainer;
-                pTreeViewRoot->addItem(pTreeItem);
-
-                pContainer->pNode = pEmitter;
-                pContainer->pTreeViewItem = pTreeItem;
-                nodesToContainers[pEmitter] = pContainer;
-                markModified();
-            },
-                [=]{ // OnUndo
-                auto it = nodesToContainers.find(pContainer->pNode);
-                if (it != nodesToContainers.end()) nodesToContainers.erase(it);
-                pEditingView->DeleteNode(pContainer->pNode);
-                pTreeViewRoot->removeItem(pContainer->pTreeViewItem);
-                pContainer->pTreeViewItem = nullptr;
-                pContainer->pNode = nullptr;
-                markModified();
-            },
-                [=]{ // Init
-            },
-                [=]{ // Destroy
-            }),
-            new onut::Action("",
-                [=]{ // OnRedo
-                selection.clear();
-                selection.push_back(pContainer);
-                updateProperties();
-            },
-                [=]{ // OnUndo
-                selection = oldSelection;
-                updateProperties();
-            }),
-        }));
+        createEmitter("");
     };
 
     pCreateSpriteStringBtn->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
-        if (state != State::Idle) return;
-
-        // Undo/redo
-        std::shared_ptr<NodeContainer> pContainer = std::make_shared<NodeContainer>();
-        auto oldSelection = selection;
-        actionManager.doAction(new onut::ActionGroup("Create SpriteString",
-        {
-            new onut::Action("",
-                [=]{ // OnRedo
-                auto pSpriteString = pEditingView->AddSpriteString("segeo12.fnt");
-                pSpriteString->SetPosition(viewSize * .5f);
-                pSpriteString->SetCaption("Text");
-
-                auto pTreeItem = new onut::UITreeViewItem();
-                pTreeItem->pSharedUserData = pContainer;
-                pTreeViewRoot->addItem(pTreeItem);
-
-                pContainer->pNode = pSpriteString;
-                pContainer->pTreeViewItem = pTreeItem;
-                nodesToContainers[pSpriteString] = pContainer;
-                markModified();
-            },
-                [=]{ // OnUndo
-                auto it = nodesToContainers.find(pContainer->pNode);
-                if (it != nodesToContainers.end()) nodesToContainers.erase(it);
-                pEditingView->DeleteNode(pContainer->pNode);
-                pTreeViewRoot->removeItem(pContainer->pTreeViewItem);
-                pContainer->pTreeViewItem = nullptr;
-                pContainer->pNode = nullptr;
-                markModified();
-            },
-                [=]{ // Init
-            },
-                [=]{ // Destroy
-            }),
-            new onut::Action("",
-                [=]{ // OnRedo
-                selection.clear();
-                selection.push_back(pContainer);
-                updateProperties();
-            },
-                [=]{ // OnUndo
-                selection = oldSelection;
-                updateProperties();
-            }),
-        }));
+        createSpriteString("segeo12.fnt");
     };
 
     pCreateNodeBtn->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
@@ -2737,14 +2765,7 @@ void init()
 
     OFindUI("btnStartEmitter")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
-        for (auto pContainer : selection)
-        {
-            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
-            if (pEmitter)
-            {
-                pEmitter->Start();
-            }
-        }
+        startSelectedEmitters();
     };
 
     OFindUI("btnStopEmitter")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
@@ -2769,6 +2790,26 @@ void init()
             onOpen(lastFile);
         }
     }
+
+    OWindow->onDrop = [](const std::string& fullPath)
+    {
+        auto filename = onut::getFilename(fullPath);
+        auto extension = onut::getExtension(filename);
+        if (extension == "PNG")
+        {
+            createSprite(filename);
+        }
+        else if (extension == "PEX" ||
+                 extension == "PFX")
+        {
+            createEmitter(filename);
+            startSelectedEmitters();
+        }
+        else if (extension == "FNT")
+        {
+            createSpriteString(filename);
+        }
+    };
 }
 
 void update()
