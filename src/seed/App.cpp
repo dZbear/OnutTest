@@ -1,4 +1,5 @@
 #include "App.h"
+#include "Node.h"
 #include "View.h"
 #include "onut.h"
 
@@ -23,8 +24,24 @@ namespace seed
 
     void App::Update()
     {
+        float screenRatio = OScreenWf / OScreenHf;
         for (View* v : m_viewStack)
         {
+            // Update the view root node transform to fit into the screen
+            const Vector2& viewSize = v->GetSize();
+            if (screenRatio >= 1.f)
+            {
+                float vRatio = OScreenHf / viewSize.y;
+                v->GetRootNode()->SetScale(Vector2(vRatio));
+                v->GetRootNode()->SetPosition(Vector2((OScreenWf - viewSize.x * vRatio) * .5f, 0.f));
+            }
+            else
+            {
+                float hRatio = OScreenWf / viewSize.x;
+                v->GetRootNode()->SetScale(Vector2(hRatio));
+                v->GetRootNode()->SetPosition(Vector2(0.f, (OScreenHf - viewSize.y * hRatio) * .5f));
+            }
+
             v->Update();
 
             CommandVect& viewCommands = v->GetQueuedCommands();

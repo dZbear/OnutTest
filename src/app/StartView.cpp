@@ -15,6 +15,8 @@ StartView::~StartView()
 
 void StartView::OnShow()
 {
+    SetSize(Vector2(OScreenWf, OScreenHf));
+
     seed::Sprite* spriteButton = AddSprite("button.png");
     spriteButton->SetPosition(OScreenCenterXf, OScreenCenterYf - 70.f);
 

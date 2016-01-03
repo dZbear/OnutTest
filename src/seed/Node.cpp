@@ -163,7 +163,7 @@ namespace seed
         UpdateChildren(m_fgChildren);
     }
 
-    void Node::Render(Matrix* in_parentMatrix)
+    void Node::Render(Matrix* in_parentMatrix, float in_parentAlpha)
     {
         if (!m_visible)
         {
@@ -182,10 +182,10 @@ namespace seed
         }
 
         // render bg children
-        RenderChildren(m_bgChildren, &transform);
+        RenderChildren(m_bgChildren, &transform, m_color.get().w * in_parentAlpha);
 
         // render fg children
-        RenderChildren(m_fgChildren, &transform);
+        RenderChildren(m_fgChildren, &transform, m_color.get().w * in_parentAlpha);
     }
 
     void Node::SetZindex(int in_zIndex)
@@ -335,11 +335,11 @@ namespace seed
         return m_parent;
     }
 
-    void Node::RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix)
+    void Node::RenderChildren(NodeVect& in_children, Matrix* in_parentMatrix, float in_parentAlpha)
     {
         for (Node* node : in_children)
         {
-            node->Render(in_parentMatrix);
+            node->Render(in_parentMatrix, in_parentAlpha);
         }
     }
 

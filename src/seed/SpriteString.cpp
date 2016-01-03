@@ -30,7 +30,7 @@ namespace seed
     }
 
 
-    void SpriteString::Render(Matrix* in_parentMatrix)
+    void SpriteString::Render(Matrix* in_parentMatrix, float in_parentAlpha)
     {
         // generate our matrix
         Matrix transform = Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
@@ -43,7 +43,7 @@ namespace seed
         }
 
         // render bg children
-        RenderChildren(m_bgChildren, &transform);
+        RenderChildren(m_bgChildren, &transform, m_color.get().w * in_parentAlpha);
 
         // render the string
         if (m_font && m_caption.length() > 0)
@@ -56,6 +56,7 @@ namespace seed
             OSpriteBatch->changeFiltering(m_filter);
 
             Color color = m_color;
+            color.w *= in_parentAlpha;
             if (m_blend == onut::SpriteBatch::eBlendMode::PreMultiplied) color.Premultiply();
             m_font->draw(m_caption, Vector2::Zero, color, OSpriteBatch, GetAlign());
             OSpriteBatch->end();
@@ -63,7 +64,7 @@ namespace seed
         }
 
         // render fg children
-        RenderChildren(m_fgChildren, &transform);
+        RenderChildren(m_fgChildren, &transform, m_color.get().w * in_parentAlpha);
     }
 
     void SpriteString::SetFont(OFont* in_font)

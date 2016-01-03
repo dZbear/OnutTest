@@ -311,10 +311,10 @@ void updateProperties()
 int CALLBACK WinMain(HINSTANCE appInstance, HINSTANCE prevInstance, LPSTR cmdLine, int cmdCount)
 {
     // Set default settings
-    OSettings->setBorderlessFullscreen(false);
     OSettings->setGameName("Seed Editor");
-    OSettings->setIsResizableWindow(false);
+    OSettings->setIsResizableWindow(true);
     OSettings->setResolution({1280, 720});
+    OSettings->setIsEditorMode(true);
 
     // Run
     ORun(init, update, render);
@@ -531,6 +531,18 @@ void updateTransformHandles()
 
             selectionCenter = Vector2::Transform(pNode->GetTransform().Translation(), getViewTransform());
         }
+    }
+}
+
+void onFocusSelection()
+{
+    if (!selection.empty() &&
+        state == State::Idle)
+    {
+        auto invViewTransform = getViewTransform().Invert();
+        auto worldRect = pMainView->getWorldRect(*OUIContext);
+        cameraPos = Vector2::Transform(selectionCenter, invViewTransform);
+        updateTransformHandles();
     }
 }
 
@@ -1317,6 +1329,7 @@ void startSelectedEmitters()
         if (pEmitter)
         {
             pEmitter->Start();
+            OSettings->setIsEditorMode(false);
         }
     }
 }
@@ -2805,18 +2818,38 @@ void init()
         if (extension == "PNG")
         {
             createSprite(filename);
+            onMenu(MENU_EDIT_FOCUS_SELECTION);
         }
         else if (extension == "PEX" ||
                  extension == "PFX")
         {
             createEmitter(filename);
             startSelectedEmitters();
+            onMenu(MENU_EDIT_FOCUS_SELECTION);
         }
         else if (extension == "FNT")
         {
             createSpriteString(filename);
+            onMenu(MENU_EDIT_FOCUS_SELECTION);
         }
     };
+
+    OWindow->onResize = [](const POINT& newSize)
+    {
+        updateTransformHandles();
+    };
+
+    OFindUI("btnToolNew")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_FILE_NEW); };
+    OFindUI("btnToolOpen")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_FILE_OPEN); };
+    OFindUI("btnToolSave")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_FILE_SAVE); };
+
+    OFindUI("btnToolCut")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_CUT); };
+    OFindUI("btnToolCopy")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_COPY); };
+    OFindUI("btnToolPaste")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_PASTE); };
+    OFindUI("btnToolDelete")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_DELETE); };
+
+    OFindUI("btnToolUndo")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_UNDO); };
+    OFindUI("btnToolRedo")->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event) {onMenu(MENU_EDIT_REDO); };
 }
 
 void update()
@@ -2866,4 +2899,16 @@ void update()
 
 void render()
 {
+    static const std::string spinner[] = {"/", "-", "\\", "|"};
+    static int spinnerIndex = 0;
+    spinnerIndex = (spinnerIndex + 1) % 4;
+    ((onut::UILabel*)OFindUI("renderSpinner"))->textComponent.text = spinner[spinnerIndex];
+
+    if (!OSettings->getIsEditorMode())
+    {
+        if (!OParticles->hasAliveParticles())
+        {
+            OSettings->setIsEditorMode(true);
+        }
+    }
 }
