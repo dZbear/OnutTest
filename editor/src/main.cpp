@@ -1943,7 +1943,7 @@ void init()
             changeSpriteProperty("Change Color", [color](std::shared_ptr<NodeContainer> pContainer)
             {
                 auto colorBefore = pContainer->pNode->GetColor();
-                pContainer->pNode->SetColor(Color(color.r, color.g, color.g, colorBefore.w));
+                pContainer->pNode->SetColor(Color(color.r, color.g, color.b, colorBefore.w));
             });
         }
     };
