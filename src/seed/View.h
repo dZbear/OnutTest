@@ -9,6 +9,7 @@ namespace seed
     class SpriteString;
     class Emitter;
     class SoundEmitter;
+    class MusicEmitter;
     class View
     {
     public:
@@ -22,6 +23,7 @@ namespace seed
         Emitter*        CreateEmitter(const string& in_fxName);
         SoundEmitter*   CreateSoundEmitter(const string& in_file);
         SoundEmitter*   CreateRandomSoundEmitter(const vector<string>& in_files);
+        MusicEmitter*   CreateMusicEmitter();
         Node*           CreateNode();
 
         void            AddNode(Node* in_node, Node* in_parent = nullptr, int in_zIndex = INT_MAX);

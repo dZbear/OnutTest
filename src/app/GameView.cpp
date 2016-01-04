@@ -3,6 +3,7 @@
 #include "Sprite.h"
 #include "SpriteString.h"
 #include "SoundEmitter.h"
+#include "MusicEmitter.h"
 
 GameView::GameView()
 {
@@ -39,6 +40,10 @@ void GameView::OnShow()
     testString->SetScale(Vector2(.05f, .05f));
     testString->SetPosition(0, 4);
     AddNode(testString, m_dude);
+
+    m_musicEmitter = CreateMusicEmitter();
+    AddNode(m_musicEmitter);
+    m_musicEmitter->Play("music.mp3", .7f, 3.f);
 }
 
 void GameView::OnHide()
@@ -108,5 +113,13 @@ void GameView::OnUpdate()
     if (OJustPressed(OINPUT_0))
     {
         m_sndEmitter->Play(false);
+    }
+
+    if (OJustPressed(OINPUT_1))
+    {
+        static string s_toPlay = "fight.mp3";
+        m_musicEmitter->Play(s_toPlay, .7f, 3.f);
+
+        s_toPlay = s_toPlay == "fight.mp3" ? "music.mp3" : "fight.mp3";
     }
 }

@@ -3,6 +3,7 @@
 #include "SpriteString.h"
 #include "Emitter.h"
 #include "SoundEmitter.h"
+#include "MusicEmitter.h"
 #include "Button.h"
 #include "onut.h"
 #include "tinyxml2.h"
@@ -11,7 +12,7 @@
 
 namespace seed
 {
-    static const uintptr_t VIEW_DEFAULT_NODE_MAX_SIZE = onut::max(sizeof(Node), sizeof(Sprite), sizeof(SpriteString), sizeof(Emitter), sizeof(SoundEmitter));
+    static const uintptr_t VIEW_DEFAULT_NODE_MAX_SIZE = onut::max(sizeof(Node), sizeof(Sprite), sizeof(SpriteString), sizeof(Emitter), sizeof(SoundEmitter), sizeof(MusicEmitter));
 
     View::View()
         : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)
@@ -337,6 +338,13 @@ namespace seed
 
         m_pooledNodes.push_back(newSoundEmitter);
         return newSoundEmitter;
+    }
+
+    MusicEmitter* View::CreateMusicEmitter()
+    {
+        MusicEmitter* newMusicEmitter = m_nodePool.alloc<MusicEmitter>();
+        m_pooledNodes.push_back(newMusicEmitter);
+        return newMusicEmitter;
     }
 
     Button* View::AddButton(Sprite* in_sprite, const string& in_cmd)
