@@ -4,6 +4,7 @@
 #include "SpriteString.h"
 #include "SoundEmitter.h"
 #include "MusicEmitter.h"
+#include "Video.h"
 
 GameView::GameView()
 {
@@ -44,6 +45,10 @@ void GameView::OnShow()
     m_musicEmitter = CreateMusicEmitter();
     AddNode(m_musicEmitter);
     m_musicEmitter->Play("music.mp3", .7f, 3.f);
+
+    m_video = CreateVideo();
+    m_video->Play("https://download.blender.org/durian/trailer/sintel_trailer-720p.mp4");
+    AddNode(m_video, m_dude, -2);
 }
 
 void GameView::OnHide()

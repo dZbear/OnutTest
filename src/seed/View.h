@@ -10,6 +10,7 @@ namespace seed
     class Emitter;
     class SoundEmitter;
     class MusicEmitter;
+    class Video;
     class View
     {
     public:
@@ -24,6 +25,7 @@ namespace seed
         SoundEmitter*   CreateSoundEmitter(const string& in_file);
         SoundEmitter*   CreateRandomSoundEmitter(const vector<string>& in_files);
         MusicEmitter*   CreateMusicEmitter();
+        Video*          CreateVideo();
         Node*           CreateNode();
 
         void            AddNode(Node* in_node, Node* in_parent = nullptr, int in_zIndex = INT_MAX);

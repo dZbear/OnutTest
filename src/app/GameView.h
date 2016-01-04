@@ -4,6 +4,7 @@
 class MusicEmitter;
 class SoundEmitter;
 class Emitter;
+class Video;
 class GameView : public seed::View
 {
 public:
@@ -23,5 +24,6 @@ private:
 
     seed::SoundEmitter* m_sndEmitter;
     seed::MusicEmitter* m_musicEmitter;
+    seed::Video*        m_video;
 
 };
