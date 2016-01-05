@@ -33,7 +33,7 @@ namespace seed
         copy->SetLoops(GetLoops());
         if (m_currentTrack)
         {
-            copy->Play(m_file, m_volume.get());
+            copy->Play(m_source, m_volume.get());
         }
     }
     
@@ -47,11 +47,11 @@ namespace seed
 
     void MusicEmitter::Play(const string& in_mp3File, float in_volume, float in_fadeTime)
     {
-        if (m_file == in_mp3File)
+        if (m_source == in_mp3File)
         {
             return; // music already playing
         }
-        m_file = in_mp3File;
+        m_source = in_mp3File;
 
         // check if music is already playing
         if (m_currentTrack)
@@ -136,9 +136,9 @@ namespace seed
         }
     }
 
-    const string& MusicEmitter::GetFile() const
+    const string& MusicEmitter::GetSource() const
     {
-        return m_file;
+        return m_source;
     }
 
     tinyxml2::XMLElement* MusicEmitter::Serialize(tinyxml2::XMLDocument* in_xmlDoc) const
@@ -146,7 +146,7 @@ namespace seed
         tinyxml2::XMLElement *xmlNode = Node::Serialize(in_xmlDoc);
 
         xmlNode->SetName("MusicEmitter");
-        xmlNode->SetAttribute("file", GetFile().c_str());
+        xmlNode->SetAttribute("source", GetSource().c_str());
         xmlNode->SetAttribute("volume", m_volume.get());
         xmlNode->SetAttribute("loops", m_loops);
 
@@ -157,13 +157,19 @@ namespace seed
     {
         Node::Deserialize(view, in_xmlNode);
 
-        m_file = in_xmlNode->Attribute("file");
-        float volume;
+        const char* szSource = in_xmlNode->Attribute("source");
+        if (szSource)
+        {
+            m_source = szSource;
+        }
+
+        float volume = GetVolume();
         in_xmlNode->QueryFloatAttribute("volume", &volume);
-        m_volume = volume;
+        SetVolume(volume);
 
-        in_xmlNode->QueryBoolAttribute("loops", &m_loops);
-
+        bool loops = GetLoops();
+        in_xmlNode->QueryBoolAttribute("loops", &loops);
+        SetLoops(loops);
     }
 
     void MusicEmitter::SetVolume(float in_volume, float in_fadeTime)
@@ -226,7 +232,7 @@ namespace seed
             if (m_currentTrack->isDone())
             {
                 OLog("Looping music");
-                m_currentTrack->play(m_file);
+                m_currentTrack->play(m_source);
             }
         }
     }

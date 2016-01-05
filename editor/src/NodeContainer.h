@@ -1,6 +1,7 @@
 #pragma once
 #include <onut.h>
 #include "seed/Emitter.h"
+#include "seed/SoundEmitter.h"
 #include "seed/Sprite.h"
 #include "seed/SpriteString.h"
 #include "seed/View.h"
@@ -17,6 +18,7 @@ struct NodeState
         Sprite,
         SpriteString,
         Emitter,
+        SoundEmitter,
     };
 
     std::string texture;
@@ -40,6 +42,10 @@ struct NodeState
     onut::SpriteBatch::eBlendMode blend;
     onut::SpriteBatch::eFiltering filtering;
     bool emitWorld = true;
+    bool loop = false;
+    float volume = 1.f;
+    float balance = 0.f;
+    float pitch = 1.f;
 
     NodeState() { }
     NodeState(const NodeState& copy);
@@ -80,6 +86,10 @@ inline NodeState::NodeState(const NodeState& copy)
     blend = copy.blend;
     filtering = copy.filtering;
     emitWorld = copy.emitWorld;
+    loop = copy.loop;
+    volume = copy.volume;
+    balance = copy.balance;
+    pitch = copy.pitch;
 }
 
 extern std::unordered_map<seed::Node*, std::shared_ptr<NodeContainer>> nodesToContainers;
@@ -91,6 +101,7 @@ inline NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool s
     auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
     auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
     auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+    auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
     if (pSprite)
     {
         texture = "";
@@ -118,6 +129,14 @@ inline NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool s
         filtering = pEmitter->GetFilter();
         emitWorld = pEmitter->GetEmitWorld();
         nodeType = NodeType::Emitter;
+    }
+    else if (pSoundEmitter)
+    {
+        //loop = pSoundEmitter->GetLoop();
+        volume = pSoundEmitter->GetVolume();
+        balance = pSoundEmitter->GetBalance();
+        pitch = pSoundEmitter->GetPitch();
+        nodeType = NodeType::SoundEmitter;
     }
     name = pContainer->pNode->GetName();
     position = pContainer->pNode->GetPosition();
@@ -177,24 +196,28 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
         switch (nodeType)
         {
             case NodeType::Node:
-                pContainer->pNode = pEditingView->AddNewNode(pParent->pNode);
+                pContainer->pNode = pEditingView->CreateNode();
                 break;
             case NodeType::Sprite:
-                pContainer->pNode = pEditingView->AddSprite(texture, pParent->pNode);
+                pContainer->pNode = pEditingView->CreateSprite(texture);
                 break;
             case NodeType::SpriteString:
             {
                 std::string fontName;
                 if (pFont) fontName = pFont->getName();
-                pContainer->pNode = pEditingView->AddSpriteString(fontName, pParent->pNode);
+                pContainer->pNode = pEditingView->CreateSpriteString(fontName);
                 break;
             }
             case NodeType::Emitter:
-                pContainer->pNode = pEditingView->AddEmitter(texture, pParent->pNode);
+                pContainer->pNode = pEditingView->CreateEmitter(texture);
+                break;
+            case NodeType::SoundEmitter:
+                pContainer->pNode = pEditingView->CreateSoundEmitter(texture);
                 break;
             default:
                 assert(false);
         }
+        pEditingView->AddNode(pContainer->pNode, pParent->pNode);
         nodesToContainers[pContainer->pNode] = pContainer;
         pContainer->pTreeViewItem = new onut::UITreeViewItem();
         pContainer->pTreeViewItem->pSharedUserData = pContainer;
@@ -234,6 +257,16 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
             pEmitter->SetBlend(blend);
             pEmitter->SetFilter(filtering);
             pEmitter->SetEmitWorld(emitWorld);
+            break;
+        }
+        case NodeType::SoundEmitter:
+        {
+            auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
+            assert(pSoundEmitter);
+            pSoundEmitter->Init(texture);
+            pSoundEmitter->SetVolume(volume);
+            pSoundEmitter->SetBalance(balance);
+            pSoundEmitter->SetPitch(pitch);
             break;
         }
     }

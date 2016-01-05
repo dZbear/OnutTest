@@ -5,10 +5,12 @@
 namespace seed
 {
     Video::Video()
-        : m_videoTarget(nullptr)
-        , m_videoPlayer(nullptr)
+        : m_dimensions(Vector2(320.f, 240.f))
         , m_playRate(1.0)
         , m_loops(false)
+        , m_volume(1.f)
+        , m_videoTarget(nullptr)
+        , m_videoPlayer(nullptr)
     {
     }
 
@@ -29,7 +31,17 @@ namespace seed
     {
         Node::Copy(in_copy);
         Video* copy = (Video*)in_copy;
-        
+
+        copy->SetSource(m_source);
+        copy->SetDimensions(m_dimensions);
+        copy->SetPlayRate(m_playRate);
+        copy->SetLoops(m_loops);
+        copy->SetVolume(m_volume);
+
+        if (IsPlaying())
+        {
+            copy->Play();
+        }
     }
     
     void Video::Update()
@@ -62,32 +74,31 @@ namespace seed
         // render bg children
         RenderChildren(m_bgChildren, &transform, m_color.get().w * in_parentAlpha);
 
-        // temp until i figure this out
-        m_dimensions = m_videoTarget->getSizef();
-
         // render the video
-        Rect rect;
-        rect.x = transform.Translation().x;
-        rect.y = transform.Translation().y;
-        rect.z = m_dimensions.x;
-        rect.w = m_dimensions.y;
+        if (m_videoTarget)
+        {
+            const Vector2& dimensions = m_dimensions;
+            Rect rect;
+            rect.x = transform.Translation().x - dimensions.x * .5f;
+            rect.y = transform.Translation().y - dimensions.y * .5f;
+            rect.z = dimensions.x;
+            rect.w = dimensions.y;
 
-        OSB->drawRect(m_videoTarget, rect);
-
+            OSB->drawRect(m_videoTarget, ORectFit(rect, m_videoTarget->getSize()));
+        }
 
         // render fg children
         RenderChildren(m_fgChildren, &transform, m_color.get().w * in_parentAlpha);
     }
 
-
-    void Video::Play(const string& in_source)
+    void Video::SetSource(const string& source)
     {
-        if (m_source == in_source)
-        {
-            return; // video already playing
-        }
-        m_source = in_source;
+        if (m_source == source) return;
+        m_source = source;
+    }
 
+    void Video::Play()
+    {
         // Create a render target that the video will render to
         if (!m_videoTarget)
         {
@@ -102,7 +113,9 @@ namespace seed
         }
         m_videoPlayer = OPlayer::Create();
         m_videoPlayer->init(m_videoTarget);
+        m_videoPlayer->setLoop(m_loops);
         m_videoPlayer->setSource(m_source);
+        m_videoPlayer->setVolume(m_volume);
         m_videoPlayer->play();
     }
 
@@ -122,6 +135,12 @@ namespace seed
         }
     }
 
+    bool Video::IsPlaying() const
+    {
+        if (!m_videoPlayer) return false;
+        return m_videoPlayer->isPlaying();
+    }
+
     const string& Video::GetSource() const
     {
         return m_source;
@@ -136,7 +155,7 @@ namespace seed
         }
     }
 
-    double Video::GetPlayRate()
+    double Video::GetPlayRate() const
     {
         return m_playRate;
     }
@@ -150,7 +169,7 @@ namespace seed
         }
     }
 
-    bool Video::GetLoops()
+    bool Video::GetLoops() const
     {
         return m_loops;
     }
@@ -160,20 +179,46 @@ namespace seed
         m_dimensions = in_dimensions;
     }
 
-    Vector2& Video::GetDimensions()
+    const Vector2& Video::GetDimensions() const
     {
         return m_dimensions;
     }
 
+    OAnim2& Video::GetDimensionsAnim()
+    {
+        return m_dimensions;
+    }
+
+    void Video::SetVolume(float in_volume)
+    {
+        m_volume = in_volume;
+        if (m_videoPlayer)
+        {
+            m_videoPlayer->setVolume(m_volume);
+        }
+    }
+
+    float Video::GetVolume() const
+    {
+        return m_volume;
+    }
+
+    OAnimf& Video::GetVolumeAnim()
+    {
+        return m_volume;
+    }
 
     tinyxml2::XMLElement* Video::Serialize(tinyxml2::XMLDocument* in_xmlDoc) const
     {
         tinyxml2::XMLElement *xmlNode = Node::Serialize(in_xmlDoc);
 
-        //xmlNode->SetName("Video");
-        //xmlNode->SetAttribute("file", GetFile().c_str());
-        //xmlNode->SetAttribute("volume", m_volume.get());
-        //xmlNode->SetAttribute("loops", m_loops);
+        xmlNode->SetName("Video");
+        xmlNode->SetAttribute("source", GetSource().c_str());
+        xmlNode->SetAttribute("loops", m_loops);
+        xmlNode->SetAttribute("width", m_dimensions.get().x);
+        xmlNode->SetAttribute("height", m_dimensions.get().y);
+        xmlNode->SetAttribute("volume", m_volume.get());
+        xmlNode->SetAttribute("playRate", m_playRate);
 
         return xmlNode;
     }
@@ -182,12 +227,27 @@ namespace seed
     {
         Node::Deserialize(view, in_xmlNode);
 
-        //m_file = in_xmlNode->Attribute("file");
-        //float volume;
-        //in_xmlNode->QueryFloatAttribute("volume", &volume);
-        //m_volume = volume;
+        const char* szSource = in_xmlNode->Attribute("source");
+        if (szSource)
+        {
+            m_source = szSource;
+        }
 
-        //in_xmlNode->QueryBoolAttribute("loops", &m_loops);
+        bool loops = GetLoops();
+        in_xmlNode->QueryBoolAttribute("loops", &loops);
+        SetLoops(loops);
 
+        Vector2 dimensions = GetDimensions();
+        in_xmlNode->QueryFloatAttribute("width", &dimensions.x);
+        in_xmlNode->QueryFloatAttribute("height", &dimensions.y);
+        SetDimensions(dimensions);
+
+        float volume = GetVolume();
+        in_xmlNode->QueryFloatAttribute("volume", &volume);
+        SetVolume(volume);
+
+        double rate = GetPlayRate();
+        in_xmlNode->QueryDoubleAttribute("playRate", &rate);
+        SetPlayRate(rate);
     }
 }
