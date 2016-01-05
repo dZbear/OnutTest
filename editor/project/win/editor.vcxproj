@@ -87,6 +87,7 @@
     <ClCompile Include="..\..\..\src\seed\Button.cpp" />
     <ClCompile Include="..\..\..\src\seed\Emitter.cpp" />
     <ClCompile Include="..\..\..\src\seed\Node.cpp" />
+    <ClCompile Include="..\..\..\src\seed\SoundEmitter.cpp" />
     <ClCompile Include="..\..\..\src\seed\Sprite.cpp" />
     <ClCompile Include="..\..\..\src\seed\SpriteString.cpp" />
     <ClCompile Include="..\..\..\src\seed\View.cpp" />
@@ -105,6 +106,7 @@
     <ClInclude Include="..\..\..\src\seed\Emitter.h" />
     <ClInclude Include="..\..\..\src\seed\Node.h" />
     <ClInclude Include="..\..\..\src\seed\SeedGlobals.h" />
+    <ClInclude Include="..\..\..\src\seed\SoundEmitter.h" />
     <ClInclude Include="..\..\..\src\seed\Sprite.h" />
     <ClInclude Include="..\..\..\src\seed\SpriteString.h" />
     <ClInclude Include="..\..\..\src\seed\View.h" />

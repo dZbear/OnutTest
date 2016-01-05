@@ -13,7 +13,14 @@
 
 namespace seed
 {
-    static const uintptr_t VIEW_DEFAULT_NODE_MAX_SIZE = onut::max(sizeof(Node), sizeof(Sprite), sizeof(SpriteString), sizeof(Emitter), sizeof(SoundEmitter), sizeof(MusicEmitter), sizeof(Video));
+    static const uintptr_t VIEW_DEFAULT_NODE_MAX_SIZE = onut::max(
+        sizeof(Node), 
+        sizeof(Sprite), 
+        sizeof(SpriteString), 
+        sizeof(Emitter), 
+        sizeof(SoundEmitter), 
+        sizeof(MusicEmitter), 
+        sizeof(Video));
 
     View::View()
         : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)

@@ -1184,7 +1184,8 @@ void createSprite(const std::string& name)
     {
         new onut::Action("",
         [=]{ // OnRedo
-            auto pSprite = pEditingView->AddSprite(name);
+            auto pSprite = pEditingView->CreateSprite(name);
+            pEditingView->AddNode(pSprite);
             pSprite->SetPosition(viewSize * .5f);
 
             auto pTreeItem = new onut::UITreeViewItem();
@@ -1233,7 +1234,8 @@ void createEmitter(const std::string& name)
     {
         new onut::Action("",
         [=]{ // OnRedo
-            auto pEmitter = pEditingView->AddEmitter(name);
+            auto pEmitter = pEditingView->CreateEmitter(name);
+            pEditingView->AddNode(pEmitter);
             pEmitter->SetPosition(viewSize * .5f);
 
             auto pTreeItem = new onut::UITreeViewItem();
@@ -1282,7 +1284,8 @@ void createSpriteString(const std::string& name)
     {
         new onut::Action("",
         [=]{ // OnRedo
-            auto pSpriteString = pEditingView->AddSpriteString(name);
+            auto pSpriteString = pEditingView->CreateSpriteString(name);
+            pEditingView->AddNode(pSpriteString);
             pSpriteString->SetPosition(viewSize * .5f);
             pSpriteString->SetCaption("Text");
 
@@ -2177,7 +2180,8 @@ void init()
         {
             new onut::Action("",
                 [=]{ // OnRedo
-                auto pNode = pEditingView->AddNewNode();
+                auto pNode = pEditingView->CreateNode();
+                pEditingView->AddNode(pNode);
                 pNode->SetPosition(viewSize * .5f);
 
                 auto pTreeItem = new onut::UITreeViewItem();

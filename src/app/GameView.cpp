@@ -47,7 +47,9 @@ void GameView::OnShow()
     m_musicEmitter->Play("music.mp3", .7f, 3.f);
 
     m_video = CreateVideo();
-    m_video->Play("https://download.blender.org/durian/trailer/sintel_trailer-720p.mp4");
+    m_video->SetVolume(0.f);
+    m_video->SetSource("https://download.blender.org/durian/trailer/sintel_trailer-720p.mp4");
+    m_video->Play();
     AddNode(m_video, m_dude, -2);
 }
 
@@ -117,7 +119,7 @@ void GameView::OnUpdate()
 
     if (OJustPressed(OINPUT_0))
     {
-        m_sndEmitter->Play(false);
+        m_sndEmitter->Play();
     }
 
     if (OJustPressed(OINPUT_1))

@@ -5,21 +5,21 @@
 namespace seed
 {
     SoundEmitter::SoundEmitter()
-        : m_balance(0.f)
+        : m_isCue(false)
+        , m_loops(false)
         , m_volume(1.f)
         , m_volumeFactor(1.f)
+        , m_balance(0.f)
         , m_pitch(1.f)
         , m_positionBasedBalance(false)
         , m_positionBasedVolume(false)
         , m_soundInstance(nullptr)
-        , m_isCue(false)
-        , m_looping(false)
     {
     }
 
     SoundEmitter::~SoundEmitter()
     {
-
+        delete m_soundInstance;
     }
 
     Node* SoundEmitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
@@ -35,26 +35,28 @@ namespace seed
         Node::Copy(in_copy);
         SoundEmitter* copy = (SoundEmitter*)in_copy;
         
-        copy->Init(GetFile());
+        copy->Init(GetSource());
+        copy->SetLoops(GetLoops());
         copy->SetVolume(GetVolume());
         copy->SetPitch(GetPitch());
         copy->SetBalance(GetBalance());
         copy->SetPositionBasedBalance(GetPositionBasedBalance());
         copy->SetPositionBasedVolume(GetPositionBasedVolume());
+        copy->GetRandomFiles() = m_randomFiles;
 
         if (m_soundInstance)
         {
             if (m_soundInstance->isPlaying())
             {
-                copy->Play(m_looping);
+                copy->Play();
             }
         }
     }
 
     void SoundEmitter::Init(const string& in_file)
     {
-        m_file = in_file;
-        string extension = onut::toLower(onut::getExtension(m_file));
+        m_source = in_file;
+        string extension = onut::toLower(onut::getExtension(m_source));
         if (extension == "xml")
         {
             m_isCue = true;
@@ -62,7 +64,7 @@ namespace seed
         else
         {
             m_isCue = false;
-            m_soundInstance = OCreateSoundInstance(m_file.c_str());
+            m_soundInstance = OCreateSoundInstance(m_source.c_str());
         }
     }
 
@@ -123,11 +125,11 @@ namespace seed
     }
 
 
-    void SoundEmitter::Play(bool in_loop)
+    void SoundEmitter::Play()
     {
         if (m_isCue)
         {
-            OPlaySoundCue(m_file.c_str(), m_volume * m_volumeFactor, m_balance);
+            OPlaySoundCue(m_source.c_str(), m_volume * m_volumeFactor, m_balance);
             return;
         }
         else if (m_randomFiles.size())
@@ -140,10 +142,10 @@ namespace seed
 
         if (!m_soundInstance && !m_isCue)
         {
-            Init(m_file);
+            Init(m_source);
             if (!m_soundInstance)
             {
-                OLogE("Error calling SoundEmitter::Play for file named '" + m_file + "'");
+                OLogE("Error calling SoundEmitter::Play for file named '" + m_source + "'");
                 return;
             }
         }
@@ -153,8 +155,7 @@ namespace seed
             m_soundInstance->stop();
         }
 
-        m_soundInstance->setLoop(in_loop);
-        m_looping = in_loop;
+        m_soundInstance->setLoop(m_loops);
         UpdateSoundParams();
         m_soundInstance->play();
     }
@@ -165,12 +166,22 @@ namespace seed
         {
             m_soundInstance->stop();
         }
-        m_looping = false;
+        m_loops = false;
     }
 
-    const string& SoundEmitter::GetFile() const
+    const string& SoundEmitter::GetSource() const
     {
-        return m_file;
+        return m_source;
+    }
+
+    vector<string>& SoundEmitter::GetRandomFiles()
+    {
+        return m_randomFiles;
+    }
+
+    const vector<string>& SoundEmitter::GetRandomFiles() const
+    {
+        return m_randomFiles;
     }
 
     tinyxml2::XMLElement* SoundEmitter::Serialize(tinyxml2::XMLDocument* in_xmlDoc) const
@@ -178,9 +189,9 @@ namespace seed
         tinyxml2::XMLElement *xmlNode = Node::Serialize(in_xmlDoc);
 
         xmlNode->SetName("SoundEmitter");
-        xmlNode->SetAttribute("file", GetFile().c_str());
-        xmlNode->SetAttribute("volume", m_volume);
-        xmlNode->SetAttribute("pitch", m_pitch);
+        xmlNode->SetAttribute("source", GetSource().c_str());
+        xmlNode->SetAttribute("volume", m_volume.get());
+        xmlNode->SetAttribute("pitch", m_pitch.get());
         xmlNode->SetAttribute("balance", m_balance);
         xmlNode->SetAttribute("positionBasedBalance", m_positionBasedBalance);
         xmlNode->SetAttribute("positionBasedVolume", m_positionBasedVolume);
@@ -192,12 +203,31 @@ namespace seed
     {
         Node::Deserialize(view, in_xmlNode);
 
-        m_file = in_xmlNode->Attribute("file");
-        in_xmlNode->QueryFloatAttribute("volume", &m_volume);
-        in_xmlNode->QueryFloatAttribute("pitch", &m_pitch);
-        in_xmlNode->QueryFloatAttribute("balance", &m_balance);
-        in_xmlNode->QueryBoolAttribute("positionBasedBalance", &m_positionBasedBalance);
-        in_xmlNode->QueryBoolAttribute("positionBasedVolume", &m_positionBasedVolume);
+        const char* szSource = in_xmlNode->Attribute("source");
+        if (szSource)
+        {
+            m_source = szSource;
+        }
+
+        float volume = GetVolume();
+        in_xmlNode->QueryFloatAttribute("volume", &volume);
+        SetVolume(volume);
+
+        float pitch = GetPitch();
+        in_xmlNode->QueryFloatAttribute("pitch", &pitch);
+        SetPitch(pitch);
+
+        float balance = GetBalance();
+        in_xmlNode->QueryFloatAttribute("balance", &balance);
+        SetBalance(balance);
+
+        bool positionBasedBalance = GetPositionBasedBalance();
+        in_xmlNode->QueryBoolAttribute("positionBasedBalance", &positionBasedBalance);
+        SetPositionBasedBalance(positionBasedBalance);
+
+        bool positionBasedVolume = GetPositionBasedVolume();
+        in_xmlNode->QueryBoolAttribute("positionBasedVolume", &positionBasedVolume);
+        SetPositionBasedVolume(positionBasedVolume);
     }
 
     void SoundEmitter::SetVolume(float in_volume)
@@ -206,9 +236,24 @@ namespace seed
         UpdateSoundParams();
     }
 
-    float SoundEmitter::GetVolume()
+    float SoundEmitter::GetVolume() const
     {
         return m_volume;
+    }
+
+    OAnimf& SoundEmitter::GetVolumeAnim()
+    {
+        return m_volume;
+    }
+
+    void SoundEmitter::SetLoops(bool in_loops)
+    {
+        m_loops = in_loops;
+    }
+
+    bool SoundEmitter::GetLoops() const
+    {
+        return m_loops;
     }
 
     void SoundEmitter::SetBalance(float in_balance)
@@ -217,7 +262,7 @@ namespace seed
         UpdateSoundParams();
     }
 
-    float SoundEmitter::GetBalance()
+    float SoundEmitter::GetBalance() const
     {
         return m_balance;
     }
@@ -228,7 +273,7 @@ namespace seed
         UpdateSoundParams();
     }
 
-    float SoundEmitter::GetPitch()
+    float SoundEmitter::GetPitch() const
     {
         return m_pitch;
     }
@@ -238,7 +283,7 @@ namespace seed
         m_positionBasedBalance = in_positionBased;
     }
 
-    bool SoundEmitter::GetPositionBasedBalance()
+    bool SoundEmitter::GetPositionBasedBalance() const
     {
         return m_positionBasedBalance;
     }
@@ -248,7 +293,7 @@ namespace seed
         m_positionBasedVolume = in_positionBased;
     }
 
-    bool SoundEmitter::GetPositionBasedVolume()
+    bool SoundEmitter::GetPositionBasedVolume() const
     {
         return m_positionBasedVolume;
     }

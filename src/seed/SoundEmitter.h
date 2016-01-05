@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Node.h"
+#include <memory>
 
 namespace seed
 {
@@ -17,20 +18,25 @@ namespace seed
 
         void    Init(const string& in_file);    // can be .wav or .xml for sound cues
         void    Init(const vector<string>& in_randomFiles);    // vector of .wav to randomize from
-        void    Play(bool in_loop=false);
+        void    Play();
         void    Stop();
         void    SetVolume(float in_volume);
-        float   GetVolume();
+        float   GetVolume() const;
+        OAnimf& GetVolumeAnim();
         void    SetBalance(float in_balance);
-        float   GetBalance();
+        float   GetBalance() const;
         void    SetPitch(float in_pitch);
-        float   GetPitch();
+        float   GetPitch() const;
+        void    SetLoops(bool in_loops);
+        bool    GetLoops() const;
         void    SetPositionBasedBalance(bool in_positionBased);
-        bool    GetPositionBasedBalance();
+        bool    GetPositionBasedBalance() const;
         void    SetPositionBasedVolume(bool in_positionBased);
-        bool    GetPositionBasedVolume();
+        bool    GetPositionBasedVolume() const;
 
-        const string&       GetFile() const;
+        const string&           GetSource() const;
+        vector<string>&         GetRandomFiles();
+        const vector<string>&   GetRandomFiles() const;
 
         // only to be used by the seed sdk
         virtual void        Update() override;
@@ -39,13 +45,13 @@ namespace seed
 
         virtual void        Copy(Node* in_copy);
 
-        string              m_file;
+        string              m_source;
         bool                m_isCue;
-        bool                m_looping;
-        float               m_volume;
+        bool                m_loops;
+        OAnimf              m_volume;
         float               m_volumeFactor;
         float               m_balance;
-        float               m_pitch;
+        OAnimf              m_pitch;
         bool                m_positionBasedBalance;
         bool                m_positionBasedVolume;
         OSoundInstance*     m_soundInstance;
