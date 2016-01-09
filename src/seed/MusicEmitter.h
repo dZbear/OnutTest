@@ -15,7 +15,8 @@ namespace seed
         virtual tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const;
         virtual void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode);
 
-        void    Play(const string& in_mp3File, float in_volume=1.f, float in_fadeTime=0.f);
+        void    Play(const string& in_mp3File, float in_volume = 1.f, float in_fadeTime = 0.f);
+        void    Play(float in_volume = 1.f, float in_fadeTime = 0.f);
         void    Stop(float in_fadeTime = 0.f);
         void    Pause();
         void    Resume();
@@ -24,6 +25,7 @@ namespace seed
         void    SetLoops(bool in_loops);
         bool    GetLoops();
 
+        void                SetSource(const std::string& source);
         const string&       GetSource() const;
 
         // only to be used by the seed sdk
@@ -34,6 +36,7 @@ namespace seed
         virtual void        Copy(Node* in_copy);
 
         string              m_source;
+        string              m_playingSource;
         OAnim<float>        m_volume;
         OAnim<float>        m_lastTrackVolume;
         bool                m_loops;

@@ -55,9 +55,14 @@ namespace seed
 
     void SoundEmitter::Init(const string& in_file)
     {
+        if (m_soundInstance)
+        {
+            delete m_soundInstance;
+            m_soundInstance = nullptr;
+        }
         m_source = in_file;
         string extension = onut::toLower(onut::getExtension(m_source));
-        if (extension == "xml")
+        if (extension == "cue")
         {
             m_isCue = true;
         }
@@ -66,6 +71,7 @@ namespace seed
             m_isCue = false;
             m_soundInstance = OCreateSoundInstance(m_source.c_str());
         }
+        UpdateSoundParams();
     }
 
     void SoundEmitter::Init(const vector<string>& in_randomFiles)
@@ -193,6 +199,7 @@ namespace seed
         xmlNode->SetAttribute("volume", m_volume.get());
         xmlNode->SetAttribute("pitch", m_pitch.get());
         xmlNode->SetAttribute("balance", m_balance);
+        xmlNode->SetAttribute("loops", m_loops);
         xmlNode->SetAttribute("positionBasedBalance", m_positionBasedBalance);
         xmlNode->SetAttribute("positionBasedVolume", m_positionBasedVolume);
 
@@ -220,6 +227,10 @@ namespace seed
         float balance = GetBalance();
         in_xmlNode->QueryFloatAttribute("balance", &balance);
         SetBalance(balance);
+
+        bool loops = GetLoops();
+        in_xmlNode->QueryBoolAttribute("loops", &loops);
+        SetLoops(loops);
 
         bool positionBasedBalance = GetPositionBasedBalance();
         in_xmlNode->QueryBoolAttribute("positionBasedBalance", &positionBasedBalance);

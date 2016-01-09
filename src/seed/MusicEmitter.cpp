@@ -33,7 +33,7 @@ namespace seed
         copy->SetLoops(GetLoops());
         if (m_currentTrack)
         {
-            copy->Play(m_source, m_volume.get());
+            copy->Play(m_playingSource, m_volume.get());
         }
     }
     
@@ -44,14 +44,18 @@ namespace seed
         UpdateLooping();
     }
 
+    void MusicEmitter::Play(float in_volume, float in_fadeTime)
+    {
+        Play(GetSource(), in_volume, in_fadeTime);
+    }
 
     void MusicEmitter::Play(const string& in_mp3File, float in_volume, float in_fadeTime)
     {
-        if (m_source == in_mp3File)
+        if (m_playingSource == in_mp3File && m_currentTrack)
         {
             return; // music already playing
         }
-        m_source = in_mp3File;
+        m_playingSource = in_mp3File;
 
         // check if music is already playing
         if (m_currentTrack)
@@ -128,12 +132,17 @@ namespace seed
             m_lastTrackVolume = m_volume.get();
             m_lastTrackVolume.startFromCurrent(0, in_fadeTime);
         }
-        else
+        else if (m_lastTrack)
         {
             m_lastTrack->stop();
             delete m_lastTrack;
             m_lastTrack = nullptr;
         }
+    }
+
+    void MusicEmitter::SetSource(const std::string& source)
+    {
+        m_source = source;
     }
 
     const string& MusicEmitter::GetSource() const
@@ -232,7 +241,7 @@ namespace seed
             if (m_currentTrack->isDone())
             {
                 OLog("Looping music");
-                m_currentTrack->play(m_source);
+                m_currentTrack->play(m_playingSource);
             }
         }
     }

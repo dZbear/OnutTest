@@ -28,6 +28,12 @@
     <ClCompile Include="..\..\..\src\seed\SoundEmitter.cpp">
       <Filter>seed</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\seed\MusicEmitter.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\seed\Video.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -62,6 +68,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\NodeContainer.h" />
     <ClInclude Include="..\..\..\src\seed\SoundEmitter.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\seed\MusicEmitter.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\seed\Video.h">
       <Filter>seed</Filter>
     </ClInclude>
   </ItemGroup>

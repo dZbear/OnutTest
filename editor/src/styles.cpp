@@ -157,10 +157,16 @@ void createUIStyles(onut::UIContext* pContext)
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
             auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
             auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
+            auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
+            auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
+            auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
             static const std::string strSpriteString = "SpriteString";
             static const std::string strSprite = "Sprite";
             static const std::string strNode = "Node";
             static const std::string strEmitter = "Emitter";
+            static const std::string strSoundEmitter = "SoundEmitter";
+            static const std::string strMusicEmitter = "MusicEmitter";
+            static const std::string strVideo = "Video";
             auto nodeName = pNode->GetName();
             if (pSpriteString)
             {
@@ -212,6 +218,54 @@ void createUIStyles(onut::UIContext* pContext)
                     else
                     {
                         nodeName = strEmitter;
+                    }
+                }
+                g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
+            }
+            else if (pSoundEmitter)
+            {
+                OSB->drawSprite(OGetTexture("sound.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
+                if (nodeName.empty())
+                {
+                    if (!pSoundEmitter->GetSource().empty())
+                    {
+                        nodeName = pSoundEmitter->GetSource();
+                    }
+                    else
+                    {
+                        nodeName = strSoundEmitter;
+                    }
+                }
+                g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
+            }
+            else if (pMusicEmitter)
+            {
+                OSB->drawSprite(OGetTexture("music.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
+                if (nodeName.empty())
+                {
+                    if (!pMusicEmitter->GetSource().empty())
+                    {
+                        nodeName = pMusicEmitter->GetSource();
+                    }
+                    else
+                    {
+                        nodeName = strMusicEmitter;
+                    }
+                }
+                g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
+            }
+            else if (pVideo)
+            {
+                OSB->drawSprite(OGetTexture("video.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
+                if (nodeName.empty())
+                {
+                    if (!pVideo->GetSource().empty())
+                    {
+                        nodeName = pVideo->GetSource();
+                    }
+                    else
+                    {
+                        nodeName = strMusicEmitter;
                     }
                 }
                 g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);

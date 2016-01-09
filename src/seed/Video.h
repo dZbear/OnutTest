@@ -16,6 +16,7 @@ namespace seed
         virtual void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode);
 
         void            Play();
+        void            Stop();
         void            Pause();
         void            Resume();
         void            SetPlayRate(double in_rate);
@@ -31,6 +32,9 @@ namespace seed
         void            SetSource(const string& source);
         const string&   GetSource() const;
         bool            IsPlaying() const;
+
+        virtual float   GetWidth() const override;
+        virtual float   GetHeight() const override;
 
         // only to be used by the seed sdk
         virtual void    Update() override;

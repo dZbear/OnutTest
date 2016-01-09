@@ -1,9 +1,11 @@
 #pragma once
 #include <onut.h>
 #include "seed/Emitter.h"
+#include "seed/MusicEmitter.h"
 #include "seed/SoundEmitter.h"
 #include "seed/Sprite.h"
 #include "seed/SpriteString.h"
+#include "seed/Video.h"
 #include "seed/View.h"
 
 #include <memory>
@@ -19,9 +21,11 @@ struct NodeState
         SpriteString,
         Emitter,
         SoundEmitter,
+        MusicEmitter,
+        Video,
     };
 
-    std::string texture;
+    std::string source;
     Vector2 position;
     Vector2 scale;
     float angle;
@@ -46,6 +50,7 @@ struct NodeState
     float volume = 1.f;
     float balance = 0.f;
     float pitch = 1.f;
+    Vector2 dimensions;
 
     NodeState() { }
     NodeState(const NodeState& copy);
@@ -65,7 +70,7 @@ public:
 
 inline NodeState::NodeState(const NodeState& copy)
 {
-    texture = copy.texture;
+    source = copy.source;
     position = copy.position;
     scale = copy.scale;
     angle = copy.angle;
@@ -90,6 +95,7 @@ inline NodeState::NodeState(const NodeState& copy)
     volume = copy.volume;
     balance = copy.balance;
     pitch = copy.pitch;
+    dimensions = copy.dimensions;
 }
 
 extern std::unordered_map<seed::Node*, std::shared_ptr<NodeContainer>> nodesToContainers;
@@ -102,12 +108,14 @@ inline NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool s
     auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
     auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
     auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
+    auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
+    auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
     if (pSprite)
     {
-        texture = "";
+        source = "";
         if (pSprite->GetTexture())
         {
-            texture = pSprite->GetTexture()->getName();
+            source = pSprite->GetTexture()->getName();
         }
         align = pSprite->GetAlign();
         nodeType = NodeType::Sprite;
@@ -124,7 +132,7 @@ inline NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool s
     }
     else if (pEmitter)
     {
-        texture = pEmitter->GetFxName();
+        source = pEmitter->GetFxName();
         blend = pEmitter->GetBlend();
         filtering = pEmitter->GetFilter();
         emitWorld = pEmitter->GetEmitWorld();
@@ -132,11 +140,29 @@ inline NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool s
     }
     else if (pSoundEmitter)
     {
-        //loop = pSoundEmitter->GetLoop();
+        source = pSoundEmitter->GetSource();
+        loop = pSoundEmitter->GetLoops();
         volume = pSoundEmitter->GetVolume();
         balance = pSoundEmitter->GetBalance();
         pitch = pSoundEmitter->GetPitch();
+        emitWorld = pSoundEmitter->GetPositionBasedBalance() || pSoundEmitter->GetPositionBasedVolume();
         nodeType = NodeType::SoundEmitter;
+    }
+    else if (pMusicEmitter)
+    {
+        source = pMusicEmitter->GetSource();
+        loop = pMusicEmitter->GetLoops();
+        volume = pMusicEmitter->GetVolume();
+        nodeType = NodeType::MusicEmitter;
+    }
+    else if (pVideo)
+    {
+        source = pVideo->GetSource();
+        loop = pVideo->GetLoops();
+        volume = pVideo->GetVolume();
+        dimensions = pVideo->GetDimensions();
+        pitch = (float)pVideo->GetPlayRate();
+        nodeType = NodeType::Video;
     }
     name = pContainer->pNode->GetName();
     position = pContainer->pNode->GetPosition();
@@ -199,7 +225,7 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
                 pContainer->pNode = pEditingView->CreateNode();
                 break;
             case NodeType::Sprite:
-                pContainer->pNode = pEditingView->CreateSprite(texture);
+                pContainer->pNode = pEditingView->CreateSprite(source);
                 break;
             case NodeType::SpriteString:
             {
@@ -209,10 +235,16 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
                 break;
             }
             case NodeType::Emitter:
-                pContainer->pNode = pEditingView->CreateEmitter(texture);
+                pContainer->pNode = pEditingView->CreateEmitter(source);
                 break;
             case NodeType::SoundEmitter:
-                pContainer->pNode = pEditingView->CreateSoundEmitter(texture);
+                pContainer->pNode = pEditingView->CreateSoundEmitter(source);
+                break;
+            case NodeType::MusicEmitter:
+                pContainer->pNode = pEditingView->CreateMusicEmitter();
+                break;
+            case NodeType::Video:
+                pContainer->pNode = pEditingView->CreateVideo();
                 break;
             default:
                 assert(false);
@@ -229,7 +261,7 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
         {
             auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
             assert(pSprite);
-            pSprite->SetTexture(OGetTexture(texture.c_str()));
+            pSprite->SetTexture(OGetTexture(source.c_str()));
             pSprite->SetAlign(align);
             pSprite->SetFlipped(flippedH, flippedV);
             pSprite->SetBlend(blend);
@@ -240,7 +272,7 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
         {
             auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
             assert(pSpriteString);
-            pSpriteString->SetTexture(OGetTexture(texture.c_str()));
+            pSpriteString->SetTexture(OGetTexture(source.c_str()));
             pSpriteString->SetAlign(align);
             pSpriteString->SetFlipped(flippedH, flippedV);
             pSpriteString->SetFont(pFont);
@@ -253,7 +285,7 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
         {
             auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
             assert(pEmitter);
-            pEmitter->Init(texture);
+            pEmitter->Init(source);
             pEmitter->SetBlend(blend);
             pEmitter->SetFilter(filtering);
             pEmitter->SetEmitWorld(emitWorld);
@@ -263,10 +295,36 @@ inline void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
         {
             auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
             assert(pSoundEmitter);
-            pSoundEmitter->Init(texture);
+            if (pSoundEmitter->GetSource() != source)
+            {
+                pSoundEmitter->Init(source);
+            }
             pSoundEmitter->SetVolume(volume);
             pSoundEmitter->SetBalance(balance);
             pSoundEmitter->SetPitch(pitch);
+            pSoundEmitter->SetLoops(loop);
+            pSoundEmitter->SetPositionBasedVolume(emitWorld);
+            pSoundEmitter->SetPositionBasedBalance(emitWorld);
+            break;
+        }
+        case NodeType::MusicEmitter:
+        {
+            auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
+            assert(pMusicEmitter);
+            pMusicEmitter->SetSource(source);
+            pMusicEmitter->SetVolume(volume);
+            pMusicEmitter->SetLoops(loop);
+            break;
+        }
+        case NodeType::Video:
+        {
+            auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
+            assert(pVideo);
+            pVideo->SetSource(source);
+            pVideo->SetVolume(volume);
+            pVideo->SetLoops(loop);
+            pVideo->SetDimensions(dimensions);
+            pVideo->SetPlayRate(pitch);
             break;
         }
     }

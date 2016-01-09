@@ -1,8 +1,11 @@
 #include "Emitter.h"
 #include "Node.h"
+#include "MusicEmitter.h"
+#include "SoundEmitter.h"
 #include "Sprite.h"
 #include "SpriteString.h"
 #include "tinyxml2.h"
+#include "Video.h"
 #include "View.h"
 
 namespace seed
@@ -147,6 +150,27 @@ namespace seed
                     fxName = szFxName;
                 }
                 pChild = view->CreateEmitter(fxName);
+                Attach(pChild, childZIndex);
+            }
+            else if (childType == "SoundEmitter")
+            {
+                const char* szSource = xmlChild->Attribute("source");
+                string source;
+                if (szSource)
+                {
+                    source = szSource;
+                }
+                pChild = view->CreateSoundEmitter(source);
+                Attach(pChild, childZIndex);
+            }
+            else if (childType == "MusicEmitter")
+            {
+                pChild = view->CreateMusicEmitter();
+                Attach(pChild, childZIndex);
+            }
+            else if (childType == "Video")
+            {
+                pChild = view->CreateVideo();
                 Attach(pChild, childZIndex);
             }
 
