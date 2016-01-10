@@ -11,6 +11,7 @@ namespace seed
     class SoundEmitter;
     class MusicEmitter;
     class Video;
+    class Effect;
     class View
     {
     public:
@@ -27,6 +28,7 @@ namespace seed
         MusicEmitter*   CreateMusicEmitter();
         Video*          CreateVideo();
         Node*           CreateNode();
+        Effect*         CreateEffect();
 
         void            AddNode(Node* in_node, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         void            DeleteNode(Node* in_node);

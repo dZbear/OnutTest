@@ -5,11 +5,12 @@
 #include "SoundEmitter.h"
 #include "MusicEmitter.h"
 #include "Video.h"
+#include "Effect.h"
 #include "Button.h"
 #include "onut.h"
 #include "tinyxml2.h"
 
-#define VIEW_DEFAULT_NODE_COUNT 64
+#define VIEW_DEFAULT_NODE_COUNT 1024
 
 namespace seed
 {
@@ -20,7 +21,8 @@ namespace seed
         sizeof(Emitter), 
         sizeof(SoundEmitter), 
         sizeof(MusicEmitter), 
-        sizeof(Video));
+        sizeof(Video),
+        sizeof(Effect));
 
     View::View()
         : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)
@@ -360,6 +362,13 @@ namespace seed
         Video* newVideo = m_nodePool.alloc<Video>();
         m_pooledNodes.push_back(newVideo);
         return newVideo;
+    }
+
+    Effect* View::CreateEffect()
+    {
+        Effect* newEffect = m_nodePool.alloc<Effect>();
+        m_pooledNodes.push_back(newEffect);
+        return newEffect;
     }
 
     Button* View::AddButton(Sprite* in_sprite, const string& in_cmd)

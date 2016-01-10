@@ -32,6 +32,11 @@ namespace seed
 
     void SpriteString::Render(Matrix* in_parentMatrix, float in_parentAlpha)
     {
+        if (!m_visible)
+        {
+            return;
+        }
+
         // generate our matrix
         Matrix transform = Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
         transform *= Matrix::CreateRotationZ(DirectX::XMConvertToRadians(m_angle));

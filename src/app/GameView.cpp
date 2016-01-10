@@ -5,6 +5,7 @@
 #include "SoundEmitter.h"
 #include "MusicEmitter.h"
 #include "Video.h"
+#include "Effect.h"
 
 GameView::GameView()
 {
@@ -19,8 +20,14 @@ void GameView::OnShow()
 {
     SetSize(Vector2(OScreenWf, OScreenHf));
 
+    auto pEffect = CreateEffect();
+    pEffect->SetCartoonEnabled(true);
+    pEffect->SetSepiaEnabled(true);
+    pEffect->SetVignetteEnabled(true);
+    AddNode(pEffect);
+
     m_dude = CreateSpriteWithSpriteAnim("baltAnims.xml", "idle_down");
-    AddNode(m_dude);
+    AddNode(m_dude, pEffect);
     m_idleAnim = "idle_down";
     m_dude->SetPosition(OScreenCenterXf, OScreenCenterYf);
     m_dude->SetScale(Vector2(5, 5));
@@ -50,6 +57,7 @@ void GameView::OnShow()
     m_video->SetVolume(0.f);
     m_video->SetSource("https://download.blender.org/durian/trailer/sintel_trailer-720p.mp4");
     m_video->Play();
+    m_video->SetScale(Vector2(.1f));
     AddNode(m_video, m_dude, -2);
 }
 
