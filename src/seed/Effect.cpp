@@ -17,19 +17,43 @@ namespace seed
         }
     }
 
-    Node* Effect::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* Effect::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         Effect* newNode = in_pool.alloc<Effect>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
         return newNode;
     }
 
-    void Effect::Copy(Node* in_copy)
+    Node* Effect::Duplicate() const
+    {
+        Effect* newNode = new Effect;
+        Copy(newNode);
+        DuplicateChildren(newNode);
+        return newNode;
+    }
+
+    void Effect::Copy(Node* in_copy) const
     {
         Node::Copy(in_copy);
         Effect* copy = (Effect*)in_copy;
 
+        copy->m_blurEnabled = m_blurEnabled;
+        copy->m_blurAmount = m_blurAmount;
+
+        copy->m_sepiaEnabled = m_sepiaEnabled;
+        copy->m_sepiaTone = m_sepiaTone;
+        copy->m_sepiaSaturation = m_sepiaSaturation;
+        copy->m_sepiaAmount = m_sepiaAmount;
+
+        copy->m_crtEnabled = m_crtEnabled;
+
+        copy->m_cartoonEnabled = m_cartoonEnabled;
+        copy->m_cartoonTone = m_cartoonTone;
+
+        copy->m_vignetteEnabled = m_vignetteEnabled;
+        copy->m_vignetteAmount = m_vignetteAmount;
     }
 
     void Effect::Render(Matrix* in_parentMatrix, float in_parentAlpha)

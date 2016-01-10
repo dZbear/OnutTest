@@ -11,7 +11,8 @@ namespace seed
         Sprite();
         virtual ~Sprite();
 
-        virtual Node*           Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        virtual Node*           Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const;
+        virtual Node*           Duplicate() const;
         tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const override;
         void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode) override;
 
@@ -45,7 +46,7 @@ namespace seed
 
     protected:
 
-        virtual void            Copy(Node* in_copy);
+        virtual void            Copy(Node* in_copy) const;
 
         Vector2                         m_align;
         OTexture*                       m_texture = nullptr;

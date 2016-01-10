@@ -13,22 +13,31 @@ namespace seed
 
     }
 
-    Node* SpriteString::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* SpriteString::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         SpriteString* newNode = in_pool.alloc<SpriteString>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
         return newNode;
     }
 
-    void SpriteString::Copy(Node* in_copy)
+    Node* SpriteString::Duplicate() const
+    {
+        SpriteString* newNode = new SpriteString();
+        Copy(newNode);
+        DuplicateChildren(newNode);
+        return newNode;
+    }
+
+    void SpriteString::Copy(Node* in_copy) const
     {
         Sprite::Copy(in_copy);
         SpriteString* copy = (SpriteString*)in_copy;
-        copy->SetFont(m_font);
-        copy->SetCaption(m_caption);
-    }
 
+        copy->m_font = m_font;
+        copy->m_caption = m_caption;
+    }
 
     void SpriteString::Render(Matrix* in_parentMatrix, float in_parentAlpha)
     {

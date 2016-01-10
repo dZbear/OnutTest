@@ -95,7 +95,6 @@ namespace seed
         void            DeleteNodes();
         void            DeleteChildNodes(NodeVect& in_childVect);
         bool            IsPooled(Node* in_node);
-        void            DuplicateChildren(Node* in_originalNode, Node* in_newParentNode);
 
         void            UpdateFocus();
         void            UpdateButtons();

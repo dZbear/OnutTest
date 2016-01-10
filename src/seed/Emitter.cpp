@@ -16,22 +16,33 @@ namespace seed
 
     }
 
-    Node* Emitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* Emitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         Emitter* newNode = in_pool.alloc<Emitter>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
         return newNode;
     }
 
-    void Emitter::Copy(Node* in_copy)
+    Node* Emitter::Duplicate() const
+    {
+        Emitter* newNode = new Emitter();
+        Copy(newNode);
+        DuplicateChildren(newNode);
+        return newNode;
+    }
+
+    void Emitter::Copy(Node* in_copy) const
     {
         Node::Copy(in_copy);
         Emitter* copy = (Emitter*)in_copy;
-        copy->SetFilter(GetFilter());
-        copy->SetBlend(GetBlend());
-        
-        copy->Init(GetFxName());
+
+        copy->m_fxName = m_fxName;
+        copy->m_filter = m_filter;
+        copy->m_blend = m_blend;
+        copy->m_emitWorld = m_emitWorld;
+
         if (m_emitter.isPlaying())
         {
             copy->Start();

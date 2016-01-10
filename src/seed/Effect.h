@@ -10,7 +10,8 @@ namespace seed
         Effect();
         virtual ~Effect();
 
-        virtual Node*                   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        virtual Node*                   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const;
+        virtual Node*                   Duplicate() const;
         virtual tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const;
         virtual void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode);
 
@@ -56,7 +57,7 @@ namespace seed
         virtual void    Render(Matrix* in_parentMatrix = nullptr, float in_parentAlpha = 1.f) override;
 
     protected:
-        virtual void    Copy(Node* in_copy);
+        virtual void    Copy(Node* in_copy) const;
 
         OTexture*       m_effectTarget;
 

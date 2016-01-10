@@ -17,26 +17,38 @@ namespace seed
 
     }
 
-    Node* MusicEmitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* MusicEmitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         MusicEmitter* newNode = in_pool.alloc<MusicEmitter>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
         return newNode;
     }
 
-    void MusicEmitter::Copy(Node* in_copy)
+    Node* MusicEmitter::Duplicate() const
+    {
+        MusicEmitter* newNode = new MusicEmitter();
+        Copy(newNode);
+        DuplicateChildren(newNode);
+        return newNode;
+    }
+
+    void MusicEmitter::Copy(Node* in_copy) const
     {
         Node::Copy(in_copy);
         MusicEmitter* copy = (MusicEmitter*)in_copy;
-        
-        copy->SetLoops(GetLoops());
+
+        copy->m_source = m_source;
+        copy->m_volume = m_volume;
+        copy->m_loops = m_loops;
+
         if (m_currentTrack)
         {
             copy->Play(m_playingSource, m_volume.get());
         }
     }
-    
+
     void MusicEmitter::Update()
     {
         Node::Update();

@@ -55,7 +55,7 @@ void GameView::OnShow()
 
     m_video = CreateVideo();
     m_video->SetVolume(0.f);
-    m_video->SetSource("https://download.blender.org/durian/trailer/sintel_trailer-720p.mp4");
+    m_video->SetSource("sintel_trailer-720p.mp4");
     m_video->Play();
     m_video->SetScale(Vector2(.1f));
     AddNode(m_video, m_dude, -2);

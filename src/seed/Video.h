@@ -11,7 +11,8 @@ namespace seed
         Video();
         virtual ~Video();
 
-        virtual Node*                   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        virtual Node*                   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const;
+        virtual Node*                   Duplicate() const;
         virtual tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const;
         virtual void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode);
 
@@ -42,7 +43,7 @@ namespace seed
 
     protected:
 
-        virtual void    Copy(Node* in_copy);
+        virtual void    Copy(Node* in_copy) const;
 
         string          m_source;
         OAnim2          m_dimensions;

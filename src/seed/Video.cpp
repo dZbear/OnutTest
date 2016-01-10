@@ -19,24 +19,33 @@ namespace seed
 
     }
 
-    Node* Video::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* Video::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         Video* newNode = in_pool.alloc<Video>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
         return newNode;
     }
 
-    void Video::Copy(Node* in_copy)
+    Node* Video::Duplicate() const
+    {
+        Video* newNode = new Video();
+        Copy(newNode);
+        DuplicateChildren(newNode);
+        return newNode;
+    }
+
+    void Video::Copy(Node* in_copy) const
     {
         Node::Copy(in_copy);
         Video* copy = (Video*)in_copy;
 
-        copy->SetSource(m_source);
-        copy->SetDimensions(m_dimensions);
-        copy->SetPlayRate(m_playRate);
-        copy->SetLoops(m_loops);
-        copy->SetVolume(m_volume);
+        copy->m_source = m_source;
+        copy->m_dimensions = m_dimensions;
+        copy->m_playRate = m_playRate;
+        copy->m_loops = m_loops;
+        copy->m_volume = m_volume;
 
         if (IsPlaying())
         {

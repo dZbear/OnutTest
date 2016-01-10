@@ -382,29 +382,12 @@ namespace seed
 
     Node* View::DuplicateNode(Node* in_node)
     {
-        Node* newNode = in_node->Duplicate(m_nodePool, m_pooledNodes);
-        DuplicateChildren(in_node, newNode);
-        return newNode;
+        return in_node->Duplicate(m_nodePool, m_pooledNodes);
     }
 
     Node* View::FindNode(const string& in_name)
     {
         return GetRootNode()->FindNode(in_name);
-    }
-
-    void View::DuplicateChildren(Node* in_originalNode, Node* in_newParentNode)
-    {
-        for (Node* childNode : in_originalNode->GetBgChildren())
-        {
-            Node* newChildNode = DuplicateNode(childNode);
-            in_newParentNode->Attach(newChildNode, newChildNode->GetZindex());
-        }
-
-        for (Node* childNode : in_originalNode->GetFgChildren())
-        {
-            Node* newChildNode = DuplicateNode(childNode);
-            in_newParentNode->Attach(newChildNode, newChildNode->GetZindex());
-        }
     }
 
     void View::DeleteNode(Node* in_node)
