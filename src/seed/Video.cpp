@@ -19,24 +19,33 @@ namespace seed
 
     }
 
-    Node* Video::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* Video::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         Video* newNode = in_pool.alloc<Video>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
         return newNode;
     }
 
-    void Video::Copy(Node* in_copy)
+    Node* Video::Duplicate() const
+    {
+        Video* newNode = new Video();
+        Copy(newNode);
+        DuplicateChildren(newNode);
+        return newNode;
+    }
+
+    void Video::Copy(Node* in_copy) const
     {
         Node::Copy(in_copy);
         Video* copy = (Video*)in_copy;
 
-        copy->SetSource(m_source);
-        copy->SetDimensions(m_dimensions);
-        copy->SetPlayRate(m_playRate);
-        copy->SetLoops(m_loops);
-        copy->SetVolume(m_volume);
+        copy->m_source = m_source;
+        copy->m_dimensions = m_dimensions;
+        copy->m_playRate = m_playRate;
+        copy->m_loops = m_loops;
+        copy->m_volume = m_volume;
 
         if (IsPlaying())
         {
@@ -61,7 +70,19 @@ namespace seed
         }
 
         // generate our matrix
+        const Vector2& dimensions = m_dimensions;
         Matrix transform = Matrix::Identity;
+        if (m_videoTarget)
+        {
+            Rect rect;
+            rect.x = transform.Translation().x - dimensions.x * .5f;
+            rect.y = transform.Translation().y - dimensions.y * .5f;
+            rect.z = dimensions.x;
+            rect.w = dimensions.y;
+            rect = ORectFit(rect, m_videoTarget->getSize());
+            auto scale = onut::min(rect.z / m_videoTarget->getSizef().x, rect.w / m_videoTarget->getSizef().y);
+            transform *= Matrix::CreateScale(scale, scale, 1.f);
+        }
         transform *= Matrix::CreateScale(m_scale.get().x, m_scale.get().y, 1.f);
         transform *= Matrix::CreateRotationZ(DirectX::XMConvertToRadians(m_angle));
         transform *= Matrix::CreateTranslation(m_position.get().x, m_position.get().y, 0);
@@ -77,14 +98,7 @@ namespace seed
         // render the video
         if (m_videoTarget)
         {
-            const Vector2& dimensions = m_dimensions;
-            Rect rect;
-            rect.x = transform.Translation().x - dimensions.x * .5f;
-            rect.y = transform.Translation().y - dimensions.y * .5f;
-            rect.z = dimensions.x;
-            rect.w = dimensions.y;
-
-            OSB->drawRect(m_videoTarget, ORectFit(rect, m_videoTarget->getSize()));
+            OSpriteBatch->drawSprite(m_videoTarget, transform, GetColor(), Vector2(.5f));
         }
 
         // render fg children
@@ -113,10 +127,23 @@ namespace seed
         }
         m_videoPlayer = OPlayer::Create();
         m_videoPlayer->init(m_videoTarget);
+
+        std::string sourceFile = OContentManager->find(m_source);
+        if (sourceFile.empty()) sourceFile = m_source;
+        m_videoPlayer->setSource(sourceFile);
         m_videoPlayer->setLoop(m_loops);
-        m_videoPlayer->setSource(m_source);
         m_videoPlayer->setVolume(m_volume);
+        m_videoPlayer->setPlayRate(m_playRate);
         m_videoPlayer->play();
+    }
+
+    void Video::Stop()
+    {
+        if (m_videoPlayer)
+        {
+            delete m_videoPlayer;
+            m_videoPlayer = nullptr;
+        }
     }
 
     void Video::Pause()
@@ -144,6 +171,16 @@ namespace seed
     const string& Video::GetSource() const
     {
         return m_source;
+    }
+
+    float Video::GetWidth() const
+    {
+        return m_dimensions.get().x;
+    }
+
+    float Video::GetHeight() const
+    {
+        return m_dimensions.get().y;
     }
 
     void Video::SetPlayRate(double in_rate)

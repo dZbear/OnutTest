@@ -44,6 +44,9 @@
     <ClCompile Include="..\..\src\seed\Video.cpp">
       <Filter>seed</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\seed\Effect.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -100,6 +103,9 @@
       <Filter>seed</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\seed\Video.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\Effect.h">
       <Filter>seed</Filter>
     </ClInclude>
   </ItemGroup>

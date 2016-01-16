@@ -1,0 +1,9 @@
+<View width="640" height="480">
+    <SoundEmitter name="" zIndex="2147483647" x="188" y="51" scaleX="1" scaleY="1" angle="0" r="1" g="1" b="1" a="1" visible="1" source="sound5.wav" volume="1" pitch="1" balance="0" loops="0" positionBasedBalance="0" positionBasedVolume="0"/>
+    <SpriteString name="" zIndex="2147483647" x="398" y="48" scaleX="1" scaleY="1" angle="0" r="1" g="1" b="1" a="1" visible="1" alignX="0.5" alignY="0.5" filter="Linear" blend="PreMultiplied" flippedH="0" flippedV="0" font="segeo12.fnt" caption="Text"/>
+    <Sprite name="" zIndex="2147483647" x="66" y="56" scaleX="1" scaleY="1" angle="0" r="1" g="1" b="1" a="1" visible="1" alignX="0.5" alignY="0.5" texture="default.png" filter="Linear" blend="PreMultiplied" flippedH="0" flippedV="0"/>
+    <MusicEmitter name="" zIndex="2147483647" x="274" y="46" scaleX="1" scaleY="1" angle="0" r="1" g="1" b="1" a="1" visible="1" source="fight.mp3" volume="1" loops="1"/>
+    <MusicEmitter name="" zIndex="2147483647" x="331" y="43" scaleX="1" scaleY="1" angle="0" r="1" g="1" b="1" a="1" visible="1" source="music.mp3" volume="1" loops="1"/>
+    <Video name="" zIndex="2147483647" x="422" y="235" scaleX="1.7339449" scaleY="1.7339449" angle="22.493698" r="1" g="1" b="1" a="1" visible="1" source="sintel_trailer-720p.mp4" loops="0" width="165" height="115" volume="1" playRate="2"/>
+    <Video name="" zIndex="2147483647" x="163" y="362" scaleX="0.80624986" scaleY="0.78152174" angle="0" r="1" g="0.5411765" b="0.1254902" a="1" visible="1" source="sintel_trailer-720p.mp4" loops="0" width="320" height="230" volume="1" playRate="1"/>
+</View>

@@ -17,26 +17,38 @@ namespace seed
 
     }
 
-    Node* MusicEmitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* MusicEmitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         MusicEmitter* newNode = in_pool.alloc<MusicEmitter>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
         return newNode;
     }
 
-    void MusicEmitter::Copy(Node* in_copy)
+    Node* MusicEmitter::Duplicate() const
+    {
+        MusicEmitter* newNode = new MusicEmitter();
+        Copy(newNode);
+        DuplicateChildren(newNode);
+        return newNode;
+    }
+
+    void MusicEmitter::Copy(Node* in_copy) const
     {
         Node::Copy(in_copy);
         MusicEmitter* copy = (MusicEmitter*)in_copy;
-        
-        copy->SetLoops(GetLoops());
+
+        copy->m_source = m_source;
+        copy->m_volume = m_volume;
+        copy->m_loops = m_loops;
+
         if (m_currentTrack)
         {
-            copy->Play(m_source, m_volume.get());
+            copy->Play(m_playingSource, m_volume.get());
         }
     }
-    
+
     void MusicEmitter::Update()
     {
         Node::Update();
@@ -44,14 +56,18 @@ namespace seed
         UpdateLooping();
     }
 
+    void MusicEmitter::Play(float in_volume, float in_fadeTime)
+    {
+        Play(GetSource(), in_volume, in_fadeTime);
+    }
 
     void MusicEmitter::Play(const string& in_mp3File, float in_volume, float in_fadeTime)
     {
-        if (m_source == in_mp3File)
+        if (m_playingSource == in_mp3File && m_currentTrack)
         {
             return; // music already playing
         }
-        m_source = in_mp3File;
+        m_playingSource = in_mp3File;
 
         // check if music is already playing
         if (m_currentTrack)
@@ -128,12 +144,17 @@ namespace seed
             m_lastTrackVolume = m_volume.get();
             m_lastTrackVolume.startFromCurrent(0, in_fadeTime);
         }
-        else
+        else if (m_lastTrack)
         {
             m_lastTrack->stop();
             delete m_lastTrack;
             m_lastTrack = nullptr;
         }
+    }
+
+    void MusicEmitter::SetSource(const std::string& source)
+    {
+        m_source = source;
     }
 
     const string& MusicEmitter::GetSource() const
@@ -172,7 +193,13 @@ namespace seed
         SetLoops(loops);
     }
 
-    void MusicEmitter::SetVolume(float in_volume, float in_fadeTime)
+    void MusicEmitter::SetVolume(float in_volume)
+    {
+        m_volume = in_volume;
+        UpdateVolume();
+    }
+
+    void MusicEmitter::SetVolumeWithFade(float in_volume, float in_fadeTime)
     {
         if (in_fadeTime > 0)
         {
@@ -232,7 +259,7 @@ namespace seed
             if (m_currentTrack->isDone())
             {
                 OLog("Looping music");
-                m_currentTrack->play(m_source);
+                m_currentTrack->play(m_playingSource);
             }
         }
     }

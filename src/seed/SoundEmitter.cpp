@@ -22,27 +22,36 @@ namespace seed
         delete m_soundInstance;
     }
 
-    Node* SoundEmitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* SoundEmitter::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         SoundEmitter* newNode = in_pool.alloc<SoundEmitter>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
         return newNode;
     }
 
-    void SoundEmitter::Copy(Node* in_copy)
+    Node* SoundEmitter::Duplicate() const
+    {
+        SoundEmitter* newNode = new SoundEmitter();
+        Copy(newNode);
+        DuplicateChildren(newNode);
+        return newNode;
+    }
+
+    void SoundEmitter::Copy(Node* in_copy) const
     {
         Node::Copy(in_copy);
         SoundEmitter* copy = (SoundEmitter*)in_copy;
         
         copy->Init(GetSource());
-        copy->SetLoops(GetLoops());
-        copy->SetVolume(GetVolume());
-        copy->SetPitch(GetPitch());
-        copy->SetBalance(GetBalance());
-        copy->SetPositionBasedBalance(GetPositionBasedBalance());
-        copy->SetPositionBasedVolume(GetPositionBasedVolume());
-        copy->GetRandomFiles() = m_randomFiles;
+        copy->m_loops = m_loops;
+        copy->m_volume = m_volume;
+        copy->m_balance = m_balance;
+        copy->m_pitch = m_pitch;
+        copy->m_positionBasedBalance = m_positionBasedBalance;
+        copy->m_positionBasedVolume = m_positionBasedVolume;
+        copy->m_randomFiles = m_randomFiles;
 
         if (m_soundInstance)
         {
@@ -55,9 +64,14 @@ namespace seed
 
     void SoundEmitter::Init(const string& in_file)
     {
+        if (m_soundInstance)
+        {
+            delete m_soundInstance;
+            m_soundInstance = nullptr;
+        }
         m_source = in_file;
         string extension = onut::toLower(onut::getExtension(m_source));
-        if (extension == "xml")
+        if (extension == "cue")
         {
             m_isCue = true;
         }
@@ -66,6 +80,7 @@ namespace seed
             m_isCue = false;
             m_soundInstance = OCreateSoundInstance(m_source.c_str());
         }
+        UpdateSoundParams();
     }
 
     void SoundEmitter::Init(const vector<string>& in_randomFiles)
@@ -193,6 +208,7 @@ namespace seed
         xmlNode->SetAttribute("volume", m_volume.get());
         xmlNode->SetAttribute("pitch", m_pitch.get());
         xmlNode->SetAttribute("balance", m_balance);
+        xmlNode->SetAttribute("loops", m_loops);
         xmlNode->SetAttribute("positionBasedBalance", m_positionBasedBalance);
         xmlNode->SetAttribute("positionBasedVolume", m_positionBasedVolume);
 
@@ -220,6 +236,10 @@ namespace seed
         float balance = GetBalance();
         in_xmlNode->QueryFloatAttribute("balance", &balance);
         SetBalance(balance);
+
+        bool loops = GetLoops();
+        in_xmlNode->QueryBoolAttribute("loops", &loops);
+        SetLoops(loops);
 
         bool positionBasedBalance = GetPositionBasedBalance();
         in_xmlNode->QueryBoolAttribute("positionBasedBalance", &positionBasedBalance);
@@ -276,6 +296,17 @@ namespace seed
     float SoundEmitter::GetPitch() const
     {
         return m_pitch;
+    }
+
+    void SoundEmitter::SetPositionBased(bool in_positionBased)
+    {
+        SetPositionBasedBalance(in_positionBased);
+        SetPositionBasedVolume(in_positionBased);
+    }
+
+    bool SoundEmitter::GetPositionBased() const
+    {
+        return GetPositionBasedBalance() || GetPositionBasedVolume();
     }
 
     void SoundEmitter::SetPositionBasedBalance(bool in_positionBased)

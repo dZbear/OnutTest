@@ -19,11 +19,20 @@ namespace seed
 
     }
 
-    Node* Sprite::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* Sprite::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         Sprite* newNode = in_pool.alloc<Sprite>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
+        return newNode;
+    }
+
+    Node* Sprite::Duplicate() const
+    {
+        Sprite* newNode = new Sprite();
+        Copy(newNode);
+        DuplicateChildren(newNode);
         return newNode;
     }
 
@@ -83,21 +92,23 @@ namespace seed
         SetFlipped(flippedH, flippedV);
     }
 
-    void Sprite::Copy(Node* in_copy)
+    void Sprite::Copy(Node* in_copy) const
     {
         Node::Copy(in_copy);
         Sprite* copy = (Sprite*)in_copy;
-        copy->SetAlign(GetAlign());
-        copy->SetTexture(GetTexture());
 
-        copy->SetSpriteAnim(GetSpriteAnim());
+        copy->m_align = m_align;
+        copy->m_texture = m_texture;
+        copy->m_anim = m_anim;
+        copy->m_filter = m_filter;
+        copy->m_blend = m_blend;
+        copy->m_flippedH = m_flippedH;
+        copy->m_flippedV = m_flippedV;
+
         if (m_anim.isPlaying())
         {
             copy->SetSpriteAnim(m_lastAnim);
         }
-        copy->SetFilter(GetFilter());
-        copy->SetBlend(GetBlend());
-        copy->SetFlipped(GetFlippedH(), GetFlippedV());
     }
 
     void Sprite::SetSpriteAnim(OSpriteAnim in_anim)
@@ -245,6 +256,16 @@ namespace seed
     void Sprite::SetFlipped(bool in_flipH, bool in_flipV)
     {
         m_flippedH = in_flipH;
+        m_flippedV = in_flipV;
+    }
+
+    void Sprite::SetFlippedH(bool in_flipH)
+    {
+        m_flippedH = in_flipH;
+    }
+
+    void Sprite::SetFlippedV(bool in_flipV)
+    {
         m_flippedV = in_flipV;
     }
 

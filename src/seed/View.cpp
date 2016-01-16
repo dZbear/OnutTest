@@ -5,11 +5,12 @@
 #include "SoundEmitter.h"
 #include "MusicEmitter.h"
 #include "Video.h"
+#include "Effect.h"
 #include "Button.h"
 #include "onut.h"
 #include "tinyxml2.h"
 
-#define VIEW_DEFAULT_NODE_COUNT 64
+#define VIEW_DEFAULT_NODE_COUNT 1024
 
 namespace seed
 {
@@ -20,7 +21,8 @@ namespace seed
         sizeof(Emitter), 
         sizeof(SoundEmitter), 
         sizeof(MusicEmitter), 
-        sizeof(Video));
+        sizeof(Video),
+        sizeof(Effect));
 
     View::View()
         : m_nodePool(VIEW_DEFAULT_NODE_MAX_SIZE, VIEW_DEFAULT_NODE_COUNT)
@@ -362,6 +364,13 @@ namespace seed
         return newVideo;
     }
 
+    Effect* View::CreateEffect()
+    {
+        Effect* newEffect = m_nodePool.alloc<Effect>();
+        m_pooledNodes.push_back(newEffect);
+        return newEffect;
+    }
+
     Button* View::AddButton(Sprite* in_sprite, const string& in_cmd)
     {
         Button* newButton = new Button();
@@ -373,29 +382,12 @@ namespace seed
 
     Node* View::DuplicateNode(Node* in_node)
     {
-        Node* newNode = in_node->Duplicate(m_nodePool, m_pooledNodes);
-        DuplicateChildren(in_node, newNode);
-        return newNode;
+        return in_node->Duplicate(m_nodePool, m_pooledNodes);
     }
 
     Node* View::FindNode(const string& in_name)
     {
         return GetRootNode()->FindNode(in_name);
-    }
-
-    void View::DuplicateChildren(Node* in_originalNode, Node* in_newParentNode)
-    {
-        for (Node* childNode : in_originalNode->GetBgChildren())
-        {
-            Node* newChildNode = DuplicateNode(childNode);
-            in_newParentNode->Attach(newChildNode, newChildNode->GetZindex());
-        }
-
-        for (Node* childNode : in_originalNode->GetFgChildren())
-        {
-            Node* newChildNode = DuplicateNode(childNode);
-            in_newParentNode->Attach(newChildNode, newChildNode->GetZindex());
-        }
     }
 
     void View::DeleteNode(Node* in_node)

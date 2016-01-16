@@ -12,7 +12,8 @@ namespace seed
         SoundEmitter();
         virtual ~SoundEmitter();
 
-        virtual Node*                   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes);
+        virtual Node*                   Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const;
+        virtual Node*                   Duplicate() const;
         virtual tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const;
         virtual void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode);
 
@@ -29,6 +30,8 @@ namespace seed
         float   GetPitch() const;
         void    SetLoops(bool in_loops);
         bool    GetLoops() const;
+        void    SetPositionBased(bool in_positionBased);
+        bool    GetPositionBased() const;
         void    SetPositionBasedBalance(bool in_positionBased);
         bool    GetPositionBasedBalance() const;
         void    SetPositionBasedVolume(bool in_positionBased);
@@ -43,7 +46,7 @@ namespace seed
 
     protected:
 
-        virtual void        Copy(Node* in_copy);
+        virtual void        Copy(Node* in_copy) const;
 
         string              m_source;
         bool                m_isCue;

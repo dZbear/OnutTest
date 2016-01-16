@@ -5,6 +5,7 @@
 #include "SoundEmitter.h"
 #include "MusicEmitter.h"
 #include "Video.h"
+#include "Effect.h"
 
 GameView::GameView()
 {
@@ -19,10 +20,16 @@ void GameView::OnShow()
 {
     SetSize(Vector2(OScreenWf, OScreenHf));
 
+    auto pEffect = CreateEffect();
+    pEffect->SetCartoonEnabled(true);
+    pEffect->SetSepiaEnabled(true);
+    pEffect->SetVignetteEnabled(true);
+    AddNode(pEffect);
+
     m_dude = CreateSpriteWithSpriteAnim("baltAnims.xml", "idle_down");
-    AddNode(m_dude);
+    AddNode(m_dude, pEffect);
     m_idleAnim = "idle_down";
-    m_dude->SetPosition(OScreenCenterXf, OScreenCenterYf);
+    m_dude->SetPosition(OScreenCenterf);
     m_dude->SetScale(Vector2(5, 5));
     m_dude->SetFilter(onut::SpriteBatch::eFiltering::Nearest);
 
@@ -33,13 +40,13 @@ void GameView::OnShow()
 
     m_testFX = CreateEmitter("test2.pex");
     m_testFX->Start();
-    m_testFX->SetPosition(0, -10);
+    m_testFX->SetPosition(Vector2(0, -10));
     AddNode(m_testFX,m_dude, -1);
 
     seed::SpriteString* testString = CreateSpriteString("cartoon.fnt");
     testString->SetCaption("BALT GUY");
     testString->SetScale(Vector2(.05f, .05f));
-    testString->SetPosition(0, 4);
+    testString->SetPosition(Vector2(0, 4));
     AddNode(testString, m_dude);
 
     m_musicEmitter = CreateMusicEmitter();
@@ -48,8 +55,9 @@ void GameView::OnShow()
 
     m_video = CreateVideo();
     m_video->SetVolume(0.f);
-    m_video->SetSource("https://download.blender.org/durian/trailer/sintel_trailer-720p.mp4");
+    m_video->SetSource("sintel_trailer-720p.mp4");
     m_video->Play();
+    m_video->SetScale(Vector2(.1f));
     AddNode(m_video, m_dude, -2);
 }
 

@@ -18,7 +18,7 @@ void StartView::OnShow()
     SetSize(Vector2(OScreenWf, OScreenHf));
 
     seed::Sprite* spriteButton = CreateSprite("button.png");
-    spriteButton->SetPosition(OScreenCenterXf, OScreenCenterYf - 70.f);
+    spriteButton->SetPosition(Vector2(OScreenCenterXf, OScreenCenterYf - 70.f));
     AddNode(spriteButton);
 
     seed::SpriteString* label = CreateSpriteString("cartoon.fnt");
@@ -30,7 +30,7 @@ void StartView::OnShow()
     seed::Button* startButton = AddButton(spriteButton, "start");
     
     spriteButton = CreateSprite("button.png");
-    spriteButton->SetPosition(OScreenCenterXf, OScreenCenterYf + 70.f);
+    spriteButton->SetPosition(Vector2(OScreenCenterXf, OScreenCenterYf + 70.f));
     AddNode(spriteButton);
     
     label = CreateSpriteString("cartoon.fnt");

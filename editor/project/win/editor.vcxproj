@@ -56,6 +56,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <UndefinePreprocessorDefinitions>SEED_SHARED_PTR</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -74,6 +75,7 @@
       <AdditionalIncludeDirectories>../../src;../../../src;../../../onut/include</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <UndefinePreprocessorDefinitions>SEED_SHARED_PTR</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -85,14 +87,18 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\src\seed\App.cpp" />
     <ClCompile Include="..\..\..\src\seed\Button.cpp" />
+    <ClCompile Include="..\..\..\src\seed\Effect.cpp" />
     <ClCompile Include="..\..\..\src\seed\Emitter.cpp" />
+    <ClCompile Include="..\..\..\src\seed\MusicEmitter.cpp" />
     <ClCompile Include="..\..\..\src\seed\Node.cpp" />
     <ClCompile Include="..\..\..\src\seed\SoundEmitter.cpp" />
     <ClCompile Include="..\..\..\src\seed\Sprite.cpp" />
     <ClCompile Include="..\..\..\src\seed\SpriteString.cpp" />
+    <ClCompile Include="..\..\..\src\seed\Video.cpp" />
     <ClCompile Include="..\..\..\src\seed\View.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
     <ClCompile Include="..\..\src\menu.cpp" />
+    <ClCompile Include="..\..\src\NodeState.cpp" />
     <ClCompile Include="..\..\src\styles.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -103,15 +109,21 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\src\seed\App.h" />
     <ClInclude Include="..\..\..\src\seed\Button.h" />
+    <ClInclude Include="..\..\..\src\seed\Effect.h" />
     <ClInclude Include="..\..\..\src\seed\Emitter.h" />
+    <ClInclude Include="..\..\..\src\seed\MusicEmitter.h" />
     <ClInclude Include="..\..\..\src\seed\Node.h" />
     <ClInclude Include="..\..\..\src\seed\SeedGlobals.h" />
     <ClInclude Include="..\..\..\src\seed\SoundEmitter.h" />
     <ClInclude Include="..\..\..\src\seed\Sprite.h" />
     <ClInclude Include="..\..\..\src\seed\SpriteString.h" />
+    <ClInclude Include="..\..\..\src\seed\Video.h" />
     <ClInclude Include="..\..\..\src\seed\View.h" />
+    <ClInclude Include="..\..\src\defines.h" />
     <ClInclude Include="..\..\src\menu.h" />
     <ClInclude Include="..\..\src\NodeContainer.h" />
+    <ClInclude Include="..\..\src\NodeState.h" />
+    <ClInclude Include="..\..\src\Properties.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

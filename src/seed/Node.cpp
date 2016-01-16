@@ -1,8 +1,11 @@
 #include "Emitter.h"
 #include "Node.h"
+#include "MusicEmitter.h"
+#include "SoundEmitter.h"
 #include "Sprite.h"
 #include "SpriteString.h"
 #include "tinyxml2.h"
+#include "Video.h"
 #include "View.h"
 
 namespace seed
@@ -18,25 +21,78 @@ namespace seed
 
     Node::~Node()
     {
-
+        if (m_parent)
+        {
+            m_parent->Detach(this);
+        }
+        for (Node* pChild : m_bgChildren)
+        {
+            pChild->m_parent = nullptr;
+            delete pChild;
+        }
+        for (Node* pChild : m_fgChildren)
+        {
+            pChild->m_parent = nullptr;
+            delete pChild;
+        }
     }
 
-    Node* Node::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes)
+    Node* Node::Duplicate(onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
     {
         Node* newNode = in_pool.alloc<Node>();
         Copy(newNode);
         in_pooledNodes.push_back(newNode);
+        DuplicateChildren(newNode, in_pool, in_pooledNodes);
         return newNode;
     }
 
-    void Node::Copy(Node* in_copy)
+    Node* Node::Duplicate() const
     {
-        in_copy->SetPosition(GetPosition());
-        in_copy->SetScale(GetScale());
-        in_copy->SetAngle(GetAngle());
-        in_copy->SetColor(GetColor());
-        in_copy->SetVisible(GetVisible());
-        in_copy->SetZindex(GetZindex());
+        Node* newNode = new Node();
+        Copy(newNode);
+        DuplicateChildren(newNode);
+        return newNode;
+    }
+
+    void Node::DuplicateChildren(Node* parent, onut::Pool<true>& in_pool, NodeVect& in_pooledNodes) const
+    {
+        for (Node* childNode : GetBgChildren())
+        {
+            Node* newChildNode = childNode->Duplicate(in_pool, in_pooledNodes);
+            parent->Attach(newChildNode, newChildNode->GetZindex());
+        }
+
+        for (Node* childNode : GetFgChildren())
+        {
+            Node* newChildNode = childNode->Duplicate(in_pool, in_pooledNodes);
+            parent->Attach(newChildNode, newChildNode->GetZindex());
+        }
+    }
+
+    void Node::DuplicateChildren(Node* parent) const
+    {
+        for (Node* childNode : GetBgChildren())
+        {
+            Node* newChildNode = childNode->Duplicate();
+            parent->Attach(newChildNode, newChildNode->GetZindex());
+        }
+
+        for (Node* childNode : GetFgChildren())
+        {
+            Node* newChildNode = childNode->Duplicate();
+            parent->Attach(newChildNode, newChildNode->GetZindex());
+        }
+    }
+
+    void Node::Copy(Node* in_copy) const
+    {
+        in_copy->m_zIndex = m_zIndex;
+        in_copy->m_position = m_position;
+        in_copy->m_scale = m_scale;
+        in_copy->m_angle = m_angle;
+        in_copy->m_color = m_color;
+        in_copy->m_visible = m_visible;
+        in_copy->m_name = m_name;
     }
 
     tinyxml2::XMLElement* Node::Serialize(tinyxml2::XMLDocument* in_xmlDoc) const
@@ -147,6 +203,27 @@ namespace seed
                     fxName = szFxName;
                 }
                 pChild = view->CreateEmitter(fxName);
+                Attach(pChild, childZIndex);
+            }
+            else if (childType == "SoundEmitter")
+            {
+                const char* szSource = xmlChild->Attribute("source");
+                string source;
+                if (szSource)
+                {
+                    source = szSource;
+                }
+                pChild = view->CreateSoundEmitter(source);
+                Attach(pChild, childZIndex);
+            }
+            else if (childType == "MusicEmitter")
+            {
+                pChild = view->CreateMusicEmitter();
+                Attach(pChild, childZIndex);
+            }
+            else if (childType == "Video")
+            {
+                pChild = view->CreateVideo();
                 Attach(pChild, childZIndex);
             }
 
@@ -358,11 +435,6 @@ namespace seed
     void Node::SetPosition(const Vector2& in_position)
     {
         m_position = in_position;
-    }
-
-    void Node::SetPosition(float in_x, float in_y)
-    {
-        SetPosition(Vector2(in_x, in_y));
     }
 
     const Vector2& Node::GetPosition() const

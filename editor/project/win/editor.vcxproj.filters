@@ -28,6 +28,16 @@
     <ClCompile Include="..\..\..\src\seed\SoundEmitter.cpp">
       <Filter>seed</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\seed\MusicEmitter.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\seed\Video.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\seed\Effect.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\NodeState.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -60,9 +70,21 @@
     <ClInclude Include="..\..\..\src\seed\Emitter.h">
       <Filter>seed</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\NodeContainer.h" />
     <ClInclude Include="..\..\..\src\seed\SoundEmitter.h">
       <Filter>seed</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\src\seed\MusicEmitter.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\seed\Video.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\seed\Effect.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\defines.h" />
+    <ClInclude Include="..\..\src\NodeState.h" />
+    <ClInclude Include="..\..\src\NodeContainer.h" />
+    <ClInclude Include="..\..\src\Properties.h" />
   </ItemGroup>
 </Project>
