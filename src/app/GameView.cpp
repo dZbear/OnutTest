@@ -29,7 +29,7 @@ void GameView::OnShow()
     m_dude = CreateSpriteWithSpriteAnim("baltAnims.xml", "idle_down");
     AddNode(m_dude, pEffect);
     m_idleAnim = "idle_down";
-    m_dude->SetPosition(OScreenCenterXf, OScreenCenterYf);
+    m_dude->SetPosition(OScreenCenterf);
     m_dude->SetScale(Vector2(5, 5));
     m_dude->SetFilter(onut::SpriteBatch::eFiltering::Nearest);
 
@@ -40,13 +40,13 @@ void GameView::OnShow()
 
     m_testFX = CreateEmitter("test2.pex");
     m_testFX->Start();
-    m_testFX->SetPosition(0, -10);
+    m_testFX->SetPosition(Vector2(0, -10));
     AddNode(m_testFX,m_dude, -1);
 
     seed::SpriteString* testString = CreateSpriteString("cartoon.fnt");
     testString->SetCaption("BALT GUY");
     testString->SetScale(Vector2(.05f, .05f));
-    testString->SetPosition(0, 4);
+    testString->SetPosition(Vector2(0, 4));
     AddNode(testString, m_dude);
 
     m_musicEmitter = CreateMusicEmitter();
