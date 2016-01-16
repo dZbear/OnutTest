@@ -298,6 +298,17 @@ namespace seed
         return m_pitch;
     }
 
+    void SoundEmitter::SetPositionBased(bool in_positionBased)
+    {
+        SetPositionBasedBalance(in_positionBased);
+        SetPositionBasedVolume(in_positionBased);
+    }
+
+    bool SoundEmitter::GetPositionBased() const
+    {
+        return GetPositionBasedBalance() || GetPositionBasedVolume();
+    }
+
     void SoundEmitter::SetPositionBasedBalance(bool in_positionBased)
     {
         m_positionBasedBalance = in_positionBased;

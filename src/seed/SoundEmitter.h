@@ -30,6 +30,8 @@ namespace seed
         float   GetPitch() const;
         void    SetLoops(bool in_loops);
         bool    GetLoops() const;
+        void    SetPositionBased(bool in_positionBased);
+        bool    GetPositionBased() const;
         void    SetPositionBasedBalance(bool in_positionBased);
         bool    GetPositionBasedBalance() const;
         void    SetPositionBasedVolume(bool in_positionBased);

@@ -193,7 +193,13 @@ namespace seed
         SetLoops(loops);
     }
 
-    void MusicEmitter::SetVolume(float in_volume, float in_fadeTime)
+    void MusicEmitter::SetVolume(float in_volume)
+    {
+        m_volume = in_volume;
+        UpdateVolume();
+    }
+
+    void MusicEmitter::SetVolumeWithFade(float in_volume, float in_fadeTime)
     {
         if (in_fadeTime > 0)
         {

@@ -1,77 +1,25 @@
-// Required for WinMain
-#include <Windows.h>
-
-// Oak Nut include
-#include "onut.h"
-#include "ActionManager.h"
+#include "defines.h"
 #include "menu.h"
-#include "NodeContainer.h"
-#include "tinyxml2.h"
+#include "Properties.h"
+
+#include <ActionManager.h>
+#include <tinyxml2.h>
 
 #include <unordered_set>
 #include <unordered_map>
-
-void createUIStyles(onut::UIContext* pContext);
-void init();
-void update();
-void render();
-
-enum class State
-{
-    Idle,
-    Panning,
-    Zooming,
-    Moving,
-    MovingHandle,
-    Rotate,
-    IsAboutToRotate,
-    IsAboutToMove,
-    IsAboutToMoveHandle,
-};
-
-enum class Handle
-{
-    TOP_LEFT,
-    LEFT,
-    BOTTOM_LEFT,
-    BOTTOM,
-    BOTTOM_RIGHT,
-    RIGHT,
-    TOP_RIGHT,
-    TOP
-};
-
-struct TransformHandle
-{
-    Vector2 screenPos;
-    Handle handle = Handle::TOP_LEFT;
-    Vector2 transformDirection;
-};
-
-using TransformHandles = std::vector<TransformHandle>;
-using AABB = std::vector<Vector2>;
-using HandleIndex = AABB::size_type;
-
-struct Gizmo
-{
-    TransformHandles transformHandles;
-    AABB aabb;
-};
+#include <Windows.h>
 
 // Utilities
 onut::ActionManager actionManager;
-std::unordered_map<seed::Node*, std::shared_ptr<NodeContainer>> nodesToContainers;
+std::unordered_map<seed::Node*, NodeContainerRef> nodesToContainers;
 
 // Camera
-using Zoom = float;
-using ZoomIndex = int;
 static const std::vector<Zoom> zoomLevels = {.20f, .50f, .70f, 1.f, 1.5f, 2.f, 4.f};
 ZoomIndex zoomIndex = 3;
 Zoom zoom = zoomLevels[zoomIndex];
 Vector2 cameraPos = Vector2::Zero;
 
 // Selection
-using Selection = std::vector<std::shared_ptr<NodeContainer>>;
 Selection selection;
 Selection cleanedUpSelection;
 OAnimf dottedLineAnim = 0.f;
@@ -84,82 +32,47 @@ onut::sUIVector2 mousePosOnDown;
 Vector2 selectionCenter;
 HandleIndex handleIndexOnDown;
 bool isSpinning = false;
-using Clipboard = std::vector<NodeState>;
 Clipboard clipboard;
+
+void createUIStyles(onut::UIContext* pContext);
+void init();
+void update();
+void render();
 
 // Controls
 onut::UIControl* ui_mainView = nullptr;
 onut::UITreeView* ui_treeView = nullptr;
 onut::UITreeViewItem* pTreeViewRoot = nullptr;
 
-onut::UIControl* ui_propertiesView = nullptr;
-onut::UITextBox* ui_txtViewWidth = nullptr;
-onut::UITextBox* ui_txtViewHeight = nullptr;
-
 onut::UIButton* ui_btnCreateNode = nullptr;
-onut::UIControl* ui_propertiesNode = nullptr;
-onut::UITextBox* ui_txtSpriteName = nullptr;
-onut::UITextBox* ui_txtSpriteType = nullptr;
-onut::UICheckBox* ui_chkNodeVisible = nullptr;
-onut::UITextBox* ui_txtSpriteX = nullptr;
-onut::UITextBox* ui_txtSpriteY = nullptr;
-onut::UITextBox* ui_txtSpriteScaleX = nullptr;
-onut::UITextBox* ui_txtSpriteScaleY = nullptr;
-onut::UITextBox* ui_txtSpriteAngle = nullptr;
-onut::UIPanel* ui_colSpriteColor = nullptr;
-onut::UITextBox* ui_txtSpriteAlpha = nullptr;
 
 onut::UIButton* ui_btnCreateSprite = nullptr;
-onut::UIControl* ui_propertiesSprite = nullptr;
 onut::UITextBox* ui_txtSpriteTexture = nullptr;
 onut::UIButton* ui_btnSpriteTextureBrowse = nullptr;
-onut::UITextBox* ui_txtSpriteAlignX = nullptr;
-onut::UITextBox* ui_txtSpriteAlignY = nullptr;
-onut::UICheckBox* ui_chkSpriteFlippedH = nullptr;
-onut::UICheckBox* ui_chkSpriteFlippedV = nullptr;
 onut::UICheckBox* ui_chkSpriteBlends[4] = {nullptr};
 onut::UICheckBox* ui_chkSpriteFilters[2] = {nullptr};
 
 onut::UIButton* ui_btnCreateSpriteString = nullptr;
-onut::UIControl* ui_propertiesSpriteString = nullptr;
 onut::UITextBox* ui_txtSpriteStringFont = nullptr;
 onut::UIButton* ui_btnSpriteStringFontBrowse = nullptr;
-onut::UITextBox* ui_txtSpriteStringCaption = nullptr;
 
 onut::UIButton* ui_btnCreateEmitter = nullptr;
-onut::UIControl* ui_propertiesEmitter = nullptr;
 onut::UITextBox* ui_txtEmitterFx = nullptr;
 onut::UIButton* ui_txtEmitterFxBrowse = nullptr;
 onut::UICheckBox* ui_chkEmitterBlends[4] = {nullptr};
 onut::UICheckBox* ui_chkEmitterFilters[2] = {nullptr};
-onut::UICheckBox* ui_chkEmitterEmitWorld = nullptr;
 
-onut::UIControl* ui_propertiesSoundEmitter = nullptr;
 onut::UIButton* ui_btnCreateSoundEmitter = nullptr;
 onut::UITextBox* ui_txtSoundEmitter = nullptr;
 onut::UIButton* ui_btnSoundEmitterBrowse = nullptr;
-onut::UICheckBox* ui_chkSoundEmitterLoop = nullptr;
-onut::UICheckBox* ui_chkSoundEmitterPositionBased = nullptr;
-onut::UITextBox* ui_txtSoundEmitterVolume = nullptr;
-onut::UITextBox* ui_txtSoundEmitterBalance = nullptr;
-onut::UITextBox* ui_txtSoundEmitterPitch = nullptr;
 
-onut::UIControl* ui_propertiesMusicEmitter = nullptr;
 onut::UIButton* ui_btnCreateMusicEmitter = nullptr;
 onut::UITextBox* ui_txtMusicEmitter = nullptr;
 onut::UIButton* ui_btnMusicEmitterBrowse = nullptr;
-onut::UICheckBox* ui_chkMusicEmitterLoop = nullptr;
-onut::UITextBox* ui_txtMusicEmitterVolume = nullptr;
 
-onut::UIControl* ui_propertiesVideo = nullptr;
 onut::UIButton* ui_btnCreateVideo = nullptr;
 onut::UITextBox* ui_txtVideo = nullptr;
 onut::UIButton* ui_btnVideoBrowse = nullptr;
-onut::UICheckBox* ui_chkVideoLoop = nullptr;
-onut::UITextBox* ui_txtVideoVolume = nullptr;
-onut::UITextBox* ui_txtVideoPlayRate = nullptr;
-onut::UITextBox* ui_txtVideoWidth = nullptr;
-onut::UITextBox* ui_txtVideoHeight = nullptr;
 
 // Seed
 seed::View* pEditingView = nullptr;
@@ -190,18 +103,39 @@ void markSaved()
     OWindow->setCaption(onut::getFilename(currentFilename));
 }
 
+// Panel for selected type
+std::unordered_map<std::type_index, std::vector<onut::UIControl*>> propertiesPanels;
+template<typename Tnode>
+void registerPropertiesPanel(const std::string& panelName)
+{
+    auto pPanel = OFindUI(panelName);
+    propertiesPanels[typeid(Tnode)].push_back(pPanel);
+}
+
+template<typename Ttype>
+void showPropertiesPanels()
+{
+    auto& panels = propertiesPanels[typeid(Ttype)];
+    for (auto panel : panels)
+    {
+        panel->isVisible = true;
+    }
+}
+
+void refreshUI();
 void updateProperties()
 {
+    refreshUI();
+
     ui_treeView->unselectAll();
 
-    ui_propertiesView->isVisible = false;
-    ui_propertiesNode->isVisible = false;
-    ui_propertiesSprite->isVisible = false;
-    ui_propertiesSpriteString->isVisible = false;
-    ui_propertiesEmitter->isVisible = false;
-    ui_propertiesSoundEmitter->isVisible = false;
-    ui_propertiesMusicEmitter->isVisible = false;
-    ui_propertiesVideo->isVisible = false;
+    for (auto& kv : propertiesPanels)
+    {
+        for (auto panel : kv.second)
+        {
+            panel->isVisible = false;
+        }
+    }
 
     ui_btnCreateSpriteString->isEnabled = false;
     ui_btnCreateSprite->isEnabled = false;
@@ -225,9 +159,7 @@ void updateProperties()
 
     if (selection.empty())
     {
-        ui_propertiesView->isVisible = true;
-        ui_txtViewWidth->setInt((int)viewSize.x);
-        ui_txtViewHeight->setInt((int)viewSize.y);
+        showPropertiesPanels<void>();
     }
 
     for (auto pContainer : selection)
@@ -240,24 +172,10 @@ void updateProperties()
         auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
         auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
 
-        if (pNode)
-        {
-            ui_propertiesNode->isVisible = true;
-            ui_txtSpriteName->textComponent.text = pContainer->pNode->GetName();
-            ui_txtSpriteType->textComponent.text = "";
-            ui_txtSpriteX->setFloat(pContainer->pNode->GetPosition().x);
-            ui_txtSpriteY->setFloat(pContainer->pNode->GetPosition().y);
-            ui_txtSpriteScaleX->setFloat(pContainer->pNode->GetScale().x);
-            ui_txtSpriteScaleY->setFloat(pContainer->pNode->GetScale().y);
-            ui_txtSpriteAngle->setFloat(pContainer->pNode->GetAngle());
-            ui_colSpriteColor->color = onut::sUIColor(pContainer->pNode->GetColor().x, pContainer->pNode->GetColor().y, pContainer->pNode->GetColor().z, pContainer->pNode->GetColor().w);
-            ui_txtSpriteAlpha->setFloat(pContainer->pNode->GetColor().w * 100.f);
-            ui_chkNodeVisible->setIsChecked(pNode->GetVisible());
-        }
-
+        showPropertiesPanels<seed::Node>();
         if (pSprite)
         {
-            ui_propertiesSprite->isVisible = true;
+            showPropertiesPanels<seed::Sprite>();
             auto pTexture = pSprite->GetTexture();
             if (pTexture)
             {
@@ -267,10 +185,6 @@ void updateProperties()
             {
                 ui_txtSpriteTexture->textComponent.text = "";
             }
-            ui_txtSpriteAlignX->setFloat(pSprite->GetAlign().x);
-            ui_txtSpriteAlignY->setFloat(pSprite->GetAlign().y);
-            ui_chkSpriteFlippedH->setIsChecked(pSprite->GetFlippedH());
-            ui_chkSpriteFlippedV->setIsChecked(pSprite->GetFlippedV());
             switch (pSprite->GetBlend())
             {
                 case onut::SpriteBatch::eBlendMode::Add:
@@ -297,7 +211,7 @@ void updateProperties()
             }
             if (pSpriteString)
             {
-                ui_propertiesSpriteString->isVisible = true;
+                showPropertiesPanels<seed::SpriteString>();
                 auto pFont = pSpriteString->GetFont();
                 if (pFont)
                 {
@@ -307,12 +221,11 @@ void updateProperties()
                 {
                     ui_txtSpriteStringFont->textComponent.text = "";
                 }
-                ui_txtSpriteStringCaption->textComponent.text = pSpriteString->GetCaption();
             }
         }
         else if (pEmitter)
         {
-            ui_propertiesEmitter->isVisible = true;
+            showPropertiesPanels<seed::Emitter>();
             ui_txtEmitterFx->textComponent.text = pEmitter->GetFxName();
             switch (pEmitter->GetBlend())
             {
@@ -338,39 +251,28 @@ void updateProperties()
                     ui_chkEmitterFilters[1]->setIsChecked(true);
                     break;
             }
-            ui_chkEmitterEmitWorld->setIsChecked(pEmitter->GetEmitWorld());
         }
         else if (pSoundEmitter)
         {
-            ui_propertiesSoundEmitter->isVisible = true;
+            showPropertiesPanels<seed::SoundEmitter>();
             ui_txtSoundEmitter->textComponent.text = pSoundEmitter->GetSource();
-            ui_txtSoundEmitterVolume->setFloat(pSoundEmitter->GetVolume() * 100.f);
-            ui_txtSoundEmitterBalance->setFloat(pSoundEmitter->GetBalance() * 100.f);
-            ui_txtSoundEmitterPitch->setFloat(pSoundEmitter->GetPitch() * 100.f);
-            ui_chkSoundEmitterPositionBased->setIsChecked(pSoundEmitter->GetPositionBasedBalance() || pSoundEmitter->GetPositionBasedBalance());
-            ui_chkSoundEmitterLoop->setIsChecked(pSoundEmitter->GetLoops());
         }
         else if (pMusicEmitter)
         {
-            ui_propertiesMusicEmitter->isVisible = true;
+            showPropertiesPanels<seed::MusicEmitter>();
             ui_txtMusicEmitter->textComponent.text = pMusicEmitter->GetSource();
-            ui_txtMusicEmitterVolume->setFloat(pMusicEmitter->GetVolume() * 100.f);
-            ui_chkMusicEmitterLoop->setIsChecked(pMusicEmitter->GetLoops());
         }
         else if (pVideo)
         {
-            ui_propertiesVideo->isVisible = true;
+            showPropertiesPanels<seed::Video>();
             ui_txtVideo->textComponent.text = pVideo->GetSource();
-            ui_txtVideoVolume->setFloat(pVideo->GetVolume() * 100.f);
-            ui_txtVideoPlayRate->setFloat((float)pVideo->GetPlayRate() * 100.f);
-            ui_chkVideoLoop->setIsChecked(pVideo->GetLoops());
-            ui_txtVideoWidth->setFloat(pVideo->GetDimensions().x);
-            ui_txtVideoHeight->setFloat(pVideo->GetDimensions().y);
         }
 
         ui_treeView->expandTo(pContainer->pTreeViewItem);
         ui_treeView->addSelectedItem(pContainer->pTreeViewItem);
     }
+
+    void refreshUI();
 
     updateTransformHandles();
 }
@@ -744,7 +646,7 @@ void checkAboutToAction(State aboutState, State targetState, const Vector2& mous
             state = targetState;
             for (auto pContainer : selection)
             {
-                pContainer->stateOnDown = NodeState(pContainer);
+                pContainer->stateOnDown = std::make_shared<NodeState>(pContainer);
             }
         }
     }
@@ -763,8 +665,8 @@ void finalizeAction(const std::string& name, State actionState)
         auto pGroup = new onut::ActionGroup(name);
         for (auto pContainer : workSelection)
         {
-            auto stateBefore = new NodeState(pContainer->stateOnDown);
-            auto stateAfter = new NodeState(pContainer);
+            auto stateBefore = std::make_shared<NodeState>(pContainer->stateOnDown);
+            auto stateAfter = std::make_shared<NodeState>(pContainer);
             pGroup->addAction(new onut::Action("",
                 [=]{
                 stateAfter->apply();
@@ -774,10 +676,6 @@ void finalizeAction(const std::string& name, State actionState)
                 stateBefore->apply();
                 updateProperties();
                 markModified();
-            }, [=] {
-            }, [=] {
-                delete stateBefore;
-                delete stateAfter;
             }));
         }
         actionManager.doAction(pGroup);
@@ -1047,7 +945,7 @@ void onDelete()
             [=]{ // OnRedo
             pEditingView->DeleteNode(pContainer->pNode);
             pParentContainer->pTreeViewItem->removeItem(pContainer->pTreeViewItem);
-            pStateBefore->visit([](NodeState* pNodeState)
+            pStateBefore->visit([](NodeStateRef pNodeState)
             {
                 pNodeState->pContainer->pNode = nullptr;
                 pNodeState->pContainer->pTreeViewItem = nullptr;
@@ -1106,7 +1004,7 @@ void onCopy()
             }
         }
         nodeState.pParentContainer = pParentContainer;
-        nodeState.visit([](NodeState* pNodeState)
+        nodeState.visit([](NodeStateRef pNodeState)
         {
             pNodeState->pContainer = nullptr;
         });
@@ -1138,7 +1036,7 @@ void onPaste()
             auto pParentContainer = nodesToContainers[state.pContainer->pNode->GetParent()];
             pEditingView->DeleteNode(state.pContainer->pNode);
             pParentContainer->pTreeViewItem->removeItem(state.pContainer->pTreeViewItem);
-            state.visit([](NodeState *pNodeState)
+            state.visit([](NodeStateRef pNodeState)
             {
                 pNodeState->pContainer->pTreeViewItem = nullptr;
                 pNodeState->pContainer->pNode = nullptr;
@@ -1663,8 +1561,210 @@ void startSelectedVideos()
     }
 }
 
+// For textbox number spinning
+void onStartSpinning(onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+{
+    isSpinning = true;
+    for (auto pContainer : selection)
+    {
+        pContainer->stateOnDown = std::make_shared<NodeState>(pContainer);
+    }
+};
+
+void onStopSpinning(onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+{
+    isSpinning = false;
+    for (auto pContainer : selection)
+    {
+        pContainer->stateOnDown->apply();
+    }
+    pControl->onTextChanged(pControl, event);
+};
+
+std::vector<std::shared_ptr<IProp>> props; 
+
+void refreshUI()
+{
+    if (selection.empty())
+    {
+        for (auto prop : props)
+        {
+            prop->updateUI(pEditingView);
+        }
+    }
+    else
+    {
+        for (auto pContainer : selection)
+        {
+            auto pNode = pContainer->pNode;
+            for (auto prop : props)
+            {
+                prop->updateUI(pNode);
+            }
+        }
+    }
+}
+
+struct SpinSetting
+{
+    SpinSetting() {}
+    SpinSetting(float inStep, float inMin = -std::numeric_limits<float>::max(), float inMax = std::numeric_limits<float>::max())
+        : step(inStep), min(inMin), max(inMax)
+    {
+    }
+    float step = 1.f;
+    float min = -std::numeric_limits<float>::max();
+    float max = std::numeric_limits<float>::max();
+};
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerFloatProperty(const std::string& propName, const std::string& uiname, Tgetter getter, Tsetter setter, SpinSetting spinSetting = SpinSetting(), float multiplier = 1.f)
+{
+    auto pUI = dynamic_cast<onut::UITextBox*>(OFindUI(uiname));
+    pUI->onNumberSpinStart = onStartSpinning;
+    pUI->onNumberSpinEnd = onStopSpinning;
+    pUI->step = spinSetting.step;
+    pUI->min = spinSetting.min;
+    pUI->max = spinSetting.max;
+    auto prop = std::make_shared<PropFloat<Tnode, Tgetter, Tsetter>>(pUI, getter, setter, multiplier);
+    props.push_back(prop);
+    pUI->onTextChanged = [=](onut::UITextBox* pUI, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, pUI->getFloat() * multiplier);
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerDoubleProperty(const std::string& propName, const std::string& uiname, Tgetter getter, Tsetter setter, SpinSetting spinSetting = SpinSetting(), float multiplier = 1.f)
+{
+    auto pUI = dynamic_cast<onut::UITextBox*>(OFindUI(uiname));
+    pUI->onNumberSpinStart = onStartSpinning;
+    pUI->onNumberSpinEnd = onStopSpinning;
+    pUI->step = spinSetting.step;
+    pUI->min = spinSetting.min;
+    pUI->max = spinSetting.max;
+    auto prop = std::make_shared<PropDouble<Tnode, Tgetter, Tsetter>>(pUI, getter, setter, multiplier);
+    props.push_back(prop);
+    pUI->onTextChanged = [=](onut::UITextBox* pUI, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, (double)(pUI->getFloat() * multiplier));
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerVector2Property(const std::string& propName, const std::string& xName, const std::string& yName, Tgetter getter, Tsetter setter, SpinSetting spinSettingX = SpinSetting(), SpinSetting spinSettingY = SpinSetting())
+{
+    auto txtX = dynamic_cast<onut::UITextBox*>(OFindUI(xName));
+    auto txtY = dynamic_cast<onut::UITextBox*>(OFindUI(yName));
+    txtX->onNumberSpinStart = onStartSpinning;
+    txtX->onNumberSpinEnd = onStopSpinning;
+    txtY->onNumberSpinStart = onStartSpinning;
+    txtY->onNumberSpinEnd = onStopSpinning;
+    txtX->step = spinSettingX.step;
+    txtX->min = spinSettingX.min;
+    txtX->max = spinSettingX.max;
+    txtY->step = spinSettingY.step;
+    txtY->min = spinSettingY.min;
+    txtY->max = spinSettingY.max;
+    auto prop = std::make_shared<PropVector2<Tnode, Tgetter, Tsetter>>(txtX, txtY, getter, setter);
+    props.push_back(prop); 
+    txtX->onTextChanged = txtY->onTextChanged = [=](onut::UITextBox* pUI, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, Vector2(txtX->getFloat(), txtY->getFloat()));
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerColorProperty(const std::string& propName, const std::string& uiname, const std::string& alphaName, Tgetter getter, Tsetter setter)
+{
+    auto txtAlpha = dynamic_cast<onut::UITextBox*>(OFindUI(alphaName));
+    auto pUI = dynamic_cast<onut::UIPanel*>(OFindUI(uiname));
+    txtAlpha->onNumberSpinStart = onStartSpinning;
+    txtAlpha->onNumberSpinEnd = onStopSpinning;
+    txtAlpha->min = 0.f;
+    txtAlpha->max = 100.f;
+    auto prop = std::make_shared<PropColor<Tnode, Tgetter, Tsetter>>(pUI, txtAlpha, getter, setter);
+    props.push_back(prop); 
+    pUI->onClick = [=](onut::UIControl* pControl, const onut::UIMouseEvent& evt)
+    {
+        static COLORREF g_acrCustClr[16]; // array of custom colors
+
+        CHOOSECOLOR colorChooser = {0};
+        DWORD rgbCurrent; // initial color selection
+        rgbCurrent = (DWORD)pUI->color.packed;
+        rgbCurrent = ((rgbCurrent >> 24) & 0x000000ff) | ((rgbCurrent >> 8) & 0x0000ff00) | ((rgbCurrent << 8) & 0x00ff0000);
+        colorChooser.lStructSize = sizeof(colorChooser);
+        colorChooser.hwndOwner = OWindow->getHandle();
+        colorChooser.lpCustColors = (LPDWORD)g_acrCustClr;
+        colorChooser.rgbResult = rgbCurrent;
+        colorChooser.Flags = CC_FULLOPEN | CC_RGBINIT;
+        if (ChooseColor(&colorChooser) == TRUE)
+        {
+            onut::sUIColor color;
+            rgbCurrent = colorChooser.rgbResult;
+            color.packed = ((rgbCurrent << 24) & 0xff000000) | ((rgbCurrent << 8) & 0x00ff0000) | ((rgbCurrent >> 8) & 0x0000ff00) | 0x000000ff;
+            color.unpack();
+            pUI->color = color;
+            changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+            {
+                auto colorBefore = pContainer->pNode->GetColor();
+                prop->set(pContainer->pNode, Color(color.r, color.g, color.b, colorBefore.w));
+            });
+        }
+    };
+    txtAlpha->onTextChanged = [=](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto alpha = txtAlpha->getFloat() / 100.f;
+            auto colorBefore = pContainer->pNode->GetColor();
+            prop->set(pContainer->pNode, Color(colorBefore, alpha));
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerStringProperty(const std::string& propName, const std::string& uiname, Tgetter getter, Tsetter setter)
+{
+    auto pUI = dynamic_cast<onut::UITextBox*>(OFindUI(uiname));
+    auto prop = std::make_shared<PropString<Tnode, Tgetter, Tsetter>>(pUI, getter, setter);
+    props.push_back(prop);
+    pUI->onTextChanged = [=](onut::UITextBox* pUI, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, pUI->textComponent.text);
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerBoolProperty(const std::string& propName, const std::string& uiname, Tgetter getter, Tsetter setter)
+{
+    auto pUI = dynamic_cast<onut::UICheckBox*>(OFindUI(uiname));
+    auto prop = std::make_shared<PropBool<Tnode, Tgetter, Tsetter>>(pUI, getter, setter);
+    props.push_back(prop);
+    pUI->onCheckChanged = [=](onut::UICheckBox* pUI, const onut::UICheckEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, pUI->getIsChecked());
+        });
+    };
+}
+
 void init()
 {
+    // Load cursors for different manipulation
     curARROW = LoadCursor(nullptr, IDC_ARROW);
     curSIZENWSE = LoadCursor(nullptr, IDC_SIZENWSE);
     curSIZENESW = LoadCursor(nullptr, IDC_SIZENESW);
@@ -1672,41 +1772,56 @@ void init()
     curSIZENS = LoadCursor(nullptr, IDC_SIZENS);
     curSIZEALL = LoadCursor(nullptr, IDC_SIZEALL);
 
+    // Create the UI styles and load our editor UI
     createUIStyles(OUIContext);
     OUI->add(OLoadUI("editor.json"));
 
+    // Get/Setup basic editor UI stuff
     ui_mainView = OFindUI("mainView");
     ui_treeView = dynamic_cast<onut::UITreeView*>(OFindUI("treeView"));
     ui_treeView->allowReorder = true;
-
-    ui_propertiesView = OFindUI("propertiesView");
-    ui_txtViewWidth = dynamic_cast<onut::UITextBox*>(OFindUI("txtViewWidth"));
-    ui_txtViewHeight = dynamic_cast<onut::UITextBox*>(OFindUI("txtViewHeight"));
-
-    ui_propertiesNode = OFindUI("propertiesNode");
     ui_btnCreateNode = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateNode"));
-    ui_txtSpriteName = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteName"));
-    ui_txtSpriteType = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteType"));
-    ui_chkNodeVisible = dynamic_cast<onut::UICheckBox*>(OFindUI("chkNodeVisible"));
-    ui_txtSpriteX = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteX"));
-    ui_txtSpriteY = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteY"));
-    ui_txtSpriteScaleX = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteScaleX"));
-    ui_txtSpriteScaleY = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteScaleY"));
-    ui_txtSpriteScaleX->step = 0.01f;
-    ui_txtSpriteScaleY->step = 0.01f;
-    ui_txtSpriteAngle = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAngle"));
-    ui_txtSpriteAngle->step = 1.f;
-    ui_colSpriteColor = dynamic_cast<onut::UIPanel*>(OFindUI("colSpriteColor"));
-    ui_txtSpriteAlpha = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlpha"));
-    ui_txtSpriteAlpha->min = 0.f;
-    ui_txtSpriteAlpha->max = 100.f;
-
-    ui_propertiesSprite = OFindUI("propertiesSprite");
     ui_btnCreateSprite = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateSprite"));
+    ui_btnCreateSpriteString = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateSpriteString"));
+    ui_btnCreateEmitter = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateEmitter"));
+    ui_btnCreateSoundEmitter = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateSoundEmitter"));
+    ui_btnCreateMusicEmitter = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateMusicEmitter"));
+    ui_btnCreateVideo = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateVideo"));
+
+    // Register properties panel for their respective type
+    registerPropertiesPanel<void>("propertiesView");
+    registerPropertiesPanel<seed::Node>("propertiesNode");
+    registerPropertiesPanel<seed::Sprite>("propertiesNode");
+    registerPropertiesPanel<seed::Sprite>("propertiesSprite");
+    registerPropertiesPanel<seed::SpriteString>("propertiesNode");
+    registerPropertiesPanel<seed::SpriteString>("propertiesSprite");
+    registerPropertiesPanel<seed::SpriteString>("propertiesSpriteString");
+    registerPropertiesPanel<seed::Emitter>("propertiesNode");
+    registerPropertiesPanel<seed::Emitter>("propertiesEmitter");
+    registerPropertiesPanel<seed::SoundEmitter>("propertiesNode");
+    registerPropertiesPanel<seed::SoundEmitter>("propertiesSoundEmitter");
+    registerPropertiesPanel<seed::MusicEmitter>("propertiesNode");
+    registerPropertiesPanel<seed::MusicEmitter>("propertiesMusicEmitter");
+    registerPropertiesPanel<seed::Video>("propertiesNode");
+    registerPropertiesPanel<seed::Video>("propertiesVideo");
+
+    // Register properties
+    // View
+    registerVector2Property<seed::View>("View Dimension", "txtViewWidth", "txtViewHeight", &seed::View::GetSize, &seed::View::SetSize);
+
+    // Node
+    registerStringProperty<seed::Node>("Name", "txtSpriteName", &seed::Node::GetName, &seed::Node::SetName);
+    registerBoolProperty<seed::Node>("Visible", "chkNodeVisible", &seed::Node::GetVisible, &seed::Node::SetVisible);
+    registerVector2Property<seed::Node>("Position", "txtSpriteX", "txtSpriteY", &seed::Node::GetPosition, &seed::Node::SetPosition);
+    registerVector2Property<seed::Node>("Scale", "txtSpriteScaleX", "txtSpriteScaleY", &seed::Node::GetScale, &seed::Node::SetScale, {.01f}, {.01f});
+    registerFloatProperty<seed::Node>("Angle", "txtSpriteAngle", &seed::Node::GetAngle, &seed::Node::SetAngle);
+    registerColorProperty<seed::Node>("Color", "colSpriteColor", "txtSpriteAlpha", &seed::Node::GetColor, &seed::Node::SetColor);
+
+    // Sprite
     ui_txtSpriteTexture = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteTexture"));
     ui_btnSpriteTextureBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnSpriteTextureBrowse"));
-    ui_chkSpriteFlippedH = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSpriteFlippedH"));
-    ui_chkSpriteFlippedV = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSpriteFlippedV"));
+    registerBoolProperty<seed::Sprite>("Flipped H", "chkSpriteFlippedH", &seed::Sprite::GetFlippedH, &seed::Sprite::SetFlippedH);
+    registerBoolProperty<seed::Sprite>("Flipped V", "chkSpriteFlippedV", &seed::Sprite::GetFlippedV, &seed::Sprite::SetFlippedV);
     ui_chkSpriteBlends[0] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSpriteBlendAdd"));
     ui_chkSpriteBlends[1] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSpriteBlendAlpha"));
     ui_chkSpriteBlends[2] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSpriteBlendPreMult"));
@@ -1721,22 +1836,17 @@ void init()
     {
         pRadio->behavior = onut::eUICheckBehavior::EXCLUSIVE;
     }
+    registerVector2Property<seed::Sprite>("Align", "txtSpriteAlignX", "txtSpriteAlignY", &seed::Sprite::GetAlign, &seed::Sprite::SetAlign, {.01f}, {.01f});
 
-    ui_propertiesSpriteString = OFindUI("propertiesSpriteString");
-    ui_btnCreateSpriteString = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateSpriteString"));
+    // SpriteString
     ui_txtSpriteStringFont = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteStringFont"));
     ui_btnSpriteStringFontBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnSpriteStringFontBrowse"));
-    ui_txtSpriteStringCaption = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteStringCaption"));
-    ui_txtSpriteAlignX = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlignX"));
-    ui_txtSpriteAlignY = dynamic_cast<onut::UITextBox*>(OFindUI("txtSpriteAlignY"));
-    ui_txtSpriteAlignX->step = 0.01f;
-    ui_txtSpriteAlignY->step = 0.01f;
+    registerStringProperty<seed::SpriteString>("Caption", "txtSpriteStringCaption", &seed::SpriteString::GetCaption, &seed::SpriteString::SetCaption);
 
-    ui_propertiesEmitter = OFindUI("propertiesEmitter");
-    ui_btnCreateEmitter = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateEmitter"));
+    // Emitter
     ui_txtEmitterFx = dynamic_cast<onut::UITextBox*>(OFindUI("txtEmitterFx"));
     ui_txtEmitterFxBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnEmitterFxBrowse"));
-    ui_chkEmitterEmitWorld = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterEmitWorld"));
+    registerBoolProperty<seed::Emitter>("Emit World", "chkEmitterEmitWorld", &seed::Emitter::GetEmitWorld, &seed::Emitter::SetEmitWorld);
     ui_chkEmitterBlends[0] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterBlendAdd"));
     ui_chkEmitterBlends[1] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterBlendAlpha"));
     ui_chkEmitterBlends[2] = dynamic_cast<onut::UICheckBox*>(OFindUI("chkEmitterBlendPreMult"));
@@ -1752,50 +1862,28 @@ void init()
         pRadio->behavior = onut::eUICheckBehavior::EXCLUSIVE;
     }
 
-    ui_propertiesSoundEmitter = OFindUI("propertiesSoundEmitter");
-    ui_btnCreateSoundEmitter = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateSoundEmitter"));
+    // SoundEmitter
     ui_txtSoundEmitter = dynamic_cast<onut::UITextBox*>(OFindUI("txtSoundEmitter"));
     ui_btnSoundEmitterBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnSoundEmitterBrowse"));
-    ui_chkSoundEmitterLoop = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSoundEmitterLoop"));
-    ui_chkSoundEmitterPositionBased = dynamic_cast<onut::UICheckBox*>(OFindUI("chkSoundEmitterPositionBased"));
-    ui_txtSoundEmitterVolume = dynamic_cast<onut::UITextBox*>(OFindUI("txtSoundEmitterVolume"));
-    ui_txtSoundEmitterVolume->min = 0.f;
-    ui_txtSoundEmitterVolume->max = 100.f;
-    ui_txtSoundEmitterVolume->step = 1.f;
-    ui_txtSoundEmitterBalance = dynamic_cast<onut::UITextBox*>(OFindUI("txtSoundEmitterBalance"));
-    ui_txtSoundEmitterBalance->min = -100.f;
-    ui_txtSoundEmitterBalance->max = 100.f;
-    ui_txtSoundEmitterBalance->step = 1.f;
-    ui_txtSoundEmitterPitch = dynamic_cast<onut::UITextBox*>(OFindUI("txtSoundEmitterPitch"));
-    ui_txtSoundEmitterPitch->min = 10;
-    ui_txtSoundEmitterPitch->max = 200;
-    ui_txtSoundEmitterPitch->step = 1.f;
+    registerBoolProperty<seed::SoundEmitter>("Loop", "chkSoundEmitterLoop", &seed::SoundEmitter::GetLoops, &seed::SoundEmitter::SetLoops);
+    registerBoolProperty<seed::SoundEmitter>("Position Based", "chkSoundEmitterPositionBased", &seed::SoundEmitter::GetPositionBased, &seed::SoundEmitter::SetPositionBased);
+    registerFloatProperty<seed::SoundEmitter>("Volume", "txtSoundEmitterVolume", &seed::SoundEmitter::GetVolume, &seed::SoundEmitter::SetVolume, {0.f, 100.f}, .01f);
+    registerFloatProperty<seed::SoundEmitter>("Balance", "txtSoundEmitterBalance", &seed::SoundEmitter::GetBalance, &seed::SoundEmitter::SetBalance, {-100.f, 100.f}, .01f);
+    registerFloatProperty<seed::SoundEmitter>("Pitch", "txtSoundEmitterPitch", &seed::SoundEmitter::GetBalance, &seed::SoundEmitter::SetBalance, {10.f, 200.f}, .01f);
 
-    ui_propertiesMusicEmitter = OFindUI("propertiesMusicEmitter");
-    ui_btnCreateMusicEmitter = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateMusicEmitter"));
+    // MusicEmitter
     ui_txtMusicEmitter = dynamic_cast<onut::UITextBox*>(OFindUI("txtMusicEmitter"));
     ui_btnMusicEmitterBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnMusicEmitterBrowse"));
-    ui_chkMusicEmitterLoop = dynamic_cast<onut::UICheckBox*>(OFindUI("chkMusicEmitterLoop"));
-    ui_txtMusicEmitterVolume = dynamic_cast<onut::UITextBox*>(OFindUI("txtMusicEmitterVolume"));
-    ui_txtMusicEmitterVolume->min = 0.f;
-    ui_txtMusicEmitterVolume->max = 100.f;
-    ui_txtMusicEmitterVolume->step = 1.f;
+    registerBoolProperty<seed::MusicEmitter>("Loop", "chkMusicEmitterLoop", &seed::MusicEmitter::GetLoops, &seed::MusicEmitter::SetLoops);
+    registerFloatProperty<seed::MusicEmitter>("Volume", "txtMusicEmitterVolume", &seed::MusicEmitter::GetVolume, &seed::MusicEmitter::SetVolume, {0.f, 100.f}, .01f);
 
-    ui_propertiesVideo = OFindUI("propertiesVideo");
-    ui_btnCreateVideo = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateVideo"));
+    // Video
     ui_txtVideo = dynamic_cast<onut::UITextBox*>(OFindUI("txtVideo"));
     ui_btnVideoBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnVideoBrowse"));
-    ui_chkVideoLoop = dynamic_cast<onut::UICheckBox*>(OFindUI("chkVideoLoop"));
-    ui_txtVideoVolume = dynamic_cast<onut::UITextBox*>(OFindUI("txtVideoVolume"));
-    ui_txtVideoVolume->min = 0.f;
-    ui_txtVideoVolume->max = 100.f;
-    ui_txtVideoVolume->step = 1.f;
-    ui_txtVideoPlayRate = dynamic_cast<onut::UITextBox*>(OFindUI("txtVideoPlayRate"));
-    ui_txtVideoPlayRate->min = 10;
-    ui_txtVideoPlayRate->max = 200;
-    ui_txtVideoPlayRate->step = 1.f;
-    ui_txtVideoWidth = dynamic_cast<onut::UITextBox*>(OFindUI("txtVideoWidth"));
-    ui_txtVideoHeight = dynamic_cast<onut::UITextBox*>(OFindUI("txtVideoHeight"));
+    registerBoolProperty<seed::Video>("Loop", "chkVideoLoop", &seed::Video::GetLoops, &seed::Video::SetLoops);
+    registerFloatProperty<seed::Video>("Volume", "txtVideoVolume", &seed::Video::GetVolume, &seed::Video::SetVolume, {0.f, 100.f}, .01f);
+    registerDoubleProperty<seed::Video>("Pitch", "txtVideoPlayRate", &seed::Video::GetPlayRate, &seed::Video::SetPlayRate, {10.f, 200.f}, .01f);
+    registerVector2Property<seed::Video>("Position", "txtVideoWidth", "txtVideoHeight", &seed::Video::GetDimensions, &seed::Video::SetDimensions);
 
     ui_treeView->onMoveItemInto = [](onut::UITreeView* in_pTreeView, const onut::UITreeViewMoveEvent& event)
     {
@@ -2045,111 +2133,6 @@ void init()
         }
     };
 
-    auto onStartSpinning = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        isSpinning = true;
-        for (auto pContainer : selection)
-        {
-            pContainer->stateOnDown = NodeState(pContainer);
-        }
-    };
-    auto onStopSpinning = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        isSpinning = false;
-        for (auto pContainer : selection)
-        {
-            pContainer->stateOnDown.apply();
-        }
-        pControl->onTextChanged(pControl, event);
-    };
-
-    ui_txtViewWidth->onNumberSpinStart = onStartSpinning;
-    ui_txtViewHeight->onNumberSpinStart = onStartSpinning;
-    ui_txtSpriteX->onNumberSpinStart = onStartSpinning;
-    ui_txtSpriteY->onNumberSpinStart = onStartSpinning;
-    ui_txtSpriteScaleX->onNumberSpinStart = onStartSpinning;
-    ui_txtSpriteScaleY->onNumberSpinStart = onStartSpinning;
-    ui_txtSpriteAlignX->onNumberSpinStart = onStartSpinning;
-    ui_txtSpriteAlignY->onNumberSpinStart = onStartSpinning;
-    ui_txtSpriteAngle->onNumberSpinStart = onStartSpinning;
-    ui_txtSpriteAlpha->onNumberSpinStart = onStartSpinning;
-    ui_txtSoundEmitterVolume->onNumberSpinStart = onStartSpinning;
-    ui_txtSoundEmitterBalance->onNumberSpinStart = onStartSpinning;
-    ui_txtSoundEmitterPitch->onNumberSpinStart = onStartSpinning;
-    ui_txtMusicEmitterVolume->onNumberSpinStart = onStartSpinning;
-    ui_txtVideoVolume->onNumberSpinStart = onStartSpinning;
-    ui_txtVideoPlayRate->onNumberSpinStart = onStartSpinning;
-    ui_txtVideoWidth->onNumberSpinStart = onStartSpinning;
-    ui_txtVideoHeight->onNumberSpinStart = onStartSpinning;
-
-    ui_txtViewWidth->onNumberSpinEnd = onStopSpinning;
-    ui_txtViewHeight->onNumberSpinEnd = onStopSpinning;
-    ui_txtSpriteX->onNumberSpinEnd = onStopSpinning;
-    ui_txtSpriteY->onNumberSpinEnd = onStopSpinning;
-    ui_txtSpriteScaleX->onNumberSpinEnd = onStopSpinning;
-    ui_txtSpriteScaleY->onNumberSpinEnd = onStopSpinning;
-    ui_txtSpriteAlignX->onNumberSpinEnd = onStopSpinning;
-    ui_txtSpriteAlignY->onNumberSpinEnd = onStopSpinning;
-    ui_txtSpriteAngle->onNumberSpinEnd = onStopSpinning;
-    ui_txtSpriteAlpha->onNumberSpinEnd = onStopSpinning;
-    ui_txtSoundEmitterVolume->onNumberSpinEnd = onStopSpinning;
-    ui_txtSoundEmitterBalance->onNumberSpinEnd = onStopSpinning;
-    ui_txtSoundEmitterPitch->onNumberSpinEnd = onStopSpinning;
-    ui_txtMusicEmitterVolume->onNumberSpinEnd = onStopSpinning;
-    ui_txtVideoVolume->onNumberSpinEnd = onStopSpinning;
-    ui_txtVideoPlayRate->onNumberSpinEnd = onStopSpinning;
-    ui_txtVideoWidth->onNumberSpinEnd = onStopSpinning;
-    ui_txtVideoHeight->onNumberSpinEnd = onStopSpinning;
-
-    ui_txtViewWidth->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        auto oldSize = viewSize;
-        auto newSize = Vector2((float)ui_txtViewWidth->getInt(), viewSize.y);
-        if (isSpinning)
-        {
-            viewSize = newSize;
-            return;
-        }
-        actionManager.doAction(new onut::Action("Change View Width",
-            [=]
-        {
-            viewSize = newSize;
-            markModified();
-        }, [=]
-        {
-            viewSize = oldSize;
-            markModified();
-        }));
-        updateProperties();
-    };
-    ui_txtViewHeight->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        auto oldSize = viewSize;
-        auto newSize = Vector2(viewSize.x, (float)ui_txtViewHeight->getInt());
-        if (isSpinning)
-        {
-            viewSize = newSize;
-            return;
-        }
-        actionManager.doAction(new onut::Action("Change View Height",
-            [=]
-        {
-            viewSize = newSize;
-            markModified();
-        }, [=]
-        {
-            viewSize = oldSize;
-            markModified();
-        }));
-        updateProperties();
-    };
-    ui_txtSpriteName->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Name", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            pContainer->pNode->SetName(ui_txtSpriteName->textComponent.text);
-        });
-    };
     ui_txtEmitterFx->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
     {
         changeSpriteProperty("Change Fx", [](std::shared_ptr<NodeContainer> pContainer)
@@ -2312,188 +2295,6 @@ void init()
             }
         }
     };
-    ui_txtSpriteStringCaption->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Caption", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
-            if (pSpriteString)
-            {
-                pSpriteString->SetCaption(ui_txtSpriteStringCaption->textComponent.text);
-            }
-        });
-    };
-    ui_txtSpriteX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Position X", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            pContainer->pNode->SetPosition(Vector2(ui_txtSpriteX->getFloat(), pContainer->pNode->GetPosition().y));
-        });
-    };
-    ui_txtSpriteY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Position Y", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            pContainer->pNode->SetPosition(Vector2(pContainer->pNode->GetPosition().x, ui_txtSpriteY->getFloat()));
-        });
-    };
-    ui_txtVideoWidth->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Video Width", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
-            if (pVideo)
-            {
-                pVideo->SetDimensions(Vector2(ui_txtVideoWidth->getFloat(), pVideo->GetDimensions().y));
-            }
-        });
-    };
-    ui_txtVideoHeight->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Video Height", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
-            if (pVideo)
-            {
-                pVideo->SetDimensions(Vector2(pVideo->GetDimensions().x, ui_txtVideoHeight->getFloat()));
-            }
-        });
-    };
-    ui_txtSpriteY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Position Y", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            pContainer->pNode->SetPosition(Vector2(pContainer->pNode->GetPosition().x, ui_txtSpriteY->getFloat()));
-        });
-    };
-    ui_txtSpriteScaleX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Scale X", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            pContainer->pNode->SetScale(Vector2(ui_txtSpriteScaleX->getFloat(), pContainer->pNode->GetScale().y));
-        });
-    };
-    ui_txtSpriteScaleY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Scale Y", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            pContainer->pNode->SetScale(Vector2(pContainer->pNode->GetScale().x, ui_txtSpriteScaleY->getFloat()));
-        });
-    };
-    ui_txtSpriteAlignX->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Align X", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-            if (pSprite)
-            {
-                pSprite->SetAlign(Vector2(ui_txtSpriteAlignX->getFloat(), pSprite->GetAlign().y));
-            }
-        });
-    };
-    ui_txtSpriteAlignY->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Align Y", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-            if (pSprite)
-            {
-                pSprite->SetAlign(Vector2(pSprite->GetAlign().x, ui_txtSpriteAlignY->getFloat()));
-            }
-        });
-    };
-    ui_txtSpriteAngle->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Angle", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            pContainer->pNode->SetAngle(ui_txtSpriteAngle->getFloat());
-        });
-    };
-    ui_chkNodeVisible->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
-    {
-        changeSpriteProperty("Change Visibility", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            pContainer->pNode->SetVisible(ui_chkNodeVisible->getIsChecked());
-        });
-    };
-    ui_chkEmitterEmitWorld->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
-    {
-        changeSpriteProperty("Change Emit World", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
-            if (pEmitter)
-            {
-                pEmitter->SetEmitWorld(ui_chkEmitterEmitWorld->getIsChecked());
-            }
-        });
-    };
-    ui_chkSoundEmitterLoop->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
-    {
-        changeSpriteProperty("Change Loop", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
-            if (pSoundEmitter)
-            {
-                pSoundEmitter->SetLoops(ui_chkSoundEmitterLoop->getIsChecked());
-            }
-        });
-    };
-    ui_chkMusicEmitterLoop->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
-    {
-        changeSpriteProperty("Change Loop", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
-            if (pMusicEmitter)
-            {
-                pMusicEmitter->SetLoops(ui_chkMusicEmitterLoop->getIsChecked());
-            }
-        });
-    };
-    ui_chkVideoLoop->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
-    {
-        changeSpriteProperty("Change Loop", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
-            if (pVideo)
-            {
-                pVideo->SetLoops(ui_chkVideoLoop->getIsChecked());
-            }
-        });
-    };
-    ui_chkSoundEmitterPositionBased->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
-    {
-        changeSpriteProperty("Change Position Based", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
-            if (pSoundEmitter)
-            {
-                pSoundEmitter->SetPositionBasedVolume(ui_chkSoundEmitterPositionBased->getIsChecked());
-                pSoundEmitter->SetPositionBasedBalance(ui_chkSoundEmitterPositionBased->getIsChecked());
-            }
-        });
-    };
-    ui_chkSpriteFlippedH->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
-    {
-        changeSpriteProperty("Change Flip H", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-            if (pSprite)
-            {
-                pSprite->SetFlipped(ui_chkSpriteFlippedH->getIsChecked(), pSprite->GetFlippedV());
-            }
-        });
-    };
-    ui_chkSpriteFlippedV->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
-    {
-        changeSpriteProperty("Change Flip V", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-            if (pSprite)
-            {
-                pSprite->SetFlipped(pSprite->GetFlippedH(), ui_chkSpriteFlippedV->getIsChecked());
-            }
-        });
-    };
     ui_chkSpriteBlends[0]->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
     {
         if (!pControl->getIsChecked()) return;
@@ -2635,113 +2436,6 @@ void init()
             if (pEmitter)
             {
                 pEmitter->SetFilter(onut::SpriteBatch::eFiltering::Linear);
-            }
-        });
-    };
-    ui_colSpriteColor->onClick = [=](onut::UIControl* pControl, const onut::UIMouseEvent& evt)
-    {
-        static COLORREF g_acrCustClr[16]; // array of custom colors
-
-        CHOOSECOLOR colorChooser = {0};
-        DWORD rgbCurrent; // initial color selection
-        rgbCurrent = (DWORD)ui_colSpriteColor->color.packed;
-        rgbCurrent = ((rgbCurrent >> 24) & 0x000000ff) | ((rgbCurrent >> 8) & 0x0000ff00) | ((rgbCurrent << 8) & 0x00ff0000);
-        colorChooser.lStructSize = sizeof(colorChooser);
-        colorChooser.hwndOwner = OWindow->getHandle();
-        colorChooser.lpCustColors = (LPDWORD)g_acrCustClr;
-        colorChooser.rgbResult = rgbCurrent;
-        colorChooser.Flags = CC_FULLOPEN | CC_RGBINIT;
-        if (ChooseColor(&colorChooser) == TRUE)
-        {
-            onut::sUIColor color;
-            rgbCurrent = colorChooser.rgbResult;
-            color.packed = ((rgbCurrent << 24) & 0xff000000) | ((rgbCurrent << 8) & 0x00ff0000) | ((rgbCurrent >> 8) & 0x0000ff00) | 0x000000ff;
-            color.unpack();
-            ui_colSpriteColor->color = color;
-            changeSpriteProperty("Change Color", [color](std::shared_ptr<NodeContainer> pContainer)
-            {
-                auto colorBefore = pContainer->pNode->GetColor();
-                pContainer->pNode->SetColor(Color(color.r, color.g, color.b, colorBefore.w));
-            });
-        }
-    };
-    ui_txtSpriteAlpha->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Alpha", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto alpha = ui_txtSpriteAlpha->getFloat() / 100.f;
-            pContainer->pNode->SetColor(Color(pContainer->pNode->GetColor().x, pContainer->pNode->GetColor().y, pContainer->pNode->GetColor().z, alpha));
-        });
-    };
-    ui_txtSoundEmitterVolume->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Volume", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
-            if (pSoundEmitter)
-            {
-                auto volume = ui_txtSoundEmitterVolume->getFloat() / 100.f;
-                pSoundEmitter->SetVolume(volume);
-            }
-        });
-    };
-    ui_txtMusicEmitterVolume->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Volume", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
-            if (pMusicEmitter)
-            {
-                auto volume = ui_txtMusicEmitterVolume->getFloat() / 100.f;
-                pMusicEmitter->SetVolume(volume);
-            }
-        });
-    };
-    ui_txtVideoVolume->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Volume", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
-            if (pVideo)
-            {
-                auto volume = ui_txtVideoVolume->getFloat() / 100.f;
-                pVideo->SetVolume(volume);
-            }
-        });
-    };
-    ui_txtSoundEmitterBalance->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Balance", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
-            if (pSoundEmitter)
-            {
-                auto balance = ui_txtSoundEmitterBalance->getFloat() / 100.f;
-                pSoundEmitter->SetBalance(balance);
-            }
-        });
-    };
-    ui_txtSoundEmitterPitch->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Pitch", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
-            if (pSoundEmitter)
-            {
-                auto pitch = ui_txtSoundEmitterPitch->getFloat() / 100.f;
-                pSoundEmitter->SetPitch(pitch);
-            }
-        });
-    };
-    ui_txtVideoPlayRate->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
-    {
-        changeSpriteProperty("Change Play Rate", [](std::shared_ptr<NodeContainer> pContainer)
-        {
-            auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
-            if (pVideo)
-            {
-                auto playRate = ui_txtVideoPlayRate->getFloat() / 100.f;
-                pVideo->SetPlayRate(playRate);
             }
         });
     };
@@ -3224,8 +2918,8 @@ void init()
             }
             for (auto pContainer : cleanedUpSelection)
             {
-                auto transform = pContainer->stateOnDown.parentTransform;
-                auto worldPos = Vector2::Transform(pContainer->stateOnDown.position, transform);
+                auto transform = pContainer->stateOnDown->parentTransform;
+                auto worldPos = Vector2::Transform(pContainer->stateOnDown->position, transform);
                 auto invTransform = transform.Invert();
                 worldPos += mouseDiff;
                 pContainer->pNode->SetPosition(Vector2::Transform(worldPos, invTransform));
@@ -3242,7 +2936,7 @@ void init()
             Vector2 size(32, 32);
             if (pSprite || pVideo) size = Vector2(pContainer->pNode->GetWidth(), pContainer->pNode->GetHeight());
 
-            auto invTransform = pContainer->stateOnDown.transform.Invert();
+            auto invTransform = pContainer->stateOnDown->transform.Invert();
             invTransform._41 = 0;
             invTransform._42 = 0;
 
@@ -3252,13 +2946,13 @@ void init()
             if (OPressed(OINPUT_LSHIFT))
             {
                 localScaleDiff.x = localScaleDiff.y = std::max<>(localScaleDiff.x, localScaleDiff.y);
-                newScale = pContainer->stateOnDown.scale + localScaleDiff / size * 2.f * pContainer->stateOnDown.scale;
-                auto ratioOnDown = pContainer->stateOnDown.scale.x / pContainer->stateOnDown.scale.y;
+                newScale = pContainer->stateOnDown->scale + localScaleDiff / size * 2.f * pContainer->stateOnDown->scale;
+                auto ratioOnDown = pContainer->stateOnDown->scale.x / pContainer->stateOnDown->scale.y;
                 newScale.y = newScale.x / ratioOnDown;
             }
             else
             {
-                newScale = pContainer->stateOnDown.scale + localScaleDiff / size * 2.f * pContainer->stateOnDown.scale;
+                newScale = pContainer->stateOnDown->scale + localScaleDiff / size * 2.f * pContainer->stateOnDown->scale;
             }
 
             pContainer->pNode->SetScale(newScale);
@@ -3281,15 +2975,15 @@ void init()
                 auto invViewTransform = viewTransform.Invert();
                 for (auto pContainer : cleanedUpSelection)
                 {
-                    auto screenPosition = Vector2::Transform(pContainer->stateOnDown.transform.Translation(), viewTransform);
+                    auto screenPosition = Vector2::Transform(pContainer->stateOnDown->transform.Translation(), viewTransform);
                     auto centerVect = screenPosition - selectionCenter;
                     centerVect = Vector2::Transform(centerVect, Matrix::CreateRotationZ(DirectX::XMConvertToRadians(angleDiff)));
                     screenPosition = centerVect + selectionCenter;
                     auto viewPosition = Vector2::Transform(screenPosition, invViewTransform);
-                    auto invParentTransform = pContainer->stateOnDown.parentTransform.Invert();
+                    auto invParentTransform = pContainer->stateOnDown->parentTransform.Invert();
                     auto localPosition = Vector2::Transform(viewPosition, invParentTransform);
                     pContainer->pNode->SetPosition(localPosition);
-                    pContainer->pNode->SetAngle(pContainer->stateOnDown.angle + angleDiff);
+                    pContainer->pNode->SetAngle(pContainer->stateOnDown->angle + angleDiff);
                 }
                 switch (gizmo.transformHandles[handleIndexOnDown].handle)
                 {
@@ -3314,7 +3008,7 @@ void init()
             else
             {
                 auto pContainer = selection.front();
-                pContainer->pNode->SetAngle(pContainer->stateOnDown.angle + angleDiff);
+                pContainer->pNode->SetAngle(pContainer->stateOnDown->angle + angleDiff);
                 switch (gizmo.transformHandles[handleIndexOnDown].handle)
                 {
                     case Handle::TOP_LEFT:
@@ -3639,7 +3333,7 @@ void update()
             state = State::Idle;
             for (auto pContainer : selection)
             {
-                pContainer->stateOnDown.apply();
+                pContainer->stateOnDown->apply();
             }
             updateProperties();
         }

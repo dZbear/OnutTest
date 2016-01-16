@@ -437,11 +437,6 @@ namespace seed
         m_position = in_position;
     }
 
-    void Node::SetPosition(float in_x, float in_y)
-    {
-        SetPosition(Vector2(in_x, in_y));
-    }
-
     const Vector2& Node::GetPosition() const
     {
         return m_position.get();

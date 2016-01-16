@@ -32,7 +32,6 @@ namespace seed
         void            SetZindex(int in_zIndex);
         int             GetZindex() const;
         void            SetPosition(const Vector2& in_position);
-        void            SetPosition(float in_x, float in_y);
         const Vector2&  GetPosition() const;
         OAnim<Vector2>& GetPositionAnim();
         Vector2         GetAbsolutePosition() const;

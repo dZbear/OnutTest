@@ -21,7 +21,8 @@ namespace seed
         void    Stop(float in_fadeTime = 0.f);
         void    Pause();
         void    Resume();
-        void    SetVolume(float in_volume, float in_fadeTime=0.f);
+        void    SetVolume(float in_volume);
+        void    SetVolumeWithFade(float in_volume, float in_fadeTime = 0.f);
         float   GetVolume();
         void    SetLoops(bool in_loops);
         bool    GetLoops();

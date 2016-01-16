@@ -259,6 +259,16 @@ namespace seed
         m_flippedV = in_flipV;
     }
 
+    void Sprite::SetFlippedH(bool in_flipH)
+    {
+        m_flippedH = in_flipH;
+    }
+
+    void Sprite::SetFlippedV(bool in_flipV)
+    {
+        m_flippedV = in_flipV;
+    }
+
     bool Sprite::GetFlippedH() const
     {
         return m_flippedH;

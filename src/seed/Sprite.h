@@ -27,6 +27,8 @@ namespace seed
         void            SetAlign(const Vector2& in_align);
         const Vector2&  GetAlign() const;
         void            SetFlipped(bool in_flipH, bool in_flipV);
+        void            SetFlippedH(bool in_flipH);
+        void            SetFlippedV(bool in_flipV);
         bool            GetFlippedH() const;
         bool            GetFlippedV() const;
         

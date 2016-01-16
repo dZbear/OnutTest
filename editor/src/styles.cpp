@@ -1,6 +1,13 @@
 #include <onut.h>
 #include "NodeContainer.h"
 
+#include "seed/Sprite.h"
+#include "seed/SpriteString.h"
+#include "seed/Emitter.h"
+#include "seed/SoundEmitter.h"
+#include "seed/MusicEmitter.h"
+#include "seed/Video.h"
+
 static const Color g_panelBGColor = OColorHex(2d2d30);
 static const Color g_panelDarkenBGColor = Color::fromHexRGBA(0x00000066);
 static const Color g_groupOutlineColor = OColorHex(3f3f46);
