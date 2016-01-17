@@ -9,6 +9,7 @@
 #include "Button.h"
 #include "onut.h"
 #include "tinyxml2.h"
+#include "TiledMapNode.h"
 
 #define VIEW_DEFAULT_NODE_COUNT 1024
 
@@ -22,6 +23,7 @@ namespace seed
         sizeof(SoundEmitter), 
         sizeof(MusicEmitter), 
         sizeof(Video),
+        sizeof(TiledMapNode),
         sizeof(Effect));
 
     View::View()
@@ -369,6 +371,15 @@ namespace seed
         Effect* newEffect = m_nodePool.alloc<Effect>();
         m_pooledNodes.push_back(newEffect);
         return newEffect;
+    }
+
+    TiledMapNode* View::CreateTiledMapNode(const string& in_file)
+    {
+        TiledMapNode* newTiledMap = m_nodePool.alloc<TiledMapNode>();
+        newTiledMap->Init(in_file);
+
+        m_pooledNodes.push_back(newTiledMap);
+        return newTiledMap;
     }
 
     Button* View::AddButton(Sprite* in_sprite, const string& in_cmd)

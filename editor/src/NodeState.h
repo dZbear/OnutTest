@@ -17,6 +17,7 @@ public:
         MusicEmitter,
         Video,
         Effect,
+        TiledMapNode,
     };
 
     struct Node
@@ -89,6 +90,10 @@ public:
         bool vignetteEnabled;
         float vignetteAmount;
     };
+    struct TiledMapNode
+    {
+        std::string file;
+    };
 
     NodeType nodeType = NodeType::Node;
 
@@ -100,6 +105,7 @@ public:
     MusicEmitter musicEmitter;
     Video video;
     Effect effect;
+    TiledMapNode tiledMapNode;
 
     NodeContainerRef pContainer = nullptr;
     NodeContainerRef pParentContainer = nullptr;

@@ -5,6 +5,7 @@
 #include "SoundEmitter.h"
 #include "Sprite.h"
 #include "SpriteString.h"
+#include "TiledMapNode.h"
 #include "tinyxml2.h"
 #include "Video.h"
 #include "View.h"
@@ -230,6 +231,17 @@ namespace seed
             else if (childType == "Effect")
             {
                 pChild = view->CreateEffect();
+                Attach(pChild, childZIndex);
+            }
+            else if (childType == "TiledMapNode")
+            {
+                const char* szMap = xmlChild->Attribute("map");
+                string map;
+                if (szMap)
+                {
+                    map = szMap;
+                }
+                pChild = view->CreateTiledMapNode(map);
                 Attach(pChild, childZIndex);
             }
 

@@ -1,4 +1,5 @@
 <View width="640" height="480">
+    <TiledMapNode name="" zIndex="2147483647" x="0" y="0" scaleX="1" scaleY="1" angle="0" r="1" g="1" b="1" a="1" visible="1" map="sample.tmx"/>
     <SoundEmitter name="" zIndex="2147483647" x="188" y="51" scaleX="1" scaleY="1" angle="0" r="1" g="1" b="1" a="1" visible="1" source="sound5.wav" volume="1" pitch="1" balance="0" loops="0" positionBasedBalance="0" positionBasedVolume="0"/>
     <SpriteString name="" zIndex="2147483647" x="398" y="48" scaleX="1" scaleY="1" angle="0" r="1" g="1" b="1" a="1" visible="1" alignX="0.5" alignY="0.5" filter="Linear" blend="PreMultiplied" flippedH="0" flippedV="0" font="segeo12.fnt" caption="Text"/>
     <Sprite name="" zIndex="2147483647" x="66" y="56" scaleX="1" scaleY="1" angle="0" r="1" g="1" b="1" a="1" visible="1" alignX="0.5" alignY="0.5" texture="default.png" filter="Linear" blend="PreMultiplied" flippedH="0" flippedV="0"/>

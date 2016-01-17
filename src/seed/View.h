@@ -12,6 +12,7 @@ namespace seed
     class MusicEmitter;
     class Video;
     class Effect;
+    class TiledMapNode;
     class View
     {
     public:
@@ -29,6 +30,7 @@ namespace seed
         Video*          CreateVideo();
         Node*           CreateNode();
         Effect*         CreateEffect();
+        TiledMapNode*   CreateTiledMapNode(const string& in_file);
 
         void            AddNode(Node* in_node, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         void            DeleteNode(Node* in_node);

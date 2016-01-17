@@ -38,6 +38,9 @@
       <Filter>seed</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\NodeState.cpp" />
+    <ClCompile Include="..\..\..\src\seed\TiledMapNode.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -86,5 +89,8 @@
     <ClInclude Include="..\..\src\NodeState.h" />
     <ClInclude Include="..\..\src\NodeContainer.h" />
     <ClInclude Include="..\..\src\Properties.h" />
+    <ClInclude Include="..\..\..\src\seed\TiledMapNode.h">
+      <Filter>seed</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
