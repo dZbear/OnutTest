@@ -16,35 +16,93 @@ public:
         SoundEmitter,
         MusicEmitter,
         Video,
+        Effect,
     };
 
-    std::string name;
-    Vector2 position;
-    Vector2 scale;
-    Color color;
-    Matrix transform;
-    Matrix parentTransform;
-    std::vector<NodeState> bg;
-    std::vector<NodeState> fg;
+    struct Node
+    {
+        std::string name;
+        Vector2 position;
+        Vector2 scale;
+        float angle;
+        Color color;
+        Matrix transform;
+        Matrix parentTransform;
+        std::vector<NodeState> bg;
+        std::vector<NodeState> fg;
+    };
+    struct Sprite
+    {
+        std::string texture;
+        Vector2 align;
+        bool flippedH;
+        bool flippedV;
+        onut::SpriteBatch::eBlendMode blend;
+        onut::SpriteBatch::eFiltering filtering;
+    };
+    struct StringSprite
+    {
+        std::string caption;
+        OFont* pFont;
+    };
+    struct Emitter
+    {
+        std::string fxName;
+        onut::SpriteBatch::eBlendMode blend;
+        onut::SpriteBatch::eFiltering filtering;
+        bool emitWorld;
+    };
+    struct SoundEmitter
+    {
+        std::string source;
+        bool loop;
+        float volume;
+        float balance;
+        float pitch;
+        bool positionBased;
+    };
+    struct MusicEmitter
+    {
+        std::string source;
+        bool loop;
+        float volume;
+    };
+    struct Video
+    {
+        std::string source;
+        bool loop;
+        float volume;
+        Vector2 dimensions;
+        double playRate;
+    };
+    struct Effect
+    {
+        bool blurEnabled;
+        float blurAmount;
+        bool sepiaEnabled;
+        Vector3 sepiaTone;
+        float sepiaSaturation;
+        float sepiaAmount;
+        bool crtEnabled;
+        bool cartoonEnabled;
+        Vector3 cartoonTone;
+        bool vignetteEnabled;
+        float vignetteAmount;
+    };
 
-    std::string source;
-    Vector2 align;
-    float angle;
-    bool flippedH = false;
-    bool flippedV = false;
+    NodeType nodeType = NodeType::Node;
+
+    Node node;
+    Sprite sprite;
+    StringSprite stringSprite;
+    Emitter emitter;
+    SoundEmitter soundEmitter;
+    MusicEmitter musicEmitter;
+    Video video;
+    Effect effect;
+
     NodeContainerRef pContainer = nullptr;
     NodeContainerRef pParentContainer = nullptr;
-    NodeType nodeType = NodeType::Node;
-    OFont* pFont = nullptr;
-    std::string caption;
-    onut::SpriteBatch::eBlendMode blend;
-    onut::SpriteBatch::eFiltering filtering;
-    bool emitWorld = true;
-    bool loop = false;
-    float volume = 1.f;
-    float balance = 0.f;
-    float pitch = 1.f;
-    Vector2 dimensions;
 
     NodeState() {}
     NodeState(NodeStateRef copy);
