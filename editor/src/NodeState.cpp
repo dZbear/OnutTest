@@ -2,32 +2,20 @@
 
 NodeState::NodeState(NodeStateRef copy)
 {
-    source = copy->source;
-    position = copy->position;
-    scale = copy->scale;
-    angle = copy->angle;
-    color = copy->color;
-    align = copy->align;
-    flippedH = copy->flippedH;
-    flippedV = copy->flippedV;
-    transform = copy->transform;
-    parentTransform = copy->parentTransform;
+    nodeType = copy->nodeType;
+    node = copy->node;
+    switch (copy->nodeType)
+    {
+        case NodeType::SpriteString: stringSprite = copy->stringSprite; // Intentional fall through
+        case NodeType::Sprite: sprite = copy->sprite; break;
+        case NodeType::Emitter: emitter = copy->emitter; break;
+        case NodeType::SoundEmitter: soundEmitter = copy->soundEmitter; break;
+        case NodeType::MusicEmitter: musicEmitter = copy->musicEmitter; break;
+        case NodeType::Video: video = copy->video; break;
+        case NodeType::Effect: effect = copy->effect; break;
+    }
     pContainer = copy->pContainer;
     pParentContainer = copy->pParentContainer;
-    nodeType = copy->nodeType;
-    bg = copy->bg;
-    fg = copy->fg;
-    pFont = copy->pFont;
-    caption = copy->caption;
-    name = copy->name;
-    blend = copy->blend;
-    filtering = copy->filtering;
-    emitWorld = copy->emitWorld;
-    loop = copy->loop;
-    volume = copy->volume;
-    balance = copy->balance;
-    pitch = copy->pitch;
-    dimensions = copy->dimensions;
 }
 
 extern std::unordered_map<seed::Node*, NodeContainerRef> nodesToContainers;
@@ -35,79 +23,97 @@ extern std::unordered_map<seed::Node*, NodeContainerRef> nodesToContainers;
 NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool saveDeep)
 {
     pContainer = in_pContainer;
-    nodeType = NodeType::Node;
+
     auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
     auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
     auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
     auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
     auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
     auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
+    auto pEffect = dynamic_cast<seed::Effect*>(pContainer->pNode);
+
+    nodeType = NodeType::Node;
+    node.name = pContainer->pNode->GetName();
+    node.position = pContainer->pNode->GetPosition();
+    node.scale = pContainer->pNode->GetScale();
+    node.angle = pContainer->pNode->GetAngle();
+    node.color = pContainer->pNode->GetColor();
+    node.transform = pContainer->pNode->GetTransform();
+    node.parentTransform = Matrix::Identity;
+    if (pContainer->pNode->GetParent())
+    {
+        node.parentTransform = pContainer->pNode->GetParent()->GetTransform();
+    }
+
     if (pSprite)
     {
-        source = "";
+        nodeType = NodeType::Sprite;
+        sprite.texture = "";
         if (pSprite->GetTexture())
         {
-            source = pSprite->GetTexture()->getName();
+            sprite.texture = pSprite->GetTexture()->getName();
         }
-        align = pSprite->GetAlign();
-        nodeType = NodeType::Sprite;
-        flippedH = pSprite->GetFlippedH();
-        flippedV = pSprite->GetFlippedV();
-        blend = pSprite->GetBlend();
-        filtering = pSprite->GetFilter();
+        sprite.align = pSprite->GetAlign();
+        sprite.flippedH = pSprite->GetFlippedH();
+        sprite.flippedV = pSprite->GetFlippedV();
+        sprite.blend = pSprite->GetBlend();
+        sprite.filtering = pSprite->GetFilter();
         if (pSpriteString)
         {
-            caption = pSpriteString->GetCaption();
-            pFont = pSpriteString->GetFont();
             nodeType = NodeType::SpriteString;
+            stringSprite.caption = pSpriteString->GetCaption();
+            stringSprite.pFont = pSpriteString->GetFont();
         }
     }
     else if (pEmitter)
     {
-        source = pEmitter->GetFxName();
-        blend = pEmitter->GetBlend();
-        filtering = pEmitter->GetFilter();
-        emitWorld = pEmitter->GetEmitWorld();
         nodeType = NodeType::Emitter;
+        emitter.fxName = pEmitter->GetFxName();
+        emitter.blend = pEmitter->GetBlend();
+        emitter.filtering = pEmitter->GetFilter();
+        emitter.emitWorld = pEmitter->GetEmitWorld();
     }
     else if (pSoundEmitter)
     {
-        source = pSoundEmitter->GetSource();
-        loop = pSoundEmitter->GetLoops();
-        volume = pSoundEmitter->GetVolume();
-        balance = pSoundEmitter->GetBalance();
-        pitch = pSoundEmitter->GetPitch();
-        emitWorld = pSoundEmitter->GetPositionBasedBalance() || pSoundEmitter->GetPositionBasedVolume();
         nodeType = NodeType::SoundEmitter;
+        soundEmitter.source = pSoundEmitter->GetSource();
+        soundEmitter.loop = pSoundEmitter->GetLoops();
+        soundEmitter.volume = pSoundEmitter->GetVolume();
+        soundEmitter.balance = pSoundEmitter->GetBalance();
+        soundEmitter.pitch = pSoundEmitter->GetPitch();
+        soundEmitter.positionBased = pSoundEmitter->GetPositionBased();
     }
     else if (pMusicEmitter)
     {
-        source = pMusicEmitter->GetSource();
-        loop = pMusicEmitter->GetLoops();
-        volume = pMusicEmitter->GetVolume();
         nodeType = NodeType::MusicEmitter;
+        musicEmitter.source = pMusicEmitter->GetSource();
+        musicEmitter.loop = pMusicEmitter->GetLoops();
+        musicEmitter.volume = pMusicEmitter->GetVolume();
     }
     else if (pVideo)
     {
-        source = pVideo->GetSource();
-        loop = pVideo->GetLoops();
-        volume = pVideo->GetVolume();
-        dimensions = pVideo->GetDimensions();
-        pitch = (float)pVideo->GetPlayRate();
         nodeType = NodeType::Video;
+        video.source = pVideo->GetSource();
+        video.loop = pVideo->GetLoops();
+        video.volume = pVideo->GetVolume();
+        video.dimensions = pVideo->GetDimensions();
+        video.playRate = pVideo->GetPlayRate();
     }
-    name = pContainer->pNode->GetName();
-    position = pContainer->pNode->GetPosition();
-    scale = pContainer->pNode->GetScale();
-    angle = pContainer->pNode->GetAngle();
-    color = pContainer->pNode->GetColor();
-    transform = pContainer->pNode->GetTransform();
-    parentTransform = Matrix::Identity;
-    if (pContainer->pNode->GetParent())
+    else if (pEffect)
     {
-        parentTransform = pContainer->pNode->GetParent()->GetTransform();
+        nodeType = NodeType::Effect;
+        effect.blurEnabled = pEffect->GetBlurEnabled();
+        effect.blurAmount = pEffect->GetBlurAmount();
+        effect.sepiaEnabled = pEffect->GetSepiaEnabled();
+        effect.sepiaTone = pEffect->GetSepiaTone();
+        effect.sepiaSaturation = pEffect->GetSepiaSaturation();
+        effect.sepiaAmount = pEffect->GetSepiaAmount();
+        effect.crtEnabled = pEffect->GetCrtEnabled();
+        effect.cartoonEnabled = pEffect->GetCartoonEnabled();
+        effect.cartoonTone = pEffect->GetCartoonTone();
+        effect.vignetteEnabled = pEffect->GetVignetteEnabled();
+        effect.vignetteAmount = pEffect->GetVignetteAmount();
     }
-
     if (saveDeep)
     {
         auto& bgChildren = pContainer->pNode->GetBgChildren();
@@ -115,12 +121,12 @@ NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool saveDeep
         for (auto pChild : bgChildren)
         {
             auto pChildContainer = nodesToContainers[pChild];
-            bg.push_back(NodeState(pChildContainer, saveDeep));
+            node.bg.push_back(NodeState(pChildContainer, saveDeep));
         }
         for (auto pChild : fgChildren)
         {
             auto pChildContainer = nodesToContainers[pChild];
-            fg.push_back(NodeState(pChildContainer, saveDeep));
+            node.fg.push_back(NodeState(pChildContainer, saveDeep));
         }
     }
 }
@@ -128,11 +134,11 @@ NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool saveDeep
 void NodeState::visit(const std::function<void(NodeStateRef pNodeState)>& callback)
 {
     callback(shared_from_this());
-    for (auto& childState : bg)
+    for (auto& childState : node.bg)
     {
         childState.visit(callback);
     }
-    for (auto& childState : fg)
+    for (auto& childState : node.fg)
     {
         childState.visit(callback);
     }
@@ -157,26 +163,29 @@ void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
                 pContainer->pNode = pEditingView->CreateNode();
                 break;
             case NodeType::Sprite:
-                pContainer->pNode = pEditingView->CreateSprite(source);
+                pContainer->pNode = pEditingView->CreateSprite(sprite.texture);
                 break;
             case NodeType::SpriteString:
             {
                 std::string fontName;
-                if (pFont) fontName = pFont->getName();
+                if (stringSprite.pFont) fontName = stringSprite.pFont->getName();
                 pContainer->pNode = pEditingView->CreateSpriteString(fontName);
                 break;
             }
             case NodeType::Emitter:
-                pContainer->pNode = pEditingView->CreateEmitter(source);
+                pContainer->pNode = pEditingView->CreateEmitter(emitter.fxName);
                 break;
             case NodeType::SoundEmitter:
-                pContainer->pNode = pEditingView->CreateSoundEmitter(source);
+                pContainer->pNode = pEditingView->CreateSoundEmitter(soundEmitter.source);
                 break;
             case NodeType::MusicEmitter:
                 pContainer->pNode = pEditingView->CreateMusicEmitter();
                 break;
             case NodeType::Video:
                 pContainer->pNode = pEditingView->CreateVideo();
+                break;
+            case NodeType::Effect:
+                pContainer->pNode = pEditingView->CreateEffect();
                 break;
             default:
                 assert(false);
@@ -189,89 +198,99 @@ void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
     }
     switch (nodeType)
     {
-        case NodeType::Sprite:
-        {
-            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
-            assert(pSprite);
-            pSprite->SetTexture(OGetTexture(source.c_str()));
-            pSprite->SetAlign(align);
-            pSprite->SetFlipped(flippedH, flippedV);
-            pSprite->SetBlend(blend);
-            pSprite->SetFilter(filtering);
-            break;
-        }
         case NodeType::SpriteString:
         {
             auto pSpriteString = dynamic_cast<seed::SpriteString*>(pContainer->pNode);
             assert(pSpriteString);
-            pSpriteString->SetTexture(OGetTexture(source.c_str()));
-            pSpriteString->SetAlign(align);
-            pSpriteString->SetFlipped(flippedH, flippedV);
-            pSpriteString->SetFont(pFont);
-            pSpriteString->SetCaption(caption);
-            pSpriteString->SetBlend(blend);
-            pSpriteString->SetFilter(filtering);
+            pSpriteString->SetFont(stringSprite.pFont);
+            pSpriteString->SetCaption(stringSprite.caption);
+        } // Intentional fall through (Bad.. I know)
+        case NodeType::Sprite:
+        {
+            auto pSprite = dynamic_cast<seed::Sprite*>(pContainer->pNode);
+            assert(pSprite);
+            pSprite->SetTexture(OGetTexture(sprite.texture.c_str()));
+            pSprite->SetAlign(sprite.align);
+            pSprite->SetFlipped(sprite.flippedH, sprite.flippedV);
+            pSprite->SetBlend(sprite.blend);
+            pSprite->SetFilter(sprite.filtering);
             break;
         }
         case NodeType::Emitter:
         {
             auto pEmitter = dynamic_cast<seed::Emitter*>(pContainer->pNode);
             assert(pEmitter);
-            pEmitter->Init(source);
-            pEmitter->SetBlend(blend);
-            pEmitter->SetFilter(filtering);
-            pEmitter->SetEmitWorld(emitWorld);
+            pEmitter->Init(emitter.fxName);
+            pEmitter->SetBlend(emitter.blend);
+            pEmitter->SetFilter(emitter.filtering);
+            pEmitter->SetEmitWorld(emitter.emitWorld);
             break;
         }
         case NodeType::SoundEmitter:
         {
             auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pContainer->pNode);
             assert(pSoundEmitter);
-            if (pSoundEmitter->GetSource() != source)
+            if (pSoundEmitter->GetSource() != soundEmitter.source)
             {
-                pSoundEmitter->Init(source);
+                pSoundEmitter->Init(soundEmitter.source);
             }
-            pSoundEmitter->SetVolume(volume);
-            pSoundEmitter->SetBalance(balance);
-            pSoundEmitter->SetPitch(pitch);
-            pSoundEmitter->SetLoops(loop);
-            pSoundEmitter->SetPositionBasedVolume(emitWorld);
-            pSoundEmitter->SetPositionBasedBalance(emitWorld);
+            pSoundEmitter->SetVolume(soundEmitter.volume);
+            pSoundEmitter->SetBalance(soundEmitter.balance);
+            pSoundEmitter->SetPitch(soundEmitter.pitch);
+            pSoundEmitter->SetLoops(soundEmitter.loop);
+            pSoundEmitter->SetPositionBased(soundEmitter.positionBased);
             break;
         }
         case NodeType::MusicEmitter:
         {
             auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
             assert(pMusicEmitter);
-            pMusicEmitter->SetSource(source);
-            pMusicEmitter->SetVolume(volume);
-            pMusicEmitter->SetLoops(loop);
+            pMusicEmitter->SetSource(musicEmitter.source);
+            pMusicEmitter->SetVolume(musicEmitter.volume);
+            pMusicEmitter->SetLoops(musicEmitter.loop);
             break;
         }
         case NodeType::Video:
         {
             auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
             assert(pVideo);
-            pVideo->SetSource(source);
-            pVideo->SetVolume(volume);
-            pVideo->SetLoops(loop);
-            pVideo->SetDimensions(dimensions);
-            pVideo->SetPlayRate(pitch);
+            pVideo->SetSource(video.source);
+            pVideo->SetVolume(video.volume);
+            pVideo->SetLoops(video.loop);
+            pVideo->SetDimensions(video.dimensions);
+            pVideo->SetPlayRate(video.playRate);
+            break;
+        }
+        case NodeType::Effect:
+        {
+            auto pEffect = dynamic_cast<seed::Effect*>(pContainer->pNode);
+            assert(pEffect);
+            pEffect->SetBlurEnabled(effect.blurEnabled);
+            pEffect->SetBlurAmount(effect.blurAmount);
+            pEffect->SetSepiaEnabled(effect.sepiaEnabled);
+            pEffect->SetSepiaTone(effect.sepiaTone);
+            pEffect->SetSepiaSaturation(effect.sepiaSaturation);
+            pEffect->SetSepiaAmount(effect.sepiaAmount);
+            pEffect->SetCrtEnabled(effect.crtEnabled);
+            pEffect->SetCartoonEnabled(effect.cartoonEnabled);
+            pEffect->SetCartoonTone(effect.cartoonTone);
+            pEffect->SetVignetteEnabled(effect.vignetteEnabled);
+            pEffect->SetVignetteAmount(effect.vignetteAmount);
             break;
         }
     }
-    pContainer->pNode->SetName(name);
-    pContainer->pNode->SetPosition(position);
-    pContainer->pNode->SetScale(scale);
-    pContainer->pNode->SetAngle(angle);
-    pContainer->pNode->SetColor(color);
-    for (auto& childState : bg)
+    pContainer->pNode->SetName(node.name);
+    pContainer->pNode->SetPosition(node.position);
+    pContainer->pNode->SetScale(node.scale);
+    pContainer->pNode->SetAngle(node.angle);
+    pContainer->pNode->SetColor(node.color);
+    for (auto& childState : node.bg)
     {
         auto addTreeViewItem = (childState.pContainer && childState.pContainer->pNode && !forceAddTreeView) ? false : true;
         childState.apply(pContainer);
         if (addTreeViewItem) pContainer->pTreeViewItem->addItem(childState.pContainer->pTreeViewItem);
     }
-    for (auto& childState : fg)
+    for (auto& childState : node.fg)
     {
         auto addTreeViewItem = (childState.pContainer && childState.pContainer->pNode && !forceAddTreeView) ? false : true;
         childState.apply(pContainer);

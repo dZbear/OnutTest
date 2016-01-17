@@ -1,3 +1,4 @@
+#include "Effect.h"
 #include "Emitter.h"
 #include "Node.h"
 #include "MusicEmitter.h"
@@ -224,6 +225,11 @@ namespace seed
             else if (childType == "Video")
             {
                 pChild = view->CreateVideo();
+                Attach(pChild, childZIndex);
+            }
+            else if (childType == "Effect")
+            {
+                pChild = view->CreateEffect();
                 Attach(pChild, childZIndex);
             }
 

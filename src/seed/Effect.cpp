@@ -86,12 +86,20 @@ namespace seed
             m_effectTarget = nullptr;
         }
 
+        bool scissorEnabled = ORenderer->getScissorEnabled();
+        Rect scissorRect = ORenderer->getScissor();
+
         if (hasEffect)
         {
             OSB->end();
+            const Matrix& spriteBatchTransform = OSB->getTransform();
             m_effectTarget->bindRenderTarget();
             m_effectTarget->clearRenderTarget(Color::Transparent);
-            OSB->begin();
+            OSB->begin(spriteBatchTransform);
+            if (scissorEnabled)
+            {
+                ORenderer->setScissor(scissorEnabled, scissorRect);
+            }
         }
 
         // render bg children
@@ -103,6 +111,7 @@ namespace seed
         if (hasEffect)
         {
             OSB->end();
+            Matrix spriteBatchTransform = OSB->getTransform();
             m_effectTarget->unbindRenderTarget();
 
             // Apply the effects
@@ -128,7 +137,17 @@ namespace seed
             }
 
             OSB->begin();
+            if (scissorEnabled)
+            {
+                ORenderer->setScissor(scissorEnabled, scissorRect);
+            }
             OSB->drawRect(m_effectTarget, ORectFullScreen);
+            OSB->end();
+            OSB->begin(spriteBatchTransform);
+            if (scissorEnabled)
+            {
+                ORenderer->setScissor(scissorEnabled, scissorRect);
+            }
         }
     }
 

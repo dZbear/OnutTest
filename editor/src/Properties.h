@@ -120,6 +120,39 @@ private:
 };
 
 template<typename Ttype, typename Tgetter, typename Tsetter>
+class PropVector3 final : public Prop<Vector3, Ttype, Tgetter, Tsetter>
+{
+public:
+    PropVector3(onut::UITextBox* pUIX, onut::UITextBox* pUIY, onut::UITextBox* pUIZ, Tgetter getter, Tsetter setter) : Prop(getter, setter), m_pUIX(pUIX), m_pUIY(pUIY), m_pUIZ(pUIZ) {}
+    void updateUI(seed::Node* pObj) override
+    {
+        auto objOfMyType = dynamic_cast<Ttype*>(pObj);
+        if (objOfMyType)
+        {
+            auto val = get(objOfMyType);
+            m_pUIX->setFloat(val.x);
+            m_pUIY->setFloat(val.y);
+            m_pUIZ->setFloat(val.z);
+        }
+    }
+    void updateUI(seed::View* pObj) override
+    {
+        auto objOfMyType = dynamic_cast<Ttype*>(pObj);
+        if (objOfMyType)
+        {
+            auto val = get(objOfMyType);
+            m_pUIX->setFloat(val.x);
+            m_pUIY->setFloat(val.y);
+            m_pUIZ->setFloat(val.z);
+        }
+    }
+private:
+    onut::UITextBox* m_pUIX = nullptr;
+    onut::UITextBox* m_pUIY = nullptr;
+    onut::UITextBox* m_pUIZ = nullptr;
+};
+
+template<typename Ttype, typename Tgetter, typename Tsetter>
 class PropColor final : public Prop<Color, Ttype, Tgetter, Tsetter>
 {
 public:
@@ -208,3 +241,192 @@ public:
 private:
     onut::UICheckBox* m_pUI = nullptr;
 };
+
+struct SpinSetting
+{
+    SpinSetting() {}
+    SpinSetting(float inStep, float inMin = -std::numeric_limits<float>::max(), float inMax = std::numeric_limits<float>::max())
+        : step(inStep), min(inMin), max(inMax)
+    {
+    }
+    float step = 1.f;
+    float min = -std::numeric_limits<float>::max();
+    float max = std::numeric_limits<float>::max();
+};
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerFloatProperty(const std::string& propName, const std::string& uiname, Tgetter getter, Tsetter setter, SpinSetting spinSetting = SpinSetting(), float multiplier = 1.f)
+{
+    auto pUI = dynamic_cast<onut::UITextBox*>(OFindUI(uiname));
+    pUI->onNumberSpinStart = onStartSpinning;
+    pUI->onNumberSpinEnd = onStopSpinning;
+    pUI->step = spinSetting.step;
+    pUI->min = spinSetting.min;
+    pUI->max = spinSetting.max;
+    auto prop = std::make_shared<PropFloat<Tnode, Tgetter, Tsetter>>(pUI, getter, setter, multiplier);
+    props.push_back(prop);
+    pUI->onTextChanged = [=](onut::UITextBox* pUI, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, pUI->getFloat() * multiplier);
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerDoubleProperty(const std::string& propName, const std::string& uiname, Tgetter getter, Tsetter setter, SpinSetting spinSetting = SpinSetting(), float multiplier = 1.f)
+{
+    auto pUI = dynamic_cast<onut::UITextBox*>(OFindUI(uiname));
+    pUI->onNumberSpinStart = onStartSpinning;
+    pUI->onNumberSpinEnd = onStopSpinning;
+    pUI->step = spinSetting.step;
+    pUI->min = spinSetting.min;
+    pUI->max = spinSetting.max;
+    auto prop = std::make_shared<PropDouble<Tnode, Tgetter, Tsetter>>(pUI, getter, setter, multiplier);
+    props.push_back(prop);
+    pUI->onTextChanged = [=](onut::UITextBox* pUI, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, (double)(pUI->getFloat() * multiplier));
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerVector2Property(const std::string& propName, const std::string& xName, const std::string& yName, Tgetter getter, Tsetter setter, SpinSetting spinSettingX = SpinSetting(), SpinSetting spinSettingY = SpinSetting())
+{
+    auto txtX = dynamic_cast<onut::UITextBox*>(OFindUI(xName));
+    auto txtY = dynamic_cast<onut::UITextBox*>(OFindUI(yName));
+    txtX->onNumberSpinStart = onStartSpinning;
+    txtX->onNumberSpinEnd = onStopSpinning;
+    txtY->onNumberSpinStart = onStartSpinning;
+    txtY->onNumberSpinEnd = onStopSpinning;
+    txtX->step = spinSettingX.step;
+    txtX->min = spinSettingX.min;
+    txtX->max = spinSettingX.max;
+    txtY->step = spinSettingY.step;
+    txtY->min = spinSettingY.min;
+    txtY->max = spinSettingY.max;
+    auto prop = std::make_shared<PropVector2<Tnode, Tgetter, Tsetter>>(txtX, txtY, getter, setter);
+    props.push_back(prop);
+    txtX->onTextChanged = txtY->onTextChanged = [=](onut::UITextBox* pUI, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, Vector2(txtX->getFloat(), txtY->getFloat()));
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerVector3Property(const std::string& propName, const std::string& xName, const std::string& yName, const std::string& zName, Tgetter getter, Tsetter setter, SpinSetting spinSettingX = SpinSetting(), SpinSetting spinSettingY = SpinSetting(), SpinSetting spinSettingZ = SpinSetting())
+{
+    auto txtX = dynamic_cast<onut::UITextBox*>(OFindUI(xName));
+    auto txtY = dynamic_cast<onut::UITextBox*>(OFindUI(yName));
+    auto txtZ = dynamic_cast<onut::UITextBox*>(OFindUI(zName));
+    txtX->onNumberSpinStart = onStartSpinning;
+    txtX->onNumberSpinEnd = onStopSpinning;
+    txtY->onNumberSpinStart = onStartSpinning;
+    txtY->onNumberSpinEnd = onStopSpinning;
+    txtZ->onNumberSpinStart = onStartSpinning;
+    txtZ->onNumberSpinEnd = onStopSpinning;
+    txtX->step = spinSettingX.step;
+    txtX->min = spinSettingX.min;
+    txtX->max = spinSettingX.max;
+    txtY->step = spinSettingY.step;
+    txtY->min = spinSettingY.min;
+    txtY->max = spinSettingY.max;
+    txtZ->step = spinSettingZ.step;
+    txtZ->min = spinSettingZ.min;
+    txtZ->max = spinSettingZ.max;
+    auto prop = std::make_shared<PropVector3<Tnode, Tgetter, Tsetter>>(txtX, txtY, txtZ, getter, setter);
+    props.push_back(prop);
+    txtX->onTextChanged = txtY->onTextChanged = txtZ->onTextChanged = [=](onut::UITextBox* pUI, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, Vector3(txtX->getFloat(), txtY->getFloat(), txtZ->getFloat()));
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerColorProperty(const std::string& propName, const std::string& uiname, const std::string& alphaName, Tgetter getter, Tsetter setter)
+{
+    auto txtAlpha = dynamic_cast<onut::UITextBox*>(OFindUI(alphaName));
+    auto pUI = dynamic_cast<onut::UIPanel*>(OFindUI(uiname));
+    txtAlpha->onNumberSpinStart = onStartSpinning;
+    txtAlpha->onNumberSpinEnd = onStopSpinning;
+    txtAlpha->min = 0.f;
+    txtAlpha->max = 100.f;
+    auto prop = std::make_shared<PropColor<Tnode, Tgetter, Tsetter>>(pUI, txtAlpha, getter, setter);
+    props.push_back(prop);
+    pUI->onClick = [=](onut::UIControl* pControl, const onut::UIMouseEvent& evt)
+    {
+        static COLORREF g_acrCustClr[16]; // array of custom colors
+
+        CHOOSECOLOR colorChooser = {0};
+        DWORD rgbCurrent; // initial color selection
+        rgbCurrent = (DWORD)pUI->color.packed;
+        rgbCurrent = ((rgbCurrent >> 24) & 0x000000ff) | ((rgbCurrent >> 8) & 0x0000ff00) | ((rgbCurrent << 8) & 0x00ff0000);
+        colorChooser.lStructSize = sizeof(colorChooser);
+        colorChooser.hwndOwner = OWindow->getHandle();
+        colorChooser.lpCustColors = (LPDWORD)g_acrCustClr;
+        colorChooser.rgbResult = rgbCurrent;
+        colorChooser.Flags = CC_FULLOPEN | CC_RGBINIT;
+        if (ChooseColor(&colorChooser) == TRUE)
+        {
+            onut::sUIColor color;
+            rgbCurrent = colorChooser.rgbResult;
+            color.packed = ((rgbCurrent << 24) & 0xff000000) | ((rgbCurrent << 8) & 0x00ff0000) | ((rgbCurrent >> 8) & 0x0000ff00) | 0x000000ff;
+            color.unpack();
+            pUI->color = color;
+            changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+            {
+                auto colorBefore = pContainer->pNode->GetColor();
+                prop->set(pContainer->pNode, Color(color.r, color.g, color.b, colorBefore.w));
+            });
+        }
+    };
+    txtAlpha->onTextChanged = [=](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto alpha = txtAlpha->getFloat() / 100.f;
+            auto colorBefore = pContainer->pNode->GetColor();
+            prop->set(pContainer->pNode, Color(colorBefore, alpha));
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerStringProperty(const std::string& propName, const std::string& uiname, Tgetter getter, Tsetter setter)
+{
+    auto pUI = dynamic_cast<onut::UITextBox*>(OFindUI(uiname));
+    auto prop = std::make_shared<PropString<Tnode, Tgetter, Tsetter>>(pUI, getter, setter);
+    props.push_back(prop);
+    pUI->onTextChanged = [=](onut::UITextBox* pUI, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, pUI->textComponent.text);
+        });
+    };
+}
+
+template<typename Tnode, typename Tgetter, typename Tsetter>
+void registerBoolProperty(const std::string& propName, const std::string& uiname, Tgetter getter, Tsetter setter)
+{
+    auto pUI = dynamic_cast<onut::UICheckBox*>(OFindUI(uiname));
+    auto prop = std::make_shared<PropBool<Tnode, Tgetter, Tsetter>>(pUI, getter, setter);
+    props.push_back(prop);
+    pUI->onCheckChanged = [=](onut::UICheckBox* pUI, const onut::UICheckEvent& event)
+    {
+        changeSpriteProperty("Change " + propName, [=](std::shared_ptr<NodeContainer> pContainer)
+        {
+            prop->set(pContainer->pNode, pUI->getIsChecked());
+        });
+    };
+}
