@@ -76,6 +76,10 @@ onut::UIButton* ui_btnVideoBrowse = nullptr;
 
 onut::UIButton* ui_btnCreateEffect = nullptr;
 
+onut::UIButton* ui_btnCreateTiledMap = nullptr;
+onut::UITextBox* ui_txtTiledMap = nullptr;
+onut::UIButton* ui_btnTiledMapBrowse = nullptr;
+
 // Seed
 seed::View* pEditingView = nullptr;
 Vector2 viewSize = Vector2(640, 480);
@@ -146,6 +150,8 @@ void updateProperties()
     ui_btnCreateSoundEmitter->isEnabled = false;
     ui_btnCreateMusicEmitter->isEnabled = false;
     ui_btnCreateVideo->isEnabled = false;
+    ui_btnCreateEffect->isEnabled = false;
+    ui_btnCreateTiledMap->isEnabled = false;
     ui_mainView->isEnabled = false;
 
     if (!pEditingView) return;
@@ -157,6 +163,8 @@ void updateProperties()
     ui_btnCreateSoundEmitter->isEnabled = true;
     ui_btnCreateMusicEmitter->isEnabled = true;
     ui_btnCreateVideo->isEnabled = true;
+    ui_btnCreateEffect->isEnabled = true;
+    ui_btnCreateTiledMap->isEnabled = true;
     ui_mainView->isEnabled = true;
 
     if (selection.empty())
@@ -174,6 +182,7 @@ void updateProperties()
         auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
         auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
         auto pEffect = dynamic_cast<seed::Effect*>(pContainer->pNode);
+        auto pTiledMapNode = dynamic_cast<seed::TiledMapNode*>(pContainer->pNode);
 
         showPropertiesPanels<seed::Node>();
         if (pSprite)
@@ -273,6 +282,10 @@ void updateProperties()
         else if (pEffect)
         {
             showPropertiesPanels<seed::Effect>();
+        }
+        else if (pTiledMapNode)
+        {
+            showPropertiesPanels<seed::TiledMapNode>();
         }
 
         ui_treeView->expandTo(pContainer->pTreeViewItem);
@@ -1455,6 +1468,55 @@ void createVideo(const std::string& name)
     }));
 }
 
+void createTiledMapNode(const std::string& map)
+{
+    if (state != State::Idle) return;
+
+    // Undo/redo
+    std::shared_ptr<NodeContainer> pContainer = std::make_shared<NodeContainer>();
+    auto oldSelection = selection;
+    actionManager.doAction(new onut::ActionGroup("Create Tiled Map",
+    {
+        new onut::Action("",
+        [=]{ // OnRedo
+            auto pTiledMap = pEditingView->CreateTiledMapNode(map);
+            pEditingView->AddNode(pTiledMap);
+
+            auto pTreeItem = new onut::UITreeViewItem();
+            pTreeItem->pSharedUserData = pContainer;
+            pTreeViewRoot->addItem(pTreeItem);
+
+            pContainer->pNode = pTiledMap;
+            pContainer->pTreeViewItem = pTreeItem;
+            nodesToContainers[pTiledMap] = pContainer;
+            markModified();
+        },
+            [=]{ // OnUndo
+            auto it = nodesToContainers.find(pContainer->pNode);
+            if (it != nodesToContainers.end()) nodesToContainers.erase(it);
+            pEditingView->DeleteNode(pContainer->pNode);
+            pTreeViewRoot->removeItem(pContainer->pTreeViewItem);
+            pContainer->pTreeViewItem = nullptr;
+            pContainer->pNode = nullptr;
+            markModified();
+        },
+            [=]{ // Init
+        },
+            [=]{ // Destroy
+        }),
+            new onut::Action("",
+            [=]{ // OnRedo
+            selection.clear();
+            selection.push_back(pContainer);
+            updateProperties();
+        },
+            [=]{ // OnUndo
+            selection = oldSelection;
+            updateProperties();
+        }),
+    }));
+}
+
 void createSpriteString(const std::string& name)
 {
     if (state != State::Idle) return;
@@ -1626,6 +1688,7 @@ void init()
     ui_btnCreateMusicEmitter = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateMusicEmitter"));
     ui_btnCreateVideo = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateVideo"));
     ui_btnCreateEffect = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateEffect"));
+    ui_btnCreateTiledMap = dynamic_cast<onut::UIButton*>(OFindUI("btnCreateTiledMap"));
 
     // Register properties panel for their respective type
     registerPropertiesPanel<void>("propertiesView");
@@ -1645,6 +1708,8 @@ void init()
     registerPropertiesPanel<seed::Video>("propertiesVideo");
     registerPropertiesPanel<seed::Effect>("propertiesNode");
     registerPropertiesPanel<seed::Effect>("propertiesEffect");
+    registerPropertiesPanel<seed::TiledMapNode>("propertiesNode");
+    registerPropertiesPanel<seed::TiledMapNode>("propertiesTiledMap");
 
     // Register properties
     // View
@@ -1738,6 +1803,10 @@ void init()
     registerVector3Property<seed::Effect>("Cartoon Tone", "txtEffectCartoonToneR", "txtEffectCartoonToneG", "txtEffectCartoonToneB", &seed::Effect::GetCartoonTone, &seed::Effect::SetCartoonTone, {.1f, 1.f}, {.1f, 1.f}, {.1f, 1.f});
     registerBoolProperty<seed::Effect>("Vignette", "chkEffectVignetteEnabled", &seed::Effect::GetVignetteEnabled, &seed::Effect::SetVignetteEnabled);
     registerFloatProperty<seed::Effect>("Vignette Amount", "txtEffectVignetteAmount", &seed::Effect::GetVignetteAmount, &seed::Effect::SetVignetteAmount, {1.f, 0.f, 100.f}, .01f);
+
+    // TiledMapNode
+    ui_txtTiledMap = dynamic_cast<onut::UITextBox*>(OFindUI("txtTiledMap"));
+    ui_btnTiledMapBrowse = dynamic_cast<onut::UIButton*>(OFindUI("btnTiledMapBrowse"));
 
     ui_treeView->onMoveItemInto = [](onut::UITreeView* in_pTreeView, const onut::UITreeViewMoveEvent& event)
     {
@@ -2131,6 +2200,32 @@ void init()
             }
         }
     };
+    ui_txtTiledMap->onTextChanged = [](onut::UITextBox* pControl, const onut::UITextBoxEvent& event)
+    {
+        changeSpriteProperty("Change Tiled Map", [](std::shared_ptr<NodeContainer> pContainer)
+        {
+            auto pTiledMapNode = dynamic_cast<seed::TiledMapNode*>(pContainer->pNode);
+            if (pTiledMapNode)
+            {
+                pTiledMapNode->Init(ui_txtTiledMap->textComponent.text);
+            }
+        });
+    };
+    ui_btnTiledMapBrowse->onClick = [=](onut::UIControl* pControl, const onut::UIMouseEvent& mouseEvent)
+    {
+        std::string file = fileOpen("TMX Files (*.tmx)\0*.tmx\0All Files (*.*)\0*.*\0");
+        if (!file.empty())
+        {
+            // Make it relative to our filename
+            ui_txtTiledMap->textComponent.text = onut::getFilename(file);
+            if (ui_txtTiledMap->onTextChanged)
+            {
+                onut::UITextBoxEvent evt;
+                evt.pContext = OUIContext;
+                ui_txtTiledMap->onTextChanged(ui_txtTiledMap, evt);
+            }
+        }
+    };
     ui_chkSpriteBlends[0]->onCheckChanged = [](onut::UICheckBox* pControl, const onut::UICheckEvent& event)
     {
         if (!pControl->getIsChecked()) return;
@@ -2322,6 +2417,11 @@ void init()
         createVideo("");
     };
 
+    ui_btnCreateTiledMap->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
+    {
+        createTiledMapNode("");
+    };
+
     ui_btnCreateSpriteString->onClick = [](onut::UIControl* pControl, const onut::UIMouseEvent& event)
     {
         createSpriteString("segeo12.fnt");
@@ -2461,6 +2561,7 @@ void init()
                 auto pSoundEmitter = dynamic_cast<seed::SoundEmitter*>(pNode);
                 auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pNode);
                 auto pVideo = dynamic_cast<seed::Video*>(pNode);
+                auto pEffect = dynamic_cast<seed::Effect*>(pNode);
                 if (pSprite) {}
                 else if (pEmitter)
                 {
@@ -2478,7 +2579,7 @@ void init()
                 {
                     OSB->drawSprite(OGetTexture("video.png"), pNode->GetTransform().Translation());
                 }
-                else if (pVideo)
+                else if (pEffect)
                 {
                     OSB->drawSprite(OGetTexture("effect.png"), pNode->GetTransform().Translation());
                 }
@@ -3163,6 +3264,11 @@ void init()
         else if (extension == "MP4")
         {
             createVideo(filename);
+            onMenu(MENU_EDIT_FOCUS_SELECTION);
+        }
+        else if (extension == "TMX")
+        {
+            createTiledMapNode(filename);
             onMenu(MENU_EDIT_FOCUS_SELECTION);
         }
     };

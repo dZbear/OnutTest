@@ -8,6 +8,7 @@
 #include "seed/MusicEmitter.h"
 #include "seed/Video.h"
 #include "seed/Effect.h"
+#include "seed/TiledMapNode.h"
 
 static const Color g_panelBGColor = OColorHex(2d2d30);
 static const Color g_panelDarkenBGColor = Color::fromHexRGBA(0x00000066);
@@ -170,6 +171,7 @@ void createUIStyles(onut::UIContext* pContext)
             auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
             auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
             auto pEffect = dynamic_cast<seed::Effect*>(pContainer->pNode);
+            auto pTiledMap = dynamic_cast<seed::TiledMapNode*>(pContainer->pNode);
             static const std::string strSpriteString = "SpriteString";
             static const std::string strSprite = "Sprite";
             static const std::string strNode = "Node";
@@ -178,6 +180,7 @@ void createUIStyles(onut::UIContext* pContext)
             static const std::string strMusicEmitter = "MusicEmitter";
             static const std::string strVideo = "Video";
             static const std::string strEffect = "Effect";
+            static const std::string strTiledMapNode = "TiledMapNode";
             auto nodeName = pNode->GetName();
             if (pSpriteString)
             {
@@ -285,6 +288,12 @@ void createUIStyles(onut::UIContext* pContext)
             {
                 OSB->drawSprite(OGetTexture("effect.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
                 if (nodeName.empty()) nodeName = strEffect;
+                g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
+            }
+            else if (pTiledMap)
+            {
+                OSB->drawSprite(OGetTexture("map.png"), orect.Left(expandClickWidth + 12), Color(pItem->opacity));
+                if (nodeName.empty()) nodeName = strTiledMapNode;
                 g_pFont->draw<OLeft>(nodeName, textPos, g_fontColor * pItem->opacity);
             }
             else if (pNode)

@@ -6,6 +6,7 @@
 #include "seed/SoundEmitter.h"
 #include "seed/Sprite.h"
 #include "seed/SpriteString.h"
+#include "seed/TiledMapNode.h"
 #include "seed/Video.h"
 #include "seed/View.h"
 

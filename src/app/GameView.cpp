@@ -6,6 +6,7 @@
 #include "MusicEmitter.h"
 #include "Video.h"
 #include "Effect.h"
+#include "TiledMapNode.h"
 
 GameView::GameView()
 {
@@ -18,7 +19,12 @@ GameView::~GameView()
 
 void GameView::OnShow()
 {
-    SetSize(Vector2(OScreenWf, OScreenHf));
+    SetSize(OScreenf);
+
+    auto pTiledMap = CreateTiledMapNode("sample.tmx");
+    pTiledMap->SetPosition(Vector2(-200.f, -200.f));
+    pTiledMap->SetScale(Vector2(2.f));
+    AddNode(pTiledMap);
 
     auto pEffect = CreateEffect();
     pEffect->SetCartoonEnabled(true);

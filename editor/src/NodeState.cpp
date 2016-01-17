@@ -13,6 +13,7 @@ NodeState::NodeState(NodeStateRef copy)
         case NodeType::MusicEmitter: musicEmitter = copy->musicEmitter; break;
         case NodeType::Video: video = copy->video; break;
         case NodeType::Effect: effect = copy->effect; break;
+        case NodeType::TiledMapNode: tiledMapNode = copy->tiledMapNode; break;
     }
     pContainer = copy->pContainer;
     pParentContainer = copy->pParentContainer;
@@ -31,6 +32,7 @@ NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool saveDeep
     auto pMusicEmitter = dynamic_cast<seed::MusicEmitter*>(pContainer->pNode);
     auto pVideo = dynamic_cast<seed::Video*>(pContainer->pNode);
     auto pEffect = dynamic_cast<seed::Effect*>(pContainer->pNode);
+    auto pTiledMapNode = dynamic_cast<seed::TiledMapNode*>(pContainer->pNode);
 
     nodeType = NodeType::Node;
     node.name = pContainer->pNode->GetName();
@@ -114,6 +116,11 @@ NodeState::NodeState(std::shared_ptr<NodeContainer> in_pContainer, bool saveDeep
         effect.vignetteEnabled = pEffect->GetVignetteEnabled();
         effect.vignetteAmount = pEffect->GetVignetteAmount();
     }
+    else if (pTiledMapNode)
+    {
+        nodeType = NodeType::TiledMapNode;
+        tiledMapNode.file = pTiledMapNode->GetFile();
+    }
     if (saveDeep)
     {
         auto& bgChildren = pContainer->pNode->GetBgChildren();
@@ -186,6 +193,9 @@ void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
                 break;
             case NodeType::Effect:
                 pContainer->pNode = pEditingView->CreateEffect();
+                break;
+            case NodeType::TiledMapNode:
+                pContainer->pNode = pEditingView->CreateTiledMapNode(tiledMapNode.file);
                 break;
             default:
                 assert(false);
@@ -276,6 +286,13 @@ void NodeState::apply(std::shared_ptr<NodeContainer> pParent)
             pEffect->SetCartoonTone(effect.cartoonTone);
             pEffect->SetVignetteEnabled(effect.vignetteEnabled);
             pEffect->SetVignetteAmount(effect.vignetteAmount);
+            break;
+        }
+        case NodeType::TiledMapNode:
+        {
+            auto pTiledMapNode = dynamic_cast<seed::TiledMapNode*>(pContainer->pNode);
+            assert(pTiledMapNode);
+            pTiledMapNode->Init(tiledMapNode.file);
             break;
         }
     }
