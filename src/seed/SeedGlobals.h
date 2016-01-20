@@ -12,14 +12,15 @@ namespace seed
     class Button;
     class View;
     class Node;
+    class PhysicsBody;
 
-    typedef unordered_map<string, Sprite*>  SpriteMap;
-    typedef vector<Sprite*>                 SpriteVect;
-    typedef vector<Node*>                   NodeVect;
-    typedef unordered_map<string, View*>    ViewMap;
-    typedef vector<View*>                   ViewStack;
-    typedef vector<Button*>                 ButtonVect;
-    
+    typedef unordered_map<string, Sprite*>      SpriteMap;
+    typedef vector<Sprite*>                     SpriteVect;
+    typedef vector<Node*>                       NodeVect;
+    typedef unordered_map<string, View*>        ViewMap;
+    typedef vector<View*>                       ViewStack;
+    typedef vector<Button*>                     ButtonVect;
+    typedef unordered_map<Node*,PhysicsBody*>   BodyMap;
 
     enum class eAppCommand
     {

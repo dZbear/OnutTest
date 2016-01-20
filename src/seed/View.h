@@ -1,5 +1,6 @@
 #pragma once
 #include "SeedGlobals.h"
+#include "PhysicsMgr.h"
 #include "onut.h"
 
 namespace seed
@@ -31,7 +32,7 @@ namespace seed
         Node*           CreateNode();
         Effect*         CreateEffect();
         TiledMapNode*   CreateTiledMapNode(const string& in_file);
-
+        
         void            AddNode(Node* in_node, Node* in_parent = nullptr, int in_zIndex = INT_MAX);
         void            DeleteNode(Node* in_node);
         Node*           DuplicateNode(Node* in_node);
@@ -76,6 +77,12 @@ namespace seed
         using VisitCallback = std::function<bool(Node*)>;
         void VisitNodes(const VisitCallback& callback);
         void VisitNodesBackward(const VisitCallback& callback);
+
+        // Physics stuff for this particular view
+        PhysicsMgr&     GetPhysics();
+        PhysicsBody*    CreateBoxPhysicsForNode(Node* in_node, bool in_static);
+        PhysicsBody*    CreateCirclePhysicsForNode(Node* in_node, float in_radius, bool in_static);
+        PhysicsBody*    GetPhysicsForNode(Node* in_node);
         
     private:
 
@@ -113,6 +120,7 @@ namespace seed
         ButtonVect      GetPotentialCandidates(const Vector2& in_dir, int in_playerIndex);
         bool            AlreadyInVector(Button* in_button, ButtonVect& in_vector);
         
-
+        PhysicsMgr      m_physics;
+        void            UpdatePhysics();
     };
 }

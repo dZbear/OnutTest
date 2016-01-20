@@ -4,7 +4,7 @@
 #include "SplashView.h"
 #include "StartView.h"
 #include "GameView.h"
-
+#include "PhysicsView.h"
 
 ONutTestApp::ONutTestApp()
 {
@@ -20,6 +20,7 @@ void ONutTestApp::OnStart()
     AddView("SplashView", new SplashView());
     AddView("StartView", new StartView());
     AddView("GameView", new GameView());
+    AddView("PhysicsView", new PhysicsView());
 
 	// show the default view
 	PushView("SplashView");

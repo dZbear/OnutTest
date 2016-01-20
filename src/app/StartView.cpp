@@ -15,8 +15,6 @@ StartView::~StartView()
 
 void StartView::OnShow()
 {
-    SetSize(Vector2(OScreenWf, OScreenHf));
-
     seed::Sprite* spriteButton = CreateSprite("button.png");
     spriteButton->SetPosition(Vector2(OScreenCenterXf, OScreenCenterYf - 70.f));
     AddNode(spriteButton);
@@ -26,11 +24,22 @@ void StartView::OnShow()
     label->SetCaption("START GAME");
     label->SetColor(Color(1.f,.5f,0.f));
     label->SetScale( Vector2(.5f, .5f) );
-
     seed::Button* startButton = AddButton(spriteButton, "start");
     
     spriteButton = CreateSprite("button.png");
     spriteButton->SetPosition(Vector2(OScreenCenterXf, OScreenCenterYf + 70.f));
+    AddNode(spriteButton);
+
+    label = CreateSpriteString("cartoon.fnt");
+    label->SetCaption("PHYSICS TEST");
+    label->SetColor(Color(1.f, .5f, 0.f));
+    label->SetScale(Vector2(.5f, .5f));
+    AddNode(label, spriteButton);
+    AddButton(spriteButton, "physics");
+
+
+    spriteButton = CreateSprite("button.png");
+    spriteButton->SetPosition(Vector2(OScreenCenterXf, OScreenCenterYf + 220.f));
     AddNode(spriteButton);
     
     label = CreateSpriteString("cartoon.fnt");
@@ -38,7 +47,6 @@ void StartView::OnShow()
     label->SetColor(Color(1.f, .5f, 0.f));
     label->SetScale(Vector2(.5f, .5f));
     AddNode(label, spriteButton);
-
     AddButton(spriteButton, "quit");
 
     FocusButton(startButton);
@@ -84,6 +92,11 @@ bool StartView::OnCommand(const string& in_cmd)
     if (in_cmd == "start")
     {
         SendCommand(seed::eAppCommand::SWITCH_VIEW, "GameView");
+        return true;
+    }
+    else if (in_cmd == "physics")
+    {
+        SendCommand(seed::eAppCommand::SWITCH_VIEW, "PhysicsView");
         return true;
     }
     else if (in_cmd == "quit")

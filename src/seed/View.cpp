@@ -10,6 +10,7 @@
 #include "onut.h"
 #include "tinyxml2.h"
 #include "TiledMapNode.h"
+#include "PhysicsBody.h"
 
 #define VIEW_DEFAULT_NODE_COUNT 1024
 
@@ -46,6 +47,7 @@ namespace seed
     {
         // create the root node
         m_rootNode = new Node();
+        SetSize(Vector2(OScreenWf, OScreenHf));
         OnShow();
     }
 
@@ -64,6 +66,7 @@ namespace seed
     {
         // update nodes
         m_rootNode->Update();
+        UpdatePhysics();
         OnUpdate();
 
         // update buttons interactions
@@ -667,132 +670,30 @@ namespace seed
         }
         return false;
     }
-}
 
-
-
-
-
-/*
-Sprite* FocusMgr::GetNextFocusedSprite(const Vector2f& in_touchStart, const Vector2f& in_touchEnd)
-{
-    if (!m_focusedSprite)
+    PhysicsMgr& View::GetPhysics()
     {
-        // can't find the 'next' focused sprite without an actual focused sprite
-        return 0;
+        return m_physics;
     }
 
-    Vector2f focusedAbsPos = m_focusedSprite->GetAbsolutePosition() + m_focusedSprite->GetFocusOffset();
-    // define the direction unit vector the user is swipping to
-    Vector2f dir = (in_touchEnd - in_touchStart).Normalize();
-
-    const float maxDot = -.7f;
-    float bestDot = .5f;
-    Sprite* bestSprite = 0;
-    vector<Sprite*> candidates = GetPotentialCandidates(dir);
-    for (Sprite* s : candidates)
+    PhysicsBody* View::CreateBoxPhysicsForNode(Node* in_node, bool in_static)
     {
-        Vector2f spriteAbsPos = s->GetAbsolutePosition() + s->GetFocusOffset();
-        // define the direction vector from this potential candidate to the currently focused sprite
-        Vector2f sDir = (focusedAbsPos - spriteAbsPos).Normalize();
-        float dot = dir.Dot(sDir);
-        //float dotDiff = fabsf(dot - bestDot);
-
-        if (dot < maxDot)
-        {
-            bool canAccept = true;
-            if (bestSprite)
-            {
-                // only accept this entry if it's closer to the currently focused sprite
-                if (focusedAbsPos.DistanceSqr(spriteAbsPos) > focusedAbsPos.DistanceSqr(bestSprite->GetAbsolutePosition() + bestSprite->GetFocusOffset()))
-                {
-                    // can't accept it, it's farther to the
-                    canAccept = false;
-                }
-            }
-
-            if (canAccept)
-            {
-                bestDot = dot;
-                bestSprite = s;
-            }
-        }
+        return m_physics.CreateBoxPhysicsForNode(in_node, in_static);
     }
-    return bestSprite;
-}
 
-vector<Sprite*> FocusMgr::GetPotentialCandidates(const Vector2f in_dir)
-{
-    vector<Sprite*> result;
-    Vector2f focusedAbsPos = m_focusedSprite->GetAbsolutePosition() + m_focusedSprite->GetFocusOffset();
-    for (Sprite* s : m_sprites)
+    PhysicsBody* View::CreateCirclePhysicsForNode(Node* in_node, float in_radius, bool in_static)
     {
-        if (!s)
-        {
-            continue;
-        }
-
-        if (s == m_focusedSprite || !s->GetVisible())
-        {
-            continue;
-        }
-
-        Vector2f absPos = s->GetAbsolutePosition() + s->GetFocusOffset();
-        if (in_dir.x < 0)
-        {
-            if (absPos.x < focusedAbsPos.x)
-            {
-                if (!AlreadyInVector(s, result))
-                {
-                    result.push_back(s);
-                }
-            }
-        }
-        else if (in_dir.x >= 0)
-        {
-            if (absPos.x > focusedAbsPos.x)
-            {
-                if (!AlreadyInVector(s, result))
-                {
-                    result.push_back(s);
-                }
-            }
-        }
-
-
-        if (in_dir.y < 0)
-        {
-            if (absPos.y < focusedAbsPos.y)
-            {
-                if (!AlreadyInVector(s, result))
-                {
-                    result.push_back(s);
-                }
-            }
-        }
-        else if (in_dir.y >= 0)
-        {
-            if (absPos.y > focusedAbsPos.y)
-            {
-                if (!AlreadyInVector(s, result))
-                {
-                    result.push_back(s);
-                }
-            }
-        }
+        return m_physics.CreateCirclePhysicsForNode(in_node, in_radius, in_static);
     }
-    return result;
-}
 
-bool FocusMgr::AlreadyInVector(Sprite* in_sprite, vector<Sprite*>& in_vector)
-{
-    for (Sprite* s : in_vector)
+    PhysicsBody* View::GetPhysicsForNode(Node* in_node)
     {
-        if (s == in_sprite)
-        {
-            return true;
-        }
+        return m_physics.GetBodyForNode(in_node);
     }
-    return false;
+
+    void View::UpdatePhysics()
+    {
+        m_physics.Update();
+    }
+
 }
-*/

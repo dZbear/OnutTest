@@ -202,6 +202,10 @@ namespace seed
         {
             return (float)m_texture->getSize().x;
         }
+        else if (m_anim.getTexture())
+        {
+            return (float)m_anim.getTexture()->getSizef().x;
+        }
         return 0;
     }
     float Sprite::GetHeight() const
@@ -209,6 +213,10 @@ namespace seed
         if (m_texture)
         {
             return (float)m_texture->getSize().y;
+        }
+        else if (m_anim.getTexture())
+        {
+            return (float)m_anim.getTexture()->getSizef().y;
         }
         return 0;
     }

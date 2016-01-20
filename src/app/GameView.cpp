@@ -19,8 +19,6 @@ GameView::~GameView()
 
 void GameView::OnShow()
 {
-    SetSize(OScreenf);
-
     auto pTiledMap = CreateTiledMapNode("sample.tmx");
     pTiledMap->SetPosition(Vector2(-200.f, -200.f));
     pTiledMap->SetScale(Vector2(2.f));
