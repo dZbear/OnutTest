@@ -32,7 +32,7 @@ void PhysicsView::OnShow()
     phBox->SetRestitution(.2f);
     phBox->SetFriction(0.0001f);
 
-    m_dude = CreateSpriteWithSpriteAnim("baltAnims.xml", "idle_side");
+    m_dude = CreateSpriteWithSpriteAnim("baltAnims.spriteanim", "idle_side");
     m_dude->SetPosition(Vector2(OScreenCenterXf, 100.f) + Vector2(100, 0));
     m_dude->SetScale(Vector2(5, 5));
     m_dude->SetFilter(onut::SpriteBatch::eFiltering::Nearest);

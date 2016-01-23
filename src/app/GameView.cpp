@@ -30,7 +30,7 @@ void GameView::OnShow()
     pEffect->SetVignetteEnabled(true);
     AddNode(pEffect);
 
-    m_dude = CreateSpriteWithSpriteAnim("baltAnims.xml", "idle_down");
+    m_dude = CreateSpriteWithSpriteAnim("baltAnims.spriteanim", "idle_down");
     AddNode(m_dude, pEffect);
     m_idleAnim = "idle_down";
     m_dude->SetPosition(OScreenCenterf);

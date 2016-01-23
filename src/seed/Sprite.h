@@ -16,7 +16,7 @@ namespace seed
         tinyxml2::XMLElement*   Serialize(tinyxml2::XMLDocument* in_xmlDoc) const override;
         void                    Deserialize(View* view, tinyxml2::XMLElement* in_xmlNode) override;
 
-        void            SetSpriteAnimSource( const string& in_sourceName );
+        void            SetSpriteAnimSource(const string& in_sourceName);
         void            SetSpriteAnim(const string& in_animName);
         void            SetSpriteAnim(OSpriteAnim in_anim);
         void            StopSpriteAnim();
