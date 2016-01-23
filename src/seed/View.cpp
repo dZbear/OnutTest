@@ -60,6 +60,7 @@ namespace seed
         m_currentButton = nullptr;
         memset(m_focusedButtons, 0, 4);
         memset(m_defaultFocusedButton, 0, 4);
+        DeletePhysics();
     }
 
     void View::Update()
@@ -671,11 +672,17 @@ namespace seed
         return false;
     }
 
-    PhysicsMgr& View::GetPhysics()
+    void View::InitPhysics(const Vector2& in_gravity, float in_pixelToMeterRatio)
     {
-        return m_physics;
+        m_physics.Init(this, in_gravity, in_pixelToMeterRatio);
     }
 
+    void View::DeletePhysics()
+    {
+        m_physics.Reset();
+    }
+
+    
     PhysicsBody* View::CreateBoxPhysicsForNode(Node* in_node, bool in_static)
     {
         return m_physics.CreateBoxPhysicsForNode(in_node, in_static);

@@ -142,6 +142,7 @@
     <ClCompile Include="..\..\src\seed\MusicEmitter.cpp" />
     <ClCompile Include="..\..\src\seed\Node.cpp" />
     <ClCompile Include="..\..\src\seed\PhysicsBody.cpp" />
+    <ClCompile Include="..\..\src\seed\PhysicsListener.cpp" />
     <ClCompile Include="..\..\src\seed\PhysicsMgr.cpp" />
     <ClCompile Include="..\..\src\seed\SoundEmitter.cpp" />
     <ClCompile Include="..\..\src\seed\Sprite.cpp" />
@@ -215,6 +216,7 @@
     <ClInclude Include="..\..\src\seed\MusicEmitter.h" />
     <ClInclude Include="..\..\src\seed\Node.h" />
     <ClInclude Include="..\..\src\seed\PhysicsBody.h" />
+    <ClInclude Include="..\..\src\seed\PhysicsListener.h" />
     <ClInclude Include="..\..\src\seed\PhysicsMgr.h" />
     <ClInclude Include="..\..\src\seed\SeedGlobals.h" />
     <ClInclude Include="..\..\src\seed\SoundEmitter.h" />

@@ -119,6 +119,11 @@ namespace seed
         m_fixture->SetFriction(in_friction);
     }
 
+    b2Body* PhysicsBody::GetB2Body()
+    {
+        return m_body;
+    }
+
 }
 
 

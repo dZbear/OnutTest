@@ -62,6 +62,8 @@ namespace seed
         virtual void OnButtonFocused(Button* in_button, int in_playerIndex) {};
         virtual void OnButtonFocusLost(Button* in_button, int in_playerIndex) {};
         virtual bool OnCommand(const string& in_cmd) { return false; }
+        virtual void OnCollisionStart(Node* in_nodeA, Node* in_nodeB) {};
+        virtual void OnCollisionEnd(Node* in_nodeA, Node* in_nodeB) {};
         /////
 
         // used exclusively by the SeedApp
@@ -79,7 +81,7 @@ namespace seed
         void VisitNodesBackward(const VisitCallback& callback);
 
         // Physics stuff for this particular view
-        PhysicsMgr&     GetPhysics();
+        void            InitPhysics(const Vector2& in_gravity, float in_pixelToMeterRatio=64.f);
         PhysicsBody*    CreateBoxPhysicsForNode(Node* in_node, bool in_static);
         PhysicsBody*    CreateCirclePhysicsForNode(Node* in_node, float in_radius, bool in_static);
         PhysicsBody*    GetPhysicsForNode(Node* in_node);
@@ -122,5 +124,6 @@ namespace seed
         
         PhysicsMgr      m_physics;
         void            UpdatePhysics();
+        void            DeletePhysics();
     };
 }

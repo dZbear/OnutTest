@@ -197,6 +197,9 @@
     <ClCompile Include="..\..\src\seed\PhysicsBody.cpp">
       <Filter>seed</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\seed\PhysicsListener.cpp">
+      <Filter>seed</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="seed">
@@ -412,6 +415,9 @@
       <Filter>app\Views</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\seed\PhysicsBody.h">
+      <Filter>seed</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\seed\PhysicsListener.h">
       <Filter>seed</Filter>
     </ClInclude>
   </ItemGroup>

@@ -11,6 +11,8 @@ public:
 	virtual void OnShow();
 	virtual void OnHide();
     virtual void OnUpdate();
+    virtual void OnCollisionStart(seed::Node* in_nodeA, seed::Node* in_nodeB);
+    virtual void OnCollisionEnd(seed::Node* in_nodeA, seed::Node* in_nodeB);
 	
 private:
 

@@ -30,6 +30,8 @@ namespace seed
         float       GetAngle();
         Vector2     GetLinearVel();
 
+        b2Body*     GetB2Body();
+
     private:
 
         b2Body*     m_body;

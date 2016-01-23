@@ -5,6 +5,7 @@
 
 namespace seed
 {
+    class PhysicsListener;
     class PhysicsMgr
     {
     public:
@@ -12,8 +13,9 @@ namespace seed
         PhysicsMgr();
         ~PhysicsMgr();
 
-        void            Init(const Vector2& in_gravity, float in_pixelToMetersRatio=64.f);
+        void            Init(View* in_container, const Vector2& in_gravity, float in_pixelToMetersRatio=64.f);
         void            Update();
+        void            Reset();
 
         PhysicsBody*    CreateBoxPhysicsForNode(Node* in_node, bool in_static);
         PhysicsBody*    CreateCirclePhysicsForNode(Node* in_node, float in_radius, bool in_static);
@@ -22,8 +24,10 @@ namespace seed
         
     private:
 
-        b2World*    m_world;
-        BodyMap     m_bodies;
+        b2World*            m_world;
+        BodyMap             m_bodies;
+        PhysicsListener*    m_listener;
+        View*               m_container;
 
         float       m_pixelToMetersRatio;
     };

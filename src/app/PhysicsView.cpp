@@ -16,8 +16,7 @@ PhysicsView::~PhysicsView()
 void PhysicsView::OnShow()
 {
     // init a physical world
-
-    GetPhysics().Init(Vector2(0, 1), 16.f);
+    InitPhysics(Vector2(0, 1), 16.f);
 
     seed::Sprite* ground = CreateSprite("ground.png");
     ground->SetPosition(Vector2(OScreenCenterXf, OScreenHf - ground->GetHeight() / 2.f));
@@ -43,6 +42,18 @@ void PhysicsView::OnShow()
     phDudeBox->SetRestitution(.05f);
 }
 
+void PhysicsView::OnCollisionStart(seed::Node* in_nodeA, seed::Node* in_nodeB)
+{
+    // make those who are colliding red
+    in_nodeA->SetColor(Color(1, 0, 0));
+    in_nodeB->SetColor(Color(1, 0, 0));
+}
+void PhysicsView::OnCollisionEnd(seed::Node* in_nodeA, seed::Node* in_nodeB)
+{
+    in_nodeA->SetColor(Color(1, 1, 1));
+    in_nodeB->SetColor(Color(1, 1, 1));
+}
+
 void PhysicsView::OnHide()
 {
 
@@ -50,6 +61,14 @@ void PhysicsView::OnHide()
 
 void PhysicsView::OnUpdate()
 {
+    if (OJustPressed(OINPUT_ESCAPE))
+    {
+        // leave
+        SendCommand(seed::eAppCommand::SWITCH_VIEW, "StartView");
+        return;
+    }
+
+
     const float MOVE_VEL = 500.f;
     if (OPressed(OINPUT_LEFT))
     {
